@@ -73,13 +73,8 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
       <div className="button-row"><Button variant="outline" disabled={loading || !posts.length} onClick={() => exportCalendar([...dated, ...recurring], campaigns)}><Download size={18}/>Export calendar</Button><Button onClick={() => openDraft()}><Plus size={18}/>New draft</Button></div>
     </div>
     <ConsignmentCampaign posts={posts} campaigns={campaigns} disabled={busy || loading} onSave={onSaveCampaign}/>
-    {loading ? <p role="status" className="notice">Loading the calendar…</p> : null}
-    {!loading && !dated.length ? <p className="panel">No dated drafts yet. Add your first post below.</p> : null}
-    <div className="calendar-days">{days.map(day => <section key={day} aria-label={calendarDay(day)}>
-      <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{dated.filter(p => p.data.date.startsWith(day)).length} posts</span></div>
-      <div className="calendar-post-grid">{dated.filter(p => p.data.date.startsWith(day)).map(card)}</div>
-    </section>)}</div>
-    {recurring.length ? <section className="calendar-recurring" aria-labelledby="weekly-series"><p className="eyebrow">REPEAT EACH WEEK</p><h2 id="weekly-series">Every Tuesday</h2><p className="muted">Use each series to prepare its next dated draft. Publishing remains manual.</p><div className="calendar-post-grid">{recurring.map(card)}</div></section> : null}
+    <section className="calendar-editor-section" aria-labelledby="calendar-editor-heading">
+      <div className="calendar-workflow-heading"><div><p className="eyebrow">SCHEDULE CONTENT</p><h2 id="calendar-editor-heading">Add to Calendar</h2><p className="muted">Create or edit a post here. Saved items appear immediately in the day-by-day schedule below.</p></div></div>
     <form ref={formRef} className="panel calendar-form" onSubmit={async e => {
       e.preventDefault();
       if (!draft.title.trim() || !draft.date) return toast.error('Add a title and date.');
@@ -99,5 +94,15 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
       {draft.category === 'Consignment' && <ProductionFields data={draft} onChange={data => setDraft({...data, source: data.platforms?.[0] || data.source})}/>}
       <div className="button-row"><Button disabled={busy} type="submit">{busy ? 'Saving…' : editingId ? 'Save changes' : 'Save draft'}</Button>{editingId ? <Button type="button" variant="outline" onClick={() => {setEditingId(null); setDraft({...emptyDraft});}}>Cancel edit</Button> : null}</div>
     </form>
+    </section>
+    <div className="calendar-view-heading"><div><p className="eyebrow">CALENDAR BY DAY</p><h2>Upcoming schedule</h2><p className="muted">Everything below is grouped by Central date and ordered by publish time.</p></div></div>
+    {loading ? <p role="status" className="notice">Loading the calendar…</p> : null}
+    {!loading && !dated.length ? <p className="panel">No dated drafts yet. Add your first post below.</p> : null}
+    <div className="calendar-days">{days.map(day => <section key={day} aria-label={calendarDay(day)}>
+      <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{dated.filter(p => p.data.date.startsWith(day)).length} posts</span></div>
+      <div className="calendar-post-grid">{dated.filter(p => p.data.date.startsWith(day)).map(card)}</div>
+    </section>)}</div>
+    {recurring.length ? <section className="calendar-recurring" aria-labelledby="weekly-series"><p className="eyebrow">REPEAT EACH WEEK</p><h2 id="weekly-series">Every Tuesday</h2><p className="muted">Use each series to prepare its next dated draft. Publishing remains manual.</p><div className="calendar-post-grid">{recurring.map(card)}</div></section> : null}
+
   </>;
 }
