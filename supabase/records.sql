@@ -18,7 +18,7 @@ begin
    raise exception using errcode='22023',message='Check campaign category and assigned staff member.';
   end if;
  end if;
- if p_kind not in ('plan','post','link','metrics','clipjob','upload','asset') or length(p_id) not between 1 and 180 then
+ if p_kind not in ('plan','post','link','metrics','clipjob','request','upload','asset') or length(p_id) not between 1 and 180 then
   raise exception using errcode='22023',message='Invalid record.';
  end if;
  if p_kind='post' and (left(p_id,6)='radar_' or p_data ? 'radarId' or p_data ? 'radarOrg' or p_data ? 'radarVersion') then
