@@ -3,7 +3,7 @@
 import {useState} from 'react';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {BarChart3, CalendarDays, CheckSquare2, FileText, FolderKanban, Images, LayoutDashboard, Menu, Settings2, Users} from 'lucide-react';
+import {BarChart3, CalendarDays, CheckSquare2, FileText, FolderKanban, Images, LayoutDashboard, Menu, Settings2, Users, Plus} from 'lucide-react';
 import {hqSections, pageForPath, sectionForPath} from '@/lib/hq-navigation';
 import {HqNotifications} from '@/components/hq-notifications';
 import {SignOut} from '@/components/sign-out';
@@ -42,7 +42,7 @@ export function HqShell({children}: {children: React.ReactNode}) {
         <div className="hq-utilities"><span className="hq-timezone">Central time</span><ThemeToggle/><HqNotifications/><SignOut/></div>
       </header>
       <main className="hq-main" id="hq-main" tabIndex={-1}>
-        {page.id !== 'overview' && <PageHeader title={page.title} description={page.description} breadcrumb={page.breadcrumb}/>}
+        {page.id !== 'overview' && <PageHeader title={page.title} description={page.description} breadcrumb={page.breadcrumb} primaryAction={pathname==='/work'||pathname==='/projects'||pathname==='/calendar'||pathname==='/content'||pathname==='/results'?<Button asChild><Link onClick={e=>{const url=new URL(e.currentTarget.href);if(url.pathname===pathname){e.preventDefault();history.replaceState(null,'',url.pathname+url.hash);window.dispatchEvent(new Event('hashchange'));}}} href={pathname==='/work'?'/work#new-task':pathname==='/projects'?'/projects#new-campaign':pathname==='/calendar'?'/work#new-task':pathname==='/content'?'/content#upload-source':'/results#add-results'}><Plus size={16}/>{pathname==='/projects'?'New Campaign':pathname==='/content'?'Upload Source':pathname==='/results'?'Add Results':'Add Task'}</Link></Button>:undefined}/>}
         {children}
         <footer className="hub-footer"><span>Northside HQ · Northside Collectibles</span><span>Operations Command Center</span></footer>
       </main>
