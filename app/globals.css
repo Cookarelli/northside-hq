@@ -848,10 +848,49 @@ a.hq-stat-card:hover { text-decoration: none; border-color: var(--input); }
  .hq-calendar-toolbar { align-items: flex-start; }
  .hq-calendar-toolbar .button-row { gap: 4px; }
  .hq-studio-steps button { padding: 10px 5px; align-items: center; text-align: center; gap: 6px; }
- .hq-studio-steps strong { font-size: .68rem; }
- .hq-studio-steps small { font-size: .62rem; }
+ .hq-studio-steps strong { font-size: .75rem; }
+ .hq-studio-steps small { font-size: .7rem; }
  .hq-step-number { width: 25px; height: 25px; }
  .hq-studio-clips { grid-template-columns: 1fr; }
  .hq-source-result-title { align-items: flex-start; flex-direction: column; gap: 5px; }
  .hq-result-bar { grid-template-columns: 58px minmax(0,1fr) 72px; gap: 8px; font-size: .75rem; }
+}
+
+/* Executive visual QA: consistent rhythm, readable metadata, and bounded utility panels. */
+.hq-calendar-overview + .hq-details { margin-top: 24px; }
+.hq-main .hq-section-header > div > p, .hq-page-help p { max-width: 72ch; }
+.hq-studio-workflow .field { max-width: none; }
+.hq-studio-workflow .hq-workflow-footer { margin-top: 20px; }
+.hq-overview-bottom { align-items: start; }
+.hq-calendar-cell-count, .hq-calendar-cell-date small, .hq-calendar-item small { font-size: .75rem; }
+.hq-lifecycle span, .hq-campaign-stages span { font-size: .75rem; }
+.hq-team-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; margin: 20px 0 24px; }
+.hq-team-grid .hq-team-card { margin: 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.hq-team-card .hq-card-top { width: 100%; }
+.hq-team-card .hq-assignee > span:last-child { display: none; }
+.hq-team-card h2 { margin: 20px 0 8px; font-size: 1.125rem; }
+.hq-team-card p { margin: 0 0 12px; overflow-wrap: anywhere; }
+.hq-team-card button { margin-top: auto; }
+.hq-settings { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; max-width: 1120px; }
+.hq-settings > .panel { margin: 0; }
+.hq-settings > .panel:nth-of-type(3) { grid-column: 1 / -1; }
+.hq-settings > .panel > p { max-width: 72ch; }
+
+.hq-settings .hq-quick-action { max-width: 620px; }
+.auth-shell { font-size: 1rem; }
+.auth-shell .brand-word { color: var(--foreground); font-size: 1rem; letter-spacing: .06em; }
+.auth-shell input { font-size: 1rem; border-color: var(--input); border-radius: 9px; }
+.auth-shell button { font-size: 1rem; background: var(--primary); color: var(--primary-foreground); border-radius: 9px; }
+.auth-shell .muted { font-size: .875rem; }
+@media(min-width:761px) {
+ .hq-attention-list > li { padding: 14px 0; }
+ .hq-attention-main > p { margin-bottom: 8px; }
+}
+@media(max-width:760px) {
+ .hq-team-grid, .hq-settings { grid-template-columns: minmax(0,1fr); gap: 20px; }
+ .hq-settings > .panel:nth-of-type(3) { grid-column: auto; }
+ .hq-calendar-grid[data-view=month] .hq-calendar-cell-count { font-size: .7rem; }
+ .hq-calendar-grid[data-view=month] .hq-calendar-cell-date > span { font-size: .7rem; }
+ .hq-lifecycle span, .hq-campaign-stages span { font-size: .7rem; }
+ .auth-shell { padding: 16px; margin-top: 24px; }
 }

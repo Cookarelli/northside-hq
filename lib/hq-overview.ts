@@ -12,7 +12,7 @@ export type OverviewSources = {
 };
 export type AgendaItem = {key: string; title: string; date: string; label: string; href: string; owner: string};
 export type AttentionItem = AgendaItem & {reason: string; status: VisualStatus; action: string; priority: number};
-export const shortStages: Record<Stage, string> = {opening: 'Opening', midweek: 'Midweek', reminder: '48-hour', closing: 'Closing', recap: 'Recap'};
+export const shortStages: Record<Stage, string> = {opening: 'Open', midweek: 'Midweek', reminder: '48 Hours', closing: 'Closing Day', recap: 'Results'};
 const workHref = (id: string) => '/projects/work/' + encodeURIComponent(id);
 const projectHref = (id: string) => '/projects/' + encodeURIComponent(id);
 const legacyHref = '/calendar?legacy=1#existing-calendar';
