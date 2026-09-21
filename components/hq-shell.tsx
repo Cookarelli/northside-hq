@@ -3,7 +3,7 @@
 import {useState} from 'react';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {BarChart3, CalendarDays, CheckSquare2, FileText, FolderKanban, Images, LayoutDashboard, Menu, Settings2, Users, Plus} from 'lucide-react';
+import {BarChart3, CalendarDays, CheckSquare2, FileText, FolderKanban, Images, LayoutDashboard, Menu, Settings2, Users} from 'lucide-react';
 import {hqSections, pageForPath, sectionForPath} from '@/lib/hq-navigation';
 import {HqNotifications} from '@/components/hq-notifications';
 import {SignOut} from '@/components/sign-out';
@@ -42,8 +42,7 @@ export function HqShell({children}: {children: React.ReactNode}) {
         <div className="hq-utilities"><span className="hq-timezone">Central time</span><ThemeToggle/><HqNotifications/><SignOut/></div>
       </header>
       <main className="hq-main" id="hq-main" tabIndex={-1}>
-        <PageHeader title={page.title} description={page.description} breadcrumb={page.breadcrumb}
-          primaryAction={page.id === 'overview' ? <Button asChild><Link href="/projects#new-campaign"><Plus size={16}/>New Campaign</Link></Button> : undefined}/>
+        {page.id !== 'overview' && <PageHeader title={page.title} description={page.description} breadcrumb={page.breadcrumb}/>}
         {children}
         <footer className="hub-footer"><span>Northside HQ · Northside Collectibles</span><span>Operations Command Center</span></footer>
       </main>

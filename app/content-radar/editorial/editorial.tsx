@@ -17,6 +17,19 @@ export default function Editorial({initialTab='Editorial queue'}:{initialTab?:st
  const [data,setData]=useState<Data|null>(null),[tab,setTab]=useState(initialTab),[editor,setEditor]=useState<Editor|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[state,setState]=useState('all');
  async function load(){const r=await fetch('/api/content-radar/editorial',{cache:'no-store'});const j=await r.json() as Data & {error?:string};if(!r.ok)throw Error(j.error);setData(j);}
  useEffect(()=>{const controller=new AbortController();fetch('/api/content-radar/editorial',{cache:'no-store',signal:controller.signal}).then(async r=>{const j=await r.json() as Data & {error?:string};if(!r.ok)throw Error(j.error);setData(j);}).catch(e=>{if(!controller.signal.aborted)setError(e.message);});return ()=>controller.abort();},[]);
+ useEffect(()=>{
+   if(!data||initialTab!=='Editorial queue')return;
+   const sync=()=>{
+     const hash=window.location.hash;
+     if(hash==='#new-post'){setEditor({kind:'queue',id:clientId(),version:0,data:{...blankQueue}});window.history.replaceState(null,'',window.location.pathname+window.location.search);}
+     else if(hash.startsWith('#post-')) {
+       let id='';try{id=decodeURIComponent(hash.slice(6));}catch{return;}
+       const row=data.records.find(r=>r.kind==='queue'&&r.id===id);
+       if(row){setEditor({kind:'queue',id,version:row.version,data:structuredClone(row.data) as Record<string,unknown>});window.history.replaceState(null,'',window.location.pathname+window.location.search);}
+     }
+   };
+   sync();window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);
+ },[data,initialTab]);
  async function save(){if(!editor)return;setBusy(true);setError('');try{const r=await fetch('/api/content-radar/editorial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(editor)});const j=await r.json() as {error?:string;data?:Queue};if(!r.ok)throw Error(j.error);setEditor(null);setNotice('Saved. '+(j.data?.state==='Needs review'?'This draft needs review.':''));await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
  function edit(kind:Editor['kind'],id:string,initial:Record<string,unknown>){const r=data?.records.find(r=>r.kind===kind&&r.id===id);setEditor({kind,id,version:r?.version||0,data:structuredClone(r?.data||initial)});setError('');setNotice('');requestAnimationFrame(()=>document.querySelector('.editor-dialog')?.scrollIntoView({behavior:'smooth',block:'start'}));}
  function field(key:string,value:unknown,change:(v:unknown)=>void){
