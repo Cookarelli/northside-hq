@@ -351,3 +351,49 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .workspace-navigation .main-tabs{margin-top:0}
 @media(max-width:1000px){.ceo-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ceo-overview-heading{display:block}.quick-actions{justify-content:flex-start;margin-top:18px}}
 @media(max-width:600px){.ceo-overview{padding:20px}.ceo-stat-grid{grid-template-columns:1fr}.quick-actions>*{flex:1 1 100%}}
+
+
+/* Calendar workflow: editor first, schedule immediately below. */
+.calendar-editor-section{margin:26px 0 22px;padding:24px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.calendar-workflow-heading,.calendar-view-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.calendar-workflow-heading h2,.calendar-view-heading h2{margin:.15rem 0 .35rem}
+.calendar-editor-section .calendar-form{max-width:none;margin:20px 0 0;padding:0;border:0;box-shadow:none;background:transparent}
+.calendar-view-heading{margin:30px 0 16px;padding-top:26px;border-top:1px solid var(--border)}
+.calendar-relative-day{display:block;min-height:1.25rem;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--primary)}
+.calendar-day-heading h3{margin:.05rem 0 0}
+.calendar-day-heading>.tag{margin-left:auto}
+
+/* Work / Requests */
+.requests-workflow{margin:0 0 34px}
+.request-layout{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(0,1.6fr);gap:22px;align-items:start}
+.request-sidebar{display:grid;gap:18px}
+.request-create{margin:0}
+.request-create h3{display:flex;align-items:center;gap:9px}
+.request-list{display:grid;gap:9px}
+.request-list-item{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:15px 16px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--foreground);text-align:left;cursor:pointer}
+.request-list-item:hover,.request-list-item.active{border-color:var(--primary);background:var(--accent)}
+.request-list-item span{min-width:0}
+.request-list-item b,.request-list-item small{display:block}
+.request-list-item b{font-size:1rem;overflow-wrap:anywhere}
+.request-list-item small{margin-top:3px;color:var(--muted-foreground);font-size:.88rem}
+.request-list-item em{flex-shrink:0;padding:5px 8px;border-radius:6px;background:var(--secondary);color:var(--secondary-foreground);font-size:.78rem;font-style:normal;font-weight:750}
+.request-list-item em[data-status="needs-attention"],.request-list-item em[data-status="blocked"]{background:#f9ead0;color:#76500d}
+html.dark .request-list-item em[data-status="needs-attention"],html.dark .request-list-item em[data-status="blocked"]{background:#443821;color:#f5d799}
+.request-list-item em[data-status="complete"]{opacity:.72}
+.request-detail-card{margin:0}
+.request-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:22px;border-bottom:1px solid var(--border)}
+.request-detail-header>div{min-width:0;max-width:760px}
+.request-detail-header h2{margin:.2rem 0 .55rem}
+.request-status{min-width:190px}
+.request-status select{width:100%;min-height:48px;border:1px solid var(--input);border-radius:7px;background:var(--card);color:var(--foreground);padding:10px 12px}
+.request-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px 0}
+.request-notes{margin-top:26px;padding-top:24px;border-top:1px solid var(--border)}
+.request-notes-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.request-notes-heading h3{margin:.15rem 0 0}
+.request-note-list{display:grid;gap:10px;margin-top:20px}
+.request-note{padding:16px;border-left:3px solid var(--border);background:var(--background);border-radius:0 8px 8px 0}
+.request-note p{white-space:pre-wrap;margin:0 0 8px}
+.request-note small{color:var(--muted-foreground)}
+.work-roadmap{margin-top:30px}
+@media(max-width:950px){.request-layout{grid-template-columns:1fr}.request-detail-header{display:block}.request-status{margin-top:18px;max-width:280px}}
+@media(max-width:680px){.calendar-editor-section{padding:18px}.request-meta{grid-template-columns:1fr}.request-list-item{align-items:flex-start;flex-direction:column}.request-detail-card{padding:20px}}
