@@ -1,9 +1,9 @@
 export const hqSections = [
   {id: 'overview', label: 'Overview', href: '/today', description: 'Your team’s priorities, approvals and upcoming work.', group: 'primary'},
   {id: 'work', label: 'Work', href: '/work', description: 'Move tasks forward with clear owners and next steps.', group: 'primary'},
-  {id: 'calendar', label: 'Calendar', href: '/calendar', description: 'See what is due and what is planned for publication.', group: 'primary'},
+  {id: 'calendar', label: 'Calendar', href: '/calendar', description: 'See everything Northside has planned.', group: 'primary'},
   {id: 'campaigns', label: 'Campaigns', href: '/projects', description: 'Plan campaigns, coordinate deliverables and follow progress.', group: 'primary'},
-  {id: 'content', label: 'Content', href: '/content', description: 'Create posts and move editorial work through review.', group: 'primary'},
+  {id: 'content', label: 'Content', href: '/content', description: 'Turn source footage and ideas into reviewed content.', group: 'primary'},
   {id: 'results', label: 'Results', href: '/results', description: 'Review actual spend, tracked sales and campaign performance.', group: 'primary'},
   {id: 'assets', label: 'Assets', href: '/assets', description: 'Find shared media and prepare files for production.', group: 'secondary'},
   {id: 'team', label: 'Team', href: '/team', description: 'Manage staff access and workspace responsibilities.', group: 'secondary'},

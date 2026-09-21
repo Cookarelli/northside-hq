@@ -1,3 +1,3 @@
-import Editorial from '@/app/content-radar/editorial/editorial';
+import {HqContent} from '@/components/hq-content';
 export const metadata = {title: 'Content | Northside HQ'};
-export default function Page() {return <Editorial/>;}
+export default function Page() {return <HqContent/>;}

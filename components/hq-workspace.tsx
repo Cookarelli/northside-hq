@@ -3,10 +3,13 @@
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
-import {Plus} from 'lucide-react';
-import {Assignee, DueDate, EmptyState, ProgressBar, SectionHeader, StatusBadge} from '@/components/hq-ui';
+import {Plus,FolderKanban} from 'lucide-react';
+import {HqWorkBoard} from '@/components/hq-work-board';
+import {HqCampaignLifecycle} from '@/components/hq-campaign-lifecycle';
+import {campaignLifecycle,campaignNext} from '@/lib/hq-sections';
+import {overviewComplete} from '@/lib/hq-overview';
+import {Assignee, DueDate, EmptyState, ProgressBar, SectionHeader, StatCard, StatusBadge} from '@/components/hq-ui';
 import {campaignStatus, workStatus} from '@/lib/hq-presentation';
-import {finished} from '@/lib/hq-operations';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
@@ -49,6 +52,8 @@ export function HqWorkspace({view='list',id,listMode='campaigns'}:{view?:'list'|
   const projects=records.filter(r=>r.kind==='project') as HqRecord<Project>[],deliverables=records.filter(r=>r.kind==='deliverable') as HqRecord<Deliverable>[],assets=records.filter(r=>r.kind==='asset') as Asset[];
   const project=view==='project'?projects.find(p=>p.id===id):undefined,deliverable=view==='deliverable'?deliverables.find(d=>d.id===id):undefined;
   const parent=deliverable?projects.find(p=>p.id===deliverable.data.projectId):project;
+  const campaignWork=project?deliverables.filter(d=>d.data.projectId===project.id):[];
+  const required=project?campaignNext(project.data,campaignWork):null;
   const eligibleProjects=projects.filter(p=>c.admin||p.data.owner===c.staffId||p.data.members.includes(c.staffId));
   const name=(staffId:string)=>c.staff.find(s=>s.id===staffId)?.name||staffId||'Unassigned';
   async function createRecord(command:Record<string,unknown>) {const result=await act(command);if(result?.id){setCreate(null);router.push(command.action==='save-project'?'/projects/'+result.id:'/projects/work/'+result.id);}}
@@ -57,24 +62,25 @@ export function HqWorkspace({view='list',id,listMode='campaigns'}:{view?:'list'|
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
     {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
     {view==='list'&&<>
-      {listMode!=='team'&&<SectionHeader title={listMode==='work'?'Tasks':'Campaign portfolio'} description={listMode==='work'?'Assigned production and standalone work.':'Campaigns and projects share the same team workflow.'} action={<Button onClick={()=>setCreate(listMode==='work'?'deliverable':'project')}><Plus size={16}/>{listMode==='work'?'Add Task':'New Campaign'}</Button>}/>}
+
       <div ref={formRef}>
-        {create==='project'&&<section className="panel"><ProjectForm initial={{...blankProject,owner:c.staffId}} context={c} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/></section>}
-        {create==='deliverable'&&<section className="panel"><DeliverableForm initial={{...blankDeliverable,owner:c.staffId}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/></section>}
+        {create==='project'&&<section className="panel"><ProjectForm initial={{...blankProject,owner:c.staffId}} context={c} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>{setCreate(null);history.replaceState(null,'',location.pathname+location.search);}}/></section>}
+        {create==='deliverable'&&<section className="panel"><DeliverableForm initial={{...blankDeliverable,owner:c.staffId}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>{setCreate(null);history.replaceState(null,'',location.pathname+location.search);}}/></section>}
       </div>
-      {listMode==='campaigns'&&<ProjectList projects={projects} deliverables={deliverables} name={name}/>}
-      {listMode==='work'&&<section className="panel"><DeliverableList records={deliverables} projects={projects} name={name}/></section>}
-      {listMode==='campaigns'&&<LegacyAdoption records={records} context={c} act={act} busy={busy}/>}
-      {listMode==='work'&&<EditorialHandoff records={records} context={c} act={act} busy={busy}/>}
+      {listMode==='campaigns'&&<ProjectList projects={projects} deliverables={deliverables} name={name} onCreate={()=>setCreate('project')}/>}
+      {listMode==='work'&&<HqWorkBoard records={deliverables} projects={projects} context={c} onCreate={()=>setCreate('deliverable')}/>}
+      {listMode==='campaigns'&&<details className="panel hq-details"><summary>Bring existing campaigns into HQ</summary><LegacyAdoption records={records} context={c} act={act} busy={busy}/></details>}
+      {listMode==='work'&&<details className="panel hq-details"><summary>Incoming content &amp; handoffs</summary><EditorialHandoff records={records} context={c} act={act} busy={busy}/></details>}
       {listMode==='team'&&c.admin&&<details className="panel hq-details"><summary>Workspace permissions</summary><h3>Budget approval</h3><p>Grant this separately from project ownership. Only these people can establish or change approved budgets.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={s.budgetApprover} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,enabled:e.target.checked})}/>{s.name}</label>)}</div><h3>Request coordinators</h3><p>These people can accept or decline requests and link them to production work.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={!!s.requestCoordinator} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,capability:'coordinate_requests',enabled:e.target.checked})}/>{s.name}</label>)}</div></details>}
     </>}
     {view!=='list'&&<SourceRequests records={records} kind={view} id={id!}/>}
     {view==='project' &&(project?<>
+      <section className="panel hq-next-action"><SectionHeader title="Next required action"/><p>{required!.text}</p>{required!.workId&&<Button asChild><Link href={'/projects/work/'+required!.workId}>Open Next Task</Link></Button>}{!required!.workId&&eligibleProjects.some(p=>p.id===project.id)&&<Button variant="outline" onClick={()=>{const el=document.getElementById(projectMissing(project.data).length||project.data.status!=='active'||campaignWork.length?'campaign-settings':'campaign-tasks');if(el instanceof HTMLDetailsElement)el.open=true;if(el?.id==='campaign-tasks')setCreate('deliverable');el?.scrollIntoView({behavior:'smooth'});}}> {projectMissing(project.data).length||project.data.status!=='active'||campaignWork.length?'Review Campaign':'Add First Task'}</Button>}<HqCampaignLifecycle project={project.data} work={campaignWork}/></section>
       <section className="panel"><div className="section-title"><div><p className="eyebrow">{projectTypes[project.data.type]} · {projectStatuses[project.data.status]}</p><h2>{project.data.title}</h2><p>Owner: {name(project.data.owner)} · Members: {project.data.members.map(name).join(', ')||'None yet'}</p></div><span className="tag">{deliverables.filter(d=>d.data.projectId===project.id).length} deliverables</span></div><p className="hq-preserve-text">{project.data.brief||'Brief not yet recorded.'}</p><p>{project.data.type==='weekly_auction'?'Auction: '+dateLabel(project.data.auctionOpensAt)+' → '+dateLabel(project.data.auctionClosesAt):['event','product_release'].includes(project.data.type)?(project.data.type==='event'?'Event: ':'Release: ')+dateLabel(project.data.eventAt):''}</p><Missing items={projectMissing(project.data)}/><ResourceLinks {...project.data} available={assets}/></section>
-      {(c.admin||project.data.owner===c.staffId||(!project.data.owner&&project.data.createdBy===c.staffId))&&<details className="panel hq-details"><summary>Edit project and allocations</summary><ProjectForm key={project.data.version} record={project} initial={projectDraft(project.data)} context={c} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/></details>}
-      <BudgetPanel project={project} context={c} act={act} busy={busy} name={name}/><HqSpending project={project} context={c}/>
-      <section className="panel"><div className="section-title"><h2>Deliverables</h2>{eligibleProjects.some(p=>p.id===project.id)&&<Button onClick={()=>setCreate('deliverable')}><Plus size={16}/>Add Task</Button>}</div>
-        {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId,projectId:project.id}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
+      {(c.admin||project.data.owner===c.staffId||(!project.data.owner&&project.data.createdBy===c.staffId))&&<details id="campaign-settings" className="panel hq-details"><summary>Edit project and allocations</summary><ProjectForm key={project.data.version} record={project} initial={projectDraft(project.data)} context={c} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/></details>}
+      <details className="panel hq-details"><summary>Budget &amp; spending</summary><BudgetPanel project={project} context={c} act={act} busy={busy} name={name}/><HqSpending project={project} context={c}/></details>
+      <section id="campaign-tasks" className="panel"><div className="section-title"><h2>Deliverables</h2>{eligibleProjects.some(p=>p.id===project.id)&&<Button onClick={()=>setCreate('deliverable')}><Plus size={16}/>Add Task</Button>}</div>
+        {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId,projectId:project.id}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>{setCreate(null);history.replaceState(null,'',location.pathname+location.search);}}/>}
         <DeliverableList records={deliverables.filter(d=>d.data.projectId===project.id)} projects={projects} name={name}/>
       </section>
       {project.data.legacyCampaignId&&<p className="notice">Adopted campaign: original records are preserved as history. Dates, assignments and approvals are now managed here.</p>}
@@ -94,16 +100,24 @@ export function HqWorkspace({view='list',id,listMode='campaigns'}:{view?:'list'|
   </div>;
 }
 
-function ProjectList({projects,deliverables,name}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string}) {
-  const [filter,setFilter]=useState('all'),[search,setSearch]=useState('');
-  const shown=projects.filter(p=>(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
-  return <section><div className="hq-list-filters"><Field label="Find a campaign"><Input type="search" placeholder="Search campaigns…" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Campaign status" value={filter} onChange={setFilter} options={{all:'All campaigns',...projectStatuses}}/></div>
-    <div className="hq-project-grid">{shown.map(p=>{
-      const work=deliverables.filter(d=>d.data.projectId===p.id);
-      return <article key={p.id} className="panel hq-campaign-card"><div className="hq-card-top"><span className="eyebrow">{projectTypes[p.data.type]}</span>{p.data.status==='archived'?<span className="tag">Archived</span>:<StatusBadge status={campaignStatus(p.data)}/>}</div><h3><Link href={'/projects/'+p.id}>{p.data.title}</Link></h3><Assignee name={name(p.data.owner)}/><ProgressBar value={work.filter(d=>finished(d.data)).length} max={work.length} label="Deliverables complete"/><p className="muted">{p.data.budget?money(p.data.budget.amountCents)+' approved':'Budget not approved'}</p><Link className="hq-card-link" href={'/projects/'+p.id}>Open Campaign →</Link></article>;
-    })}</div>
-    {!shown.length&&<section className="panel"><EmptyState title={projects.length?'No matching campaigns':'Your campaigns start here'} description={projects.length?'Try another search or status.':'Create a campaign to organize its brief, owners and deliverables.'}/></section>}
-  </section>;
+function ProjectList({projects,deliverables,name,onCreate}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string;onCreate:()=>void}) {
+ const [filter,setFilter]=useState('all'),[search,setSearch]=useState('');
+ const shown=projects.filter(p=>(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
+ return <section>
+  <div className="hq-stat-grid"><StatCard label="Active" value={projects.filter(p=>p.data.status==='active').length}/><StatCard label="Drafts" value={projects.filter(p=>p.data.status==='draft').length}/><StatCard label="Completed" value={projects.filter(p=>p.data.status==='completed').length}/><StatCard label="All Campaigns" value={projects.length}/></div>
+  <div className="hq-list-filters"><Field label="Find a campaign"><Input type="search" placeholder="Search campaigns…" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Campaign status" value={filter} onChange={setFilter} options={{all:'All campaigns',...projectStatuses}}/></div>
+  <div className="hq-project-grid">{shown.map(p=>{
+   const work=deliverables.filter(d=>d.data.projectId===p.id),stages=campaignLifecycle(p.data,work),next=campaignNext(p.data,work);
+   const complete=stages?stages.filter(s=>s.complete).length:work.filter(d=>overviewComplete(d.data)).length,total=stages?5:work.length;
+   return <article key={p.id} className="panel hq-campaign-card"><div className="hq-card-top"><span className="eyebrow">{projectTypes[p.data.type]}</span>{p.data.status==='archived'?<span className="tag">Archived</span>:<StatusBadge status={p.data.status==='active'&&(work.some(d=>d.data.blocked)||!work.length||stages?.some(s=>s.missing))?'attention':campaignStatus(p.data)} detail={projectStatuses[p.data.status]}/>}</div>
+    <h3><Link href={'/projects/'+p.id}>{p.data.title}</Link></h3><Assignee name={name(p.data.owner)}/>
+    <div className="hq-campaign-dates"><span>{p.data.type==='weekly_auction'?'Opens':'Start / event'}<b>{dateLabel(p.data.auctionOpensAt||p.data.eventAt)}</b></span><span>Closes<b>{p.data.auctionClosesAt?dateLabel(p.data.auctionClosesAt):'Not recorded'}</b></span></div>
+    {total?<ProgressBar value={complete} max={total} label={'Completed '+(stages?'stages':'tasks')}/>:<p className="muted">No tasks added · Progress unavailable</p>}
+    <HqCampaignLifecycle project={p.data} work={work}/><div className="hq-campaign-next"><span>Next action</span><p>{next.text}</p><Link href={'/projects/'+p.id}>Open Campaign →</Link></div>
+   </article>;
+  })}</div>
+  {!shown.length&&<section className="panel"><EmptyState icon={FolderKanban} title={projects.length?'No matching campaigns':'No campaigns yet'} description={projects.length?'Choose another search or status to find your campaign.':'Create a campaign to coordinate promotions, deadlines and content.'} action={projects.length?<Button variant="outline" onClick={()=>{setFilter('all');setSearch('');}}>Clear Filters</Button>:<Button onClick={onCreate}>New Campaign</Button>}/></section>}
+ </section>;
 }
 function DeliverableList({records,projects,name}:{records:HqRecord<Deliverable>[];projects:HqRecord<Project>[];name:(id:string)=>string}) {
   const [filter,setFilter]=useState('all');
