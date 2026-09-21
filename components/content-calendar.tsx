@@ -38,12 +38,23 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
   const dated = posts.filter(p => !p.data.recurrence).sort((a, b) => a.data.date.localeCompare(b.data.date));
   const recurring = posts.filter(p => p.data.recurrence).sort((a, b) => a.data.date.slice(11).localeCompare(b.data.date.slice(11)));
   const days = [...new Set(dated.map(p => p.data.date.slice(0, 10)))];
+  const todayChicago = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const tomorrowDate = new Date(todayChicago + 'T12:00:00Z'); tomorrowDate.setUTCDate(tomorrowDate.getUTCDate()+1);
+  const tomorrowChicago = tomorrowDate.toISOString().slice(0,10);
+  const dayLabel = (day:string) => day===todayChicago?'Today':day===tomorrowChicago?'Tomorrow':'';
 
   function openDraft(post?: CalendarPost, occurrence = false) {
     setEditingId(post && !occurrence ? post.id : null);
     setDraft(post ? {...post.data, ...(occurrence ? {recurrence: undefined, date: nextTuesday(post.data.date.slice(11, 16)), status: 'draft'} : {})} : {...emptyDraft});
     formRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
     titleRef.current?.focus({preventScroll: true});
+  }
+
+  function duplicateDraft(post: CalendarPost) {
+    setEditingId(null);
+    setDraft({...post.data, title: post.data.title + ' copy', recurrence: undefined, status: 'draft'});
+    formRef.current?.scrollIntoView({behavior:'smooth',block:'start'});
+    titleRef.current?.focus({preventScroll:true});
   }
 
   function card(post: CalendarPost) {
@@ -60,10 +71,11 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
       {p.consignment && <OutstandingTasks data={p} campaign={campaign}/>}
       <div className="calendar-card-actions">{radar ? <Button variant="outline" asChild><a href="/content-radar/editorial">Open editorial review</a></Button> : <>
         <Button variant="outline" disabled={busy} onClick={() => openDraft(post)}><Pencil size={18}/>{p.recurrence ? 'Edit series' : 'Edit draft'}</Button>
-        {p.recurrence ? <Button variant="outline" disabled={busy} onClick={() => openDraft(post, true)}><Plus size={18}/>Create next draft</Button> :
+        {p.recurrence ? <Button variant="outline" disabled={busy} onClick={() => openDraft(post, true)}><Plus size={18}/>Create next draft</Button> : <>
+          <Button variant="ghost" disabled={busy} onClick={() => duplicateDraft(post)}><Plus size={18}/>Duplicate</Button>
           <label className="calendar-status"><span className="sr-only">Status for {p.title}</span><select value={p.status} disabled={busy} onChange={e => void onSave(post.id, {...p, status: e.target.value})}>
             {['draft', 'review', 'approved', 'published'].map(s => <option value={s} key={s} disabled={!!p.consignment && ['approved','published'].includes(s) && approvalIssues(p,campaign).length > 0}>{s}</option>)}
-          </select></label>}
+          </select></label></>}
       </>}</div>
     </article>;
   }
@@ -99,7 +111,7 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
     {loading ? <p role="status" className="notice">Loading the calendar…</p> : null}
     {!loading && !dated.length ? <p className="panel">No dated drafts yet. Add your first post below.</p> : null}
     <div className="calendar-days">{days.map(day => <section key={day} aria-label={calendarDay(day)}>
-      <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{dated.filter(p => p.data.date.startsWith(day)).length} posts</span></div>
+      <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><div><span className="calendar-relative-day">{dayLabel(day)}</span><h3>{calendarDay(day)}</h3></div><span className="tag">{dated.filter(p => p.data.date.startsWith(day)).length} posts</span></div>
       <div className="calendar-post-grid">{dated.filter(p => p.data.date.startsWith(day)).map(card)}</div>
     </section>)}</div>
     {recurring.length ? <section className="calendar-recurring" aria-labelledby="weekly-series"><p className="eyebrow">REPEAT EACH WEEK</p><h2 id="weekly-series">Every Tuesday</h2><p className="muted">Use each series to prepare its next dated draft. Publishing remains manual.</p><div className="calendar-post-grid">{recurring.map(card)}</div></section> : null}
