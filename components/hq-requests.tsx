@@ -21,7 +21,7 @@ export function HqRequests({id}:{id?:string}) {
  const c=workspace.context,assets=workspace.records.filter(r=>r.kind==='asset') as Asset[],requests=workspace.records.filter(r=>r.kind==='request') as HqRecord<HqRequest>[],record=requests.find(r=>r.id===id);
  const name=(id:string)=>c.staff.find(s=>s.id===id)?.name||id;
  const save=async(command:Record<string,unknown>)=>{const result=await act(command);if(result?.id){setCreating(false);router.push('/requests/'+result.id);}};
- return <div className="hq-workspace">{errorPanel}{message&&<p role="status">{message}</p>}{id?<><Link href="/requests">← All requests</Link>{record?<>
+ return <div className="hq-record-workspace">{errorPanel}{message&&<p role="status">{message}</p>}{id?<><Link href="/requests">← All requests</Link>{record?<>
  <section className="panel"><span className="tag">{requestStatuses[record.data.status]}</span><h2>{record.data.title}</h2><p>Requested by {name(record.data.requester)} · {recordedTime(record.data.createdAt)}</p><p className="hq-preserve-text">{record.data.purpose}</p><p>Requested deadline: {dateLabel(record.data.requestedDeadline)}</p><p className="muted">This is the requester’s preference. Production commitments are recorded on the linked deliverable.</p><ResourceLinks {...record.data} available={assets}/>
  {record.data.decision&&<p>{requestStatuses[record.data.status]} by {name(record.data.decision.by)} · {recordedTime(record.data.decision.at)}{record.data.decision.reason?' · '+record.data.decision.reason:''}</p>}
  {record.data.conversion&&<Link href={(record.data.conversion.kind==='project'?'/projects/':'/projects/work/')+record.data.conversion.id}>Open accepted work →</Link>}</section>
