@@ -17,7 +17,7 @@ export function PageHeader({title, description, breadcrumb, primaryAction, secon
   </header>;
 }
 
-export function SectionHeader({title, description, action}: {title: string; description?: string; action?: ReactNode}) {
+export function SectionHeader({title, description, action}: {title: ReactNode; description?: string; action?: ReactNode}) {
   return <div className="hq-section-header"><div><h2>{title}</h2>{description && <p className="muted">{description}</p>}</div>{action}</div>;
 }
 
