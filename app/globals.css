@@ -509,3 +509,9 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .agreement-actions .secondary-action{background:var(--card);color:var(--foreground);border-color:var(--input)}
 @media(max-width:760px){.agreement-shell{padding:20px 14px 40px}.agreement-meta{grid-template-columns:1fr 1fr}.agreement-document iframe{height:62vh}}
 @media(max-width:520px){.agreement-meta{grid-template-columns:1fr}.agreement-actions .button-row>*{width:100%}}
+
+.password-field { position: relative; display: grid; gap: 6px; margin-bottom: 12px; }
+.auth-shell .password-field input { margin-bottom: 0; }
+.auth-shell .password-visibility { justify-self: end; width: auto; min-height: 36px; margin: 0; padding: 4px 8px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); font-size: .875rem; }
+.auth-shell .password-visibility:hover { background: var(--muted); }
+.auth-shell .password-visibility:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }

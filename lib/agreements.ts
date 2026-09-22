@@ -19,17 +19,11 @@ export type AgreementGate = {
 export async function agreementGate(): Promise<AgreementGate> {
   const client=await sessionClient();
   const {data,error}=await client.rpc('hub_agreement_gate');
-  // Keep HQ usable while the agreement migration is being deployed. Once the
-  // RPC exists, any real database/auth error still fails closed.
-  if(error){
-    const code=String((error as {code?:string}).code||'');
-    const message=String((error as {message?:string}).message||'');
-    if(code==='PGRST202'||code==='42883'||/hub_agreement_gate/i.test(message)&&/not found|does not exist/i.test(message)){
-      return {required:false};
-    }
-    throw error;
+  if(error) throw new Error('Agreement verification is unavailable. Please contact your administrator.');
+  if(!data || typeof data.required!=='boolean' || (data.required && (!data.agreementId || !data.storagePath || data.hardGate!==true))) {
+    throw new Error('Agreement verification returned incomplete information. Access remains locked.');
   }
-  return (data || {required:false}) as AgreementGate;
+  return data as AgreementGate;
 }
 
 export async function agreementSignedUrl(path:string) {
