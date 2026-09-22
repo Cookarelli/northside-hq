@@ -964,3 +964,9 @@ a.hq-stat-card:hover { text-decoration: none; border-color: var(--input); }
 .hq-shell .request-notes .section-title { flex-direction: row; align-items: center; text-align: left; }
 
 .hq-shell .request-notes .field textarea { min-height: 100px; }
+
+.password-field { position: relative; display: grid; gap: 6px; margin-bottom: 12px; }
+.auth-shell .password-field input { margin-bottom: 0; }
+.auth-shell .password-visibility { justify-self: end; width: auto; min-height: 36px; margin: 0; padding: 4px 8px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); font-size: .875rem; }
+.auth-shell .password-visibility:hover { background: var(--muted); }
+.auth-shell .password-visibility:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }

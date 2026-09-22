@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import {PasswordField} from '@/components/password-field';
 import { useEffect, useRef, useState } from 'react';
 import { browserClient } from '@/lib/supabase-browser';
 import { INVALID_RESET, preparePasswordReset, saveNewPassword } from '@/lib/password-recovery';
@@ -63,10 +64,10 @@ export default function ResetPassword() {
       <p>Choose a new password for {email || 'your team account'}.</p>
       <form onSubmit={submit} aria-busy={busy}>
         <label htmlFor="password">New password</label>
-        <input id="password" type="password" autoComplete="new-password" minLength={8} required aria-describedby="password-help" value={password} onChange={event => setPassword(event.target.value)} />
+        <PasswordField id="password" autoComplete="new-password" minLength={8} required aria-describedby="password-help" value={password} onChange={event => setPassword(event.target.value)} />
         <p id="password-help" className="muted">Use at least 8 characters. A longer, unique password is best.</p>
         <label htmlFor="confirm-password">Confirm new password</label>
-        <input id="confirm-password" type="password" autoComplete="new-password" minLength={8} required value={confirmation} onChange={event => setConfirmation(event.target.value)} />
+        <PasswordField id="confirm-password" autoComplete="new-password" minLength={8} required value={confirmation} onChange={event => setConfirmation(event.target.value)} />
         <button disabled={busy}>{busy ? 'Updating…' : 'Update password'}</button>
       </form>
     </>}
