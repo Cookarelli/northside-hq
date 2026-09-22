@@ -1,0 +1,252 @@
+'use client';
+
+import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
+import Link from 'next/link';
+import {useRouter} from 'next/navigation';
+import {Plus,FolderKanban} from 'lucide-react';
+import {HqWorkBoard} from '@/components/hq-work-board';
+import {HqCampaignLifecycle} from '@/components/hq-campaign-lifecycle';
+import {campaignLifecycle,campaignNext} from '@/lib/hq-sections';
+import {overviewComplete} from '@/lib/hq-overview';
+import {Assignee, DueDate, EmptyState, ProgressBar, SectionHeader, StatCard, StatusBadge} from '@/components/hq-ui';
+import {campaignStatus, workStatus} from '@/lib/hq-presentation';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Textarea} from '@/components/ui/textarea';
+import {MaterialsEditor,ResourceLinks,type Asset} from '@/components/hq-materials';
+import {HqSpending} from '@/components/hq-spending';
+import {PublishingPackagePanel} from '@/components/hq-publishing-package';
+import {ConsignmentReview} from '@/components/consignment-review';
+import {calendarDay,calendarTime} from '@/lib/content-calendar';
+import {clientId} from '@/lib/client-id';
+import {approvalCurrent,auctionFor,blankDeliverable,blankProject,canWork,deliverableDraft,deliverableMissing,destinations,effortLevels,evidencePost,productionStatuses,projectDraft,projectMissing,projectStatuses,projectTypes,recordedTime,type Deliverable,type DeliverableInput,type HqContext,type HqRecord,type Project,type ProjectInput,type Staff,type WorkspaceRecord} from '@/lib/hq-model';
+
+export type Action=(command:Record<string,unknown>)=>Promise<{id?:string}|null>;
+import {json,loadWorkspace,type Workspace} from '@/lib/hq-client';
+export {json,loadWorkspace,type Workspace} from '@/lib/hq-client';
+
+export const money=(cents:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
+export function dateLabel(value:string){return value?calendarDay(value)+' · '+calendarTime(value):'Not set';}
+export function Field({label,children}:{label:string;children:ReactNode}){return <label className="field"><span>{label}</span>{children}</label>;}
+export function Choice({label,value,onChange,options,disabled=false}:{label:string;value:string;onChange:(v:string)=>void;options:Record<string,string>;disabled?:boolean}){return <Field label={label}><select aria-label={label} value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}>{Object.entries(options).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></Field>;}
+export function Person({label,value,onChange,staff,disabled=false}:{label:string;value:string;onChange:(v:string)=>void;staff:Staff[];disabled?:boolean}) {return <Choice label={label} value={value} onChange={onChange} disabled={disabled} options={{'':'Choose a person',...Object.fromEntries(staff.map(s=>[s.id,s.name])),...(value&&!staff.some(s=>s.id===value)?{[value]:value+' (inactive; reassign)'}:{})}}/>;}
+function People({label,value,onChange,staff,disabled=false}:{label:string;value:string[];onChange:(v:string[])=>void;staff:Staff[];disabled?:boolean}){return <fieldset className="hq-checks" disabled={disabled}><legend>{label}</legend>{staff.map(s=><label key={s.id}><input type="checkbox" checked={value.includes(s.id)} onChange={e=>onChange(e.target.checked?[...value,s.id]:value.filter(v=>v!==s.id))}/>{s.name}</label>)}</fieldset>;}
+export function Missing({items}:{items:string[]}) {return items.length?<div className="notice"><strong>Needs attention</strong><ul>{items.map(x=><li key={x}>{x}</li>)}</ul></div>:<p className="muted">Required information is complete.</p>;}
+
+export function HqWorkspace({view='list',id,listMode='campaigns'}:{view?:'list'|'project'|'deliverable';id?:string;listMode?:'campaigns'|'work'|'team'}) {
+  const [workspace,setWorkspace]=useState<Workspace|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[retry,setRetry]=useState(0),[create,setCreate]=useState<'project'|'deliverable'|null>(null);
+  const formRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{const sync=()=>{if(view==='list'&&window.location.hash==='#new-campaign')setCreate('project');if(view==='list'&&window.location.hash==='#new-task')setCreate('deliverable');};sync();window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);},[view]);
+  useEffect(()=>{if(create){formRef.current?.querySelector('input')?.focus();}},[create,workspace]);
+  const lock=useRef(false),errorRef=useRef<HTMLDivElement>(null),router=useRouter();
+  useEffect(()=>{if(error)errorRef.current?.focus();},[error]);
+  useEffect(()=>{const controller=new AbortController();loadWorkspace(controller.signal).then(setWorkspace).catch(e=>{if(!controller.signal.aborted)setError(e.message);});return()=>controller.abort();},[retry]);
+  const act:Action=async command=>{
+    if(lock.current)return null;lock.current=true;setBusy(true);setError('');setNotice('');
+    try {const result=await json<{id?:string}>('/api/hq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(command)});setWorkspace(await loadWorkspace());setNotice('Saved.');window.dispatchEvent(new Event('hq-records-changed'));return result;}
+    catch(e){setError((e as Error).message);return null;}finally{lock.current=false;setBusy(false);}
+  };
+  const reload=()=>{setError('');setRetry(n=>n+1);};
+  if(!workspace)return <section className="panel">{error?<div role="alert"><p>{error}</p><Button onClick={reload}>Retry loading HQ</Button></div>:<p role="status">Loading projects and deliverables…</p>}</section>;
+  const {context:c,records}=workspace;
+  const projects=records.filter(r=>r.kind==='project') as HqRecord<Project>[],deliverables=records.filter(r=>r.kind==='deliverable') as HqRecord<Deliverable>[],assets=records.filter(r=>r.kind==='asset') as Asset[];
+  const project=view==='project'?projects.find(p=>p.id===id):undefined,deliverable=view==='deliverable'?deliverables.find(d=>d.id===id):undefined;
+  const parent=deliverable?projects.find(p=>p.id===deliverable.data.projectId):project;
+  const campaignWork=project?deliverables.filter(d=>d.data.projectId===project.id):[];
+  const required=project?campaignNext(project.data,campaignWork):null;
+  const eligibleProjects=projects.filter(p=>c.admin||p.data.owner===c.staffId||p.data.members.includes(c.staffId));
+  const name=(staffId:string)=>c.staff.find(s=>s.id===staffId)?.name||staffId||'Unassigned';
+  async function createRecord(command:Record<string,unknown>) {const result=await act(command);if(result?.id){setCreate(null);router.push(command.action==='save-project'?'/projects/'+result.id:'/projects/work/'+result.id);}}
+  return <div className="hq-record-workspace">
+    {view!=='list'&&<Link href={view==='deliverable'?'/work':'/projects'}>← {view==='deliverable'?'All work':'All campaigns'}</Link>}
+    {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
+    {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
+    {view==='list'&&<>
+
+      <div ref={formRef}>
+        {create==='project'&&<section className="panel"><ProjectForm initial={{...blankProject,owner:c.staffId}} context={c} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>{setCreate(null);history.replaceState(null,'',location.pathname+location.search);}}/></section>}
+        {create==='deliverable'&&<section className="panel"><DeliverableForm initial={{...blankDeliverable,owner:c.staffId}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>{setCreate(null);history.replaceState(null,'',location.pathname+location.search);}}/></section>}
+      </div>
+      {listMode==='campaigns'&&<ProjectList projects={projects} deliverables={deliverables} name={name} onCreate={()=>setCreate('project')}/>}
+      {listMode==='work'&&<HqWorkBoard records={deliverables} projects={projects} context={c} onCreate={()=>setCreate('deliverable')}/>}
+      {listMode==='campaigns'&&<details className="panel hq-details"><summary>Bring existing campaigns into HQ</summary><LegacyAdoption records={records} context={c} act={act} busy={busy}/></details>}
+      {listMode==='work'&&<details className="panel hq-details"><summary>Incoming content &amp; handoffs</summary><EditorialHandoff records={records} context={c} act={act} busy={busy}/></details>}
+      {listMode==='team'&&c.admin&&<details className="panel hq-details"><summary>Workspace permissions</summary><h3>Budget approval</h3><p>Grant this separately from project ownership. Only these people can establish or change approved budgets.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={s.budgetApprover} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,enabled:e.target.checked})}/>{s.name}</label>)}</div><h3>Request coordinators</h3><p>These people can accept or decline requests and link them to production work.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={!!s.requestCoordinator} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,capability:'coordinate_requests',enabled:e.target.checked})}/>{s.name}</label>)}</div></details>}
+    </>}
+    {view!=='list'&&<SourceRequests records={records} kind={view} id={id!}/>}
+    {view==='project' &&(project?<>
+      <section className="panel hq-next-action"><SectionHeader title="Next required action"/><p>{required!.text}</p>{required!.workId&&<Button asChild><Link href={'/projects/work/'+required!.workId}>Open Next Task</Link></Button>}{!required!.workId&&eligibleProjects.some(p=>p.id===project.id)&&<Button variant="outline" onClick={()=>{const el=document.getElementById(projectMissing(project.data).length||project.data.status!=='active'||campaignWork.length?'campaign-settings':'campaign-tasks');if(el instanceof HTMLDetailsElement)el.open=true;if(el?.id==='campaign-tasks')setCreate('deliverable');el?.scrollIntoView({behavior:'smooth'});}}> {projectMissing(project.data).length||project.data.status!=='active'||campaignWork.length?'Review Campaign':'Add First Task'}</Button>}<HqCampaignLifecycle project={project.data} work={campaignWork}/></section>
+      <section className="panel"><div className="section-title"><div><p className="eyebrow">{projectTypes[project.data.type]} · {projectStatuses[project.data.status]}</p><h2>{project.data.title}</h2><p>Owner: {name(project.data.owner)} · Members: {project.data.members.map(name).join(', ')||'None yet'}</p></div><span className="tag">{deliverables.filter(d=>d.data.projectId===project.id).length} deliverables</span></div><p className="hq-preserve-text">{project.data.brief||'Brief not yet recorded.'}</p><p>{project.data.type==='weekly_auction'?'Auction: '+dateLabel(project.data.auctionOpensAt)+' → '+dateLabel(project.data.auctionClosesAt):['event','product_release'].includes(project.data.type)?(project.data.type==='event'?'Event: ':'Release: ')+dateLabel(project.data.eventAt):''}</p><Missing items={projectMissing(project.data)}/><ResourceLinks {...project.data} available={assets}/></section>
+      {(c.admin||project.data.owner===c.staffId||(!project.data.owner&&project.data.createdBy===c.staffId))&&<details id="campaign-settings" className="panel hq-details"><summary>Edit project and allocations</summary><ProjectForm key={project.data.version} record={project} initial={projectDraft(project.data)} context={c} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/></details>}
+      <details className="panel hq-details"><summary>Budget &amp; spending</summary><BudgetPanel project={project} context={c} act={act} busy={busy} name={name}/><HqSpending project={project} context={c}/></details>
+      <section id="campaign-tasks" className="panel"><div className="section-title"><h2>Deliverables</h2>{eligibleProjects.some(p=>p.id===project.id)&&<Button onClick={()=>setCreate('deliverable')}><Plus size={16}/>Add Task</Button>}</div>
+        {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId,projectId:project.id}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>{setCreate(null);history.replaceState(null,'',location.pathname+location.search);}}/>}
+        <DeliverableList records={deliverables.filter(d=>d.data.projectId===project.id)} projects={projects} name={name}/>
+      </section>
+      {project.data.legacyCampaignId&&<p className="notice">Adopted campaign: original records are preserved as history. Dates, assignments and approvals are now managed here.</p>}
+      <Discussion key={project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>
+    </>:<p className="panel">This project was not found in your workspace.</p>)}
+    {view==='deliverable'&&(deliverable?<>
+      <section className="panel"><p className="eyebrow">{parent?<Link href={'/projects/'+parent.id}>{parent.data.title}</Link>:'Standalone work'}</p><h2>{deliverable.data.title}</h2><p>Accountable owner: {name(deliverable.data.owner)} · Approver: {name(parent?.data.owner||deliverable.data.approver)}</p><p className="hq-preserve-text">{deliverable.data.instructions||'Instructions not yet recorded.'}</p><p>Effort: {deliverable.data.effort?effortLevels[deliverable.data.effort]:'Unknown'}{deliverable.data.estimatedHours!==null?' · '+deliverable.data.estimatedHours+' estimated hours':''}</p><p>Contributors: {deliverable.data.contributors.map(name).join(', ')||'None'}</p>{deliverable.data.publishing&&<><p>Format: {deliverable.data.format||'Not set'}</p><p className="hq-preserve-text">{deliverable.data.caption}</p>{deliverable.data.destinationUrl&&<a href={deliverable.data.destinationUrl} target="_blank" rel="noreferrer">Destination link →</a>}</>}{deliverable.data.blocked&&<p>Resolve block: {name(deliverable.data.blockedBy)}</p>}<Missing items={deliverableMissing(deliverable.data,parent?.data)}/><ResourceLinks {...deliverable.data} available={assets}/></section>
+      <ProductionPanel record={deliverable} project={parent?.data} context={c} act={act} busy={busy} name={name}/>
+      {canWork(deliverable.data,parent?.data,c)&&<details className="panel hq-details" open><summary>Edit deliverable</summary>
+        <DeliverableForm key={deliverable.data.version} record={deliverable} initial={deliverableDraft(deliverable.data)} project={parent?.data} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/>
+      </details>}
+      {deliverable.data.publishing&&<section className="panel"><h2>Publishing package</h2><PublishingPackagePanel deliverable={deliverable.data} project={parent?.data} assets={assets} name={name}/><h3>Manual publishing confirmations</h3><p>Record each destination after checking the actual platform. An intended date is never a scheduling or publishing confirmation.</p><div className="hq-project-grid">{deliverable.data.platforms.map(platform=><PublicationForm key={platform+deliverable.data.version} record={deliverable} project={parent?.data} platform={platform} context={c} act={act} busy={busy} name={name}/>)}</div></section>}
+      {deliverable.data.editorialSource&&<section className="panel"><h2>Editorial source review</h2><p>{deliverable.data.editorialSource.data.state} · source version {deliverable.data.editorialSource.version}</p><p>Compare the current source with this deliverable before owner approval. Source edits require renewed approval and never overwrite this production copy.</p><p className="hq-preserve-text">{deliverable.data.editorialSource.data.facebook}</p><p className="hq-preserve-text">{deliverable.data.editorialSource.data.instagram}</p><p>{deliverable.data.editorialSource.data.cta}</p><p>Media permission: {deliverable.data.editorialSource.data.permission} · {deliverable.data.editorialSource.data.attribution}</p><p>{deliverable.data.editorialSource.data.permissionEvidence}</p><Link href="/requests?view=editorial">Open source review →</Link></section>}
+      {deliverable.data.legacyPost&&<details className="panel hq-details"><summary>Preserved calendar history</summary><p>Historical status: <strong>{deliverable.data.legacyPost.status}</strong>. This is not an HQ approval or confirmation that any destination was published.</p><p>Original date: {dateLabel(deliverable.data.legacyPost.date)} · Historical owner: {deliverable.data.legacyPost.owner||'Unknown'}</p><p className="hq-preserve-text">{deliverable.data.legacyPost.caption}</p><p>Historical asset references: {deliverable.data.legacyPost.assets?.join(', ')||'None recorded'}</p></details>}
+      <Discussion key={deliverable.data.version} id={deliverable.id} kind="deliverable" context={c} act={act} busy={busy}/>
+    </>:<p className="panel">This deliverable was not found in your workspace.</p>)}
+  </div>;
+}
+
+function ProjectList({projects,deliverables,name,onCreate}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string;onCreate:()=>void}) {
+ const [filter,setFilter]=useState('all'),[search,setSearch]=useState('');
+ const shown=projects.filter(p=>(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
+ return <section>
+  <div className="hq-stat-grid"><StatCard label="Active" value={projects.filter(p=>p.data.status==='active').length}/><StatCard label="Drafts" value={projects.filter(p=>p.data.status==='draft').length}/><StatCard label="Completed" value={projects.filter(p=>p.data.status==='completed').length}/><StatCard label="All Campaigns" value={projects.length}/></div>
+  <div className="hq-list-filters"><Field label="Find a campaign"><Input type="search" placeholder="Search campaigns…" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Campaign status" value={filter} onChange={setFilter} options={{all:'All campaigns',...projectStatuses}}/></div>
+  <div className="hq-project-grid">{shown.map(p=>{
+   const work=deliverables.filter(d=>d.data.projectId===p.id),stages=campaignLifecycle(p.data,work),next=campaignNext(p.data,work);
+   const complete=stages?stages.filter(s=>s.complete).length:work.filter(d=>overviewComplete(d.data)).length,total=stages?5:work.length;
+   return <article key={p.id} className="panel hq-campaign-card"><div className="hq-card-top"><span className="eyebrow">{projectTypes[p.data.type]}</span>{p.data.status==='archived'?<span className="tag">Archived</span>:<StatusBadge status={p.data.status==='active'&&(work.some(d=>d.data.blocked)||!work.length||stages?.some(s=>s.missing))?'attention':campaignStatus(p.data)} detail={projectStatuses[p.data.status]}/>}</div>
+    <h3><Link href={'/projects/'+p.id}>{p.data.title}</Link></h3><Assignee name={name(p.data.owner)}/>
+    <div className="hq-campaign-dates"><span>{p.data.type==='weekly_auction'?'Opens':'Start / event'}<b>{dateLabel(p.data.auctionOpensAt||p.data.eventAt)}</b></span><span>Closes<b>{p.data.auctionClosesAt?dateLabel(p.data.auctionClosesAt):'Not recorded'}</b></span></div>
+    {total?<ProgressBar value={complete} max={total} label={'Completed '+(stages?'stages':'tasks')}/>:<p className="muted">No tasks added · Progress unavailable</p>}
+    <HqCampaignLifecycle project={p.data} work={work}/><div className="hq-campaign-next"><span>Next action</span><p>{next.text}</p><Link href={'/projects/'+p.id}>Open Campaign →</Link></div>
+   </article>;
+  })}</div>
+  {!shown.length&&<section className="panel"><EmptyState icon={FolderKanban} title={projects.length?'No matching campaigns':'No campaigns yet'} description={projects.length?'Choose another search or status to find your campaign.':'Create a campaign to coordinate promotions, deadlines and content.'} action={projects.length?<Button variant="outline" onClick={()=>{setFilter('all');setSearch('');}}>Clear Filters</Button>:<Button onClick={onCreate}>New Campaign</Button>}/></section>}
+ </section>;
+}
+function DeliverableList({records,projects,name}:{records:HqRecord<Deliverable>[];projects:HqRecord<Project>[];name:(id:string)=>string}) {
+  const [filter,setFilter]=useState('all');
+  const shown=records.filter(r=>filter==='all'||(filter==='standalone'?!r.data.projectId:r.data.status===filter));
+  return <><Choice label="Filter work" value={filter} onChange={setFilter} options={{all:'All work',standalone:'Standalone work',...productionStatuses}}/><ul className="hq-deliverables">{shown.map(({id,data:d})=><li key={id}><div><Link href={'/projects/work/'+id}>{d.title}</Link><p><Assignee name={name(d.owner)}/></p><DueDate value={d.productionDue}/><p className="muted">{d.projectId?projects.find(p=>p.id===d.projectId)?.data.title:'Standalone'}{d.blocked?' · '+d.blockedReason:''}</p></div><div><StatusBadge status={workStatus(d,projects.find(p=>p.id===d.projectId)?.data)} detail={productionStatuses[d.status]}/>{d.publishing&&<p className="muted">{Object.values(d.publications).filter(p=>p.status==='published').length}/{d.platforms.length} destinations published</p>}</div></li>)}</ul>{!shown.length&&<EmptyState title="No tasks in this view" description="Add a task or choose a different filter."/>}</>;
+}
+
+function ProjectForm({initial,record,context:c,assets,busy,onSave,onCancel}:{initial:ProjectInput;record?:HqRecord<Project>;context:HqContext;assets:Asset[];busy:boolean;onSave:(command:Record<string,unknown>)=>Promise<void>;onCancel?:()=>void}) {
+  const [pending,setPending]=useState(false);
+  const [data,setData]=useState(initial),[id]=useState(()=>record?.id||clientId());
+  const update=(patch:Partial<ProjectInput>)=>setData(d=>({...d,...patch}));
+  return <form className="hq-form" onSubmit={e=>{e.preventDefault();if(pending)return;void onSave({action:'save-project',id,version:record?.data.version||0,data:{...data,references:data.references.filter(x=>x.trim())}});}}>
+    {!record&&<h3>New Campaign</h3>}<fieldset disabled={busy} className="campaign-fields">
+      <Field label="Project title"><Input required maxLength={300} value={data.title} onChange={e=>update({title:e.target.value})}/></Field>
+      <div className="two-fields"><Choice label="Project type" value={data.type} onChange={v=>update({type:v as ProjectInput['type']})} options={projectTypes}/><Choice label="Project status" value={data.status} onChange={v=>update({status:v as ProjectInput['status']})} options={projectStatuses}/></div>
+      <Field label="Brief"><Textarea rows={4} value={data.brief} onChange={e=>update({brief:e.target.value})}/></Field>
+      <Person label="Project owner" value={data.owner} onChange={owner=>update({owner})} staff={c.staff}/><People label="Project members" value={data.members} onChange={members=>update({members})} staff={c.staff}/>
+      {['event','product_release'].includes(data.type)&&<Field label={(data.type==='event'?'Event':'Release')+' date and time (America/Chicago)'}><Input type="datetime-local" value={data.eventAt} onChange={e=>update({eventAt:e.target.value})}/></Field>}
+      {data.type==='weekly_auction'&&<div className="two-fields"><Field label="Auction opening (America/Chicago)"><Input type="datetime-local" value={data.auctionOpensAt} onChange={e=>update({auctionOpensAt:e.target.value})}/></Field><Field label="Auction closing (America/Chicago)"><Input type="datetime-local" value={data.auctionClosesAt} onChange={e=>update({auctionClosesAt:e.target.value})}/></Field></div>}
+      {data.auction&&<details className="hq-details"><summary>Auction facts and featured lots</summary><div className="campaign-fields"><Field label="Auction platform"><Input value={data.auction.auctionPlatform} onChange={e=>update({auction:{...data.auction!,auctionPlatform:e.target.value}})}/></Field><Field label="Auction batch link"><Input type="url" value={data.auction.batchUrl} onChange={e=>update({auction:{...data.auction!,batchUrl:e.target.value}})}/></Field>{data.auction.cards.map((card,index)=><div className="two-fields" key={index}><Field label={'Featured lot '+(index+1)+' name'}><Input value={card.name} onChange={e=>update({auction:{...data.auction!,cards:data.auction!.cards.map((x,i)=>i===index?{...x,name:e.target.value}:x)}})}/></Field><Field label={'Featured lot '+(index+1)+' URL'}><Input type="url" value={card.url} onChange={e=>update({auction:{...data.auction!,cards:data.auction!.cards.map((x,i)=>i===index?{...x,url:e.target.value}:x)}})}/></Field></div>)}</div></details>}
+      <MaterialsEditor value={data} onChange={update} available={assets} onPendingChange={setPending}/>
+      {record&&<fieldset className="campaign-fields" disabled={record.data.owner!==c.staffId}><legend>Channel allocations (USD)</legend><p>{record.data.budget?money(record.data.budget.amountCents)+' approved':'Awaiting budget approval'} · {money(data.allocations.reduce((sum,x)=>sum+x.amountCents,0))} allocated</p>{data.allocations.map((a,index)=><div className="hq-allocation" key={index}><Field label={'Channel '+(index+1)}><Input required value={a.channel} onChange={e=>update({allocations:data.allocations.map((x,i)=>i===index?{...x,channel:e.target.value}:x)})}/></Field><Field label={'Allocation '+(index+1)+' (USD)'}><Input required type="number" min="0" step="0.01" value={a.amountCents/100} onChange={e=>update({allocations:data.allocations.map((x,i)=>i===index?{...x,amountCents:Math.round(Number(e.target.value)*100)}:x)})}/></Field><Button type="button" variant="outline" onClick={()=>update({allocations:data.allocations.filter((_,i)=>i!==index)})}>Remove channel {index+1}</Button></div>)}<Button type="button" variant="outline" onClick={()=>update({allocations:[...data.allocations,{channel:'',amountCents:0}]})}>Add channel allocation</Button></fieldset>}
+      <p className="muted">Saving changes requires renewed approval for pending publishing work.</p><div className="button-row"><Button type="submit" disabled={pending}>{busy?'Saving…':record?'Save project':'Create project'}</Button>{onCancel&&<Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}</div>
+    </fieldset>
+  </form>;
+}
+
+function DeliverableForm({initial,record,project,context:c,projects,assets,busy,onSave,onCancel}:{initial:DeliverableInput;record?:HqRecord<Deliverable>;project?:Project;context:HqContext;projects:HqRecord<Project>[];assets:Asset[];busy:boolean;onSave:(command:Record<string,unknown>)=>Promise<void>;onCancel?:()=>void}) {
+  const [pending,setPending]=useState(false);
+  const [data,setData]=useState(initial),[id]=useState(()=>record?.id||clientId());
+  const update=(patch:Partial<DeliverableInput>)=>setData(d=>({...d,...patch}));
+  const canAssign=!record||c.admin||(project?.owner||record.data.approver)===c.staffId;
+  const locked=!!record&&Object.values(record.data.publications).some(p=>p.status!=='planned');
+  return <form className="hq-form" onSubmit={e=>{e.preventDefault();if(pending)return;void onSave({action:'save-deliverable',id,version:record?.data.version||0,data:{...data,references:data.references.filter(x=>x.trim())}});}}>
+    {!record&&<h3>New deliverable</h3>}{locked&&<p className="notice">Confirmed destinations lock this content. Cancel actual platform scheduling and record that cancellation below before editing. Published work keeps its history; create a new deliverable for a follow-up.</p>}
+    <fieldset disabled={busy||locked} className="campaign-fields">
+      <Field label="Deliverable title"><Input required maxLength={300} value={data.title} onChange={e=>update({title:e.target.value})}/></Field>
+      <Field label="Instructions"><Textarea rows={4} value={data.instructions} onChange={e=>update({instructions:e.target.value})}/></Field>
+      <Choice label="Project association" value={data.projectId} onChange={projectId=>update({projectId,approver:projectId?'':data.approver})} disabled={!canAssign||!!record?.data.legacyPost?.consignment} options={{'':'Standalone work',...Object.fromEntries(projects.map(p=>[p.id,p.data.title])),...(record?.data.projectId&&!projects.some(p=>p.id===record.data.projectId)?{[record.data.projectId]:project?.title||'Current project'}:{})}}/>
+      <div className="two-fields"><Person label="Accountable owner" value={data.owner} onChange={owner=>update({owner})} staff={c.staff} disabled={!canAssign}/>{!data.projectId&&<Person label="Standalone approver" value={data.approver} onChange={approver=>update({approver})} staff={c.staff} disabled={!canAssign}/>}</div>
+      <People label="Optional contributors" value={data.contributors} onChange={contributors=>update({contributors})} staff={c.staff} disabled={!canAssign}/>
+      <div className="two-fields"><Field label="Production deadline (America/Chicago)"><Input type="datetime-local" value={data.productionDue} onChange={e=>update({productionDue:e.target.value})}/></Field><Choice label="Effort" value={data.effort} onChange={v=>update({effort:v as DeliverableInput['effort']})} options={{'':'Choose effort',...effortLevels}}/></div>
+      <Field label="Estimated hours (optional)"><Input type="number" min="0" max="10000" step="0.25" value={data.estimatedHours??''} onChange={e=>update({estimatedHours:e.target.value===''?null:Number(e.target.value)})}/></Field>
+      <label className="check-field"><input type="checkbox" checked={data.publishing} onChange={e=>update({publishing:e.target.checked,platforms:e.target.checked?['facebook','instagram']:[],requiresCaption:e.target.checked,requiresFinalFile:e.target.checked,...(!e.target.checked?{promotionMode:'organic' as const,promotionChannel:'',promotionCents:0}:{})})}/><span>This work will be published</span></label>
+      <fieldset className="hq-checks"><legend>Required output</legend><label><input type="checkbox" checked={data.requiresFinalFile} onChange={e=>update({requiresFinalFile:e.target.checked})}/>Final file or external final link</label>{data.publishing&&<label><input type="checkbox" checked={data.requiresCaption} onChange={e=>update({requiresCaption:e.target.checked})}/>Require caption / publishing copy</label>}</fieldset>
+      {data.publishing&&<>
+        <Person label="Assigned publisher" value={data.publisher} onChange={publisher=>update({publisher})} staff={c.staff} disabled={!canAssign}/>
+        <Choice label="Promotion" value={data.promotionMode} onChange={v=>update({promotionMode:v as 'organic'|'paid',promotionChannel:'',promotionCents:0})} disabled={!!record&&!canAssign} options={{organic:'Organic · no paid budget required',paid:'Paid · approved project allocation'}}/>
+        {data.promotionMode==='paid'&&<fieldset disabled={!!record&&!canAssign} className="two-fields"><Choice label="Approved promotion channel" value={data.promotionChannel} onChange={promotionChannel=>update({promotionChannel})} options={{'':'Choose an approved channel',...Object.fromEntries((projects.find(p=>p.id===data.projectId)?.data.allocations||project?.allocations||[]).map(a=>[a.channel,a.channel+' · '+money(a.amountCents)+' total']))}}/><Field label="Deliverable promotion allocation (USD)"><Input type="number" min="0.01" step="0.01" value={data.promotionCents/100} onChange={e=>update({promotionCents:Math.round(Number(e.target.value)*100)})}/></Field></fieldset>}
+        <div className="two-fields"><Field label="Intended publication time (America/Chicago)"><Input type="datetime-local" value={data.publishAt} onChange={e=>update({publishAt:e.target.value})}/></Field><Field label="Format"><Input placeholder="Image, reel, email…" value={data.format} onChange={e=>update({format:e.target.value})}/></Field></div>
+        <fieldset className="hq-checks"><legend>Destination platforms</legend>{destinations.map(p=><label key={p}><input type="checkbox" checked={data.platforms.includes(p)} onChange={e=>update({platforms:e.target.checked?[...data.platforms,p]:data.platforms.filter(x=>x!==p)})}/>{p}</label>)}</fieldset>
+        <Field label="Caption / publishing copy"><Textarea rows={5} value={data.caption} onChange={e=>update({caption:e.target.value})}/></Field><Field label="Destination link (optional HTTPS)"><Input type="url" value={data.destinationUrl} onChange={e=>update({destinationUrl:e.target.value})}/></Field>
+      </>}
+      <label className="check-field"><input type="checkbox" checked={data.blocked} onChange={e=>update({blocked:e.target.checked})}/><span>This work is blocked</span></label>
+      {data.blocked&&<><Field label="Blocked reason"><Textarea required value={data.blockedReason} onChange={e=>update({blockedReason:e.target.value})}/></Field><Person label="Responsible for resolving the block" value={data.blockedBy} onChange={blockedBy=>update({blockedBy})} staff={c.staff}/></>}
+      <MaterialsEditor value={data} onChange={update} available={assets} onPendingChange={setPending}/>
+      {record?.data.legacyPost?.consignment&&project&&<ConsignmentReview data={evidencePost({...record.data,...data} as Deliverable)} campaign={auctionFor(project)} onChange={post=>update({caption:post.caption,evidence:{completedTasks:post.completedTasks,staffPicks:post.staffPicks,verification:post.verification}})}/>}
+      <p className="muted">Saving content changes clears approval. Submit the updated version for review when it is ready.</p><div className="button-row"><Button type="submit" disabled={pending}>{busy?'Saving…':record?'Save deliverable':'Create deliverable'}</Button>{onCancel&&<Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}</div>
+    </fieldset>
+  </form>;
+}
+
+function BudgetPanel({project,context:c,act,busy,name}:{project:HqRecord<Project>;context:HqContext;act:Action;busy:boolean;name:(id:string)=>string}) {
+  const [amount,setAmount]=useState('');const p=project.data;
+  return <section className="panel"><h2>Approved budget</h2><p className="hq-budget">{p.budget?money(p.budget.amountCents):'Not approved'}</p>{p.budget&&<p className="muted">Approved by {name(p.budget.approvedBy)} · {recordedTime(p.budget.approvedAt)}</p>}
+    <ul className="hq-deliverables">{p.allocations.map(a=><li key={a.channel}><span>{a.channel}</span><strong>{money(a.amountCents)}</strong></li>)}</ul><p>Unallocated: {p.budget?money(p.budget.amountCents-p.allocations.reduce((sum,a)=>sum+a.amountCents,0)):'Awaiting approval'}</p>
+    {c.canApproveBudget?<form className="hq-form" onSubmit={async e=>{e.preventDefault();if(await act({action:'budget',id:project.id,version:p.version,amountCents:Math.round(Number(amount)*100)}))setAmount('');}}><Field label="New approved budget (USD)"><Input required type="number" min="0" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} disabled={busy}/></Field><Button disabled={busy} type="submit">Approve budget amount</Button></form>:<p className="muted">Budget approvers: {c.staff.filter(s=>s.budgetApprover).map(s=>s.name).join(', ')||'Not configured; ask a workspace administrator'}</p>}
+  </section>;
+}
+function ProductionPanel({record,project,context:c,act,busy,name}:{record:HqRecord<Deliverable>;project?:Project;context:HqContext;act:Action;busy:boolean;name:(id:string)=>string}) {
+  const [comment,setComment]=useState('');
+  const d=record.data,approver=project?.owner||d.approver,canApprove=approver===c.staffId;
+  const next:Record<Deliverable['status'],Deliverable['status'][]>= {to_do:['in_progress'],in_progress:['to_do','needs_review'],needs_review:['in_progress'],ready:['needs_review',...(d.publishing?[]:['done' as const])],done:['in_progress']};
+  return <section className="panel"><div className="hq-section-header"><h2>Production</h2><StatusBadge status={workStatus(d,project)} detail={productionStatuses[d.status]}/></div><p>Deadline: {dateLabel(d.productionDue)}</p>{d.publishing&&<p>Intended publication: {dateLabel(d.publishAt)}</p>}
+    {d.submission&&<p>Submitted by {name(d.submission.by)} to {name(d.submission.to)} · {recordedTime(d.submission.at)} · content version {d.submission.contentVersion}</p>}
+    {d.approval&&<p className="muted">{approvalCurrent(d,project)?'Approved':'Prior approval — review again'} by {name(d.approval.by)} · {recordedTime(d.approval.at)} · reviewed version {d.approval.reviewedVersion||'not recorded'}</p>}
+    {d.review?.comment&&<p className="notice">{d.review.decision==='changes'?'Changes requested':'Review note'}: {d.review.comment}</p>}
+    {canWork(d,project,c)&&<div className="button-row">{next[d.status].map(status=><Button key={status} variant="outline" disabled={busy} onClick={()=>void act({action:'production',id:record.id,version:d.version,status})}>{status==='needs_review'?'Submit to '+name(approver)+' for review':'Move to '+productionStatuses[status]}</Button>)}</div>}
+    {d.status==='needs_review'&&(canApprove?<form className="hq-form" onSubmit={async e=>{e.preventDefault();if(await act({action:'review',id:record.id,version:d.version,decision:'approve',comment}))setComment('');}}><Field label="Review comment (required for changes)"><Textarea maxLength={5000} value={comment} onChange={e=>setComment(e.target.value)}/></Field><div className="button-row"><Button type="submit" disabled={busy||deliverableMissing(d,project).length>0}>Approve this version · Ready</Button><Button type="button" variant="outline" disabled={busy||!comment.trim()} onClick={async()=>{if(await act({action:'review',id:record.id,version:d.version,decision:'changes',comment}))setComment('');}}>Request changes</Button></div></form>:<p className="muted">Waiting for {name(approver)} to review.</p>)}
+  </section>;
+}
+function PublicationForm({record,project,platform,context:c,act,busy,name}:{record:HqRecord<Deliverable>;project?:Project;platform:string;context:HqContext;act:Action;busy:boolean;name:(id:string)=>string}) {
+  const d=record.data,p=d.publications[platform];
+  const [status,setStatus]=useState<'scheduled'|'published'|'planned'>('scheduled'),[time,setTime]=useState(''),[url,setUrl]=useState(''),[reason,setReason]=useState(''),[confirmed,setConfirmed]=useState(false);
+  const eligible=d.publisher===c.staffId||(project?.owner||d.approver)===c.staffId;
+  return <article className="hq-publication"><h3>{platform}</h3><p className="tag">{p.status}</p>{p.scheduledFor&&<p>Scheduled for {dateLabel(p.scheduledFor)}<br/><span className="muted">Confirmed by {name(p.scheduledBy||'')}</span></p>}
+    {p.status==='published'?<><p>Published {dateLabel(p.publishedAt||'')}<br/><span className="muted">Recorded by {name(p.recordedBy||'')}</span></p>{p.liveUrl?<a href={p.liveUrl} target="_blank" rel="noreferrer">Open live publication →</a>:<p>No live URL: {p.unavailableReason}</p>}</>:eligible?<form className="hq-form" onSubmit={e=>{e.preventDefault();void act({action:'publication',id:record.id,version:d.version,platform,status,time,url,unavailableReason:reason,confirmed});}}>
+      <fieldset disabled={busy} className="campaign-fields"><Choice label={'Record '+platform+' action'} value={status} onChange={v=>{setStatus(v as typeof status);setConfirmed(false);setTime('');}} options={{scheduled:'Scheduled on the platform',published:'Published on the platform',...(p.status==='scheduled'?{planned:'Cancelled platform scheduling'}:{})}}/>
+      {status!=='planned'&&<Field label={status==='published'?'Actual publication time (America/Chicago)':'Confirmed scheduled time (America/Chicago)'}><Input required type="datetime-local" value={time} onChange={e=>setTime(e.target.value)}/></Field>}
+      {status==='published'&&<><Field label="Live publication URL"><Input type="url" value={url} onChange={e=>setUrl(e.target.value)}/></Field>{!url&&<Field label="Why is no live URL available?"><Textarea required minLength={5} value={reason} onChange={e=>setReason(e.target.value)}/></Field>}</>}
+      <label className="check-field"><input required type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/><span>{status==='scheduled'?'I confirmed this was scheduled on '+platform+'.':status==='published'?'I checked that this is live on '+platform+'.':'I cancelled the scheduled post on '+platform+'.'}</span></label>
+      <Button type="submit" disabled={!confirmed||(status!=='planned'&&(d.status!=='ready'||d.blocked||!approvalCurrent(d,project)))}>Record {platform} confirmation</Button>
+      {(d.status!=='ready'||!approvalCurrent(d,project))&&<p className="muted">Current owner approval is required to record scheduling or publication.</p>}
+      </fieldset></form>:<p className="muted">The assigned publisher or current approver records publishing confirmations.</p>}
+  </article>;
+}
+
+function LegacyAdoption({records,context:c,act,busy}:{records:WorkspaceRecord[];context:HqContext;act:Action;busy:boolean}) {
+  const router=useRouter();
+  const adoptedCampaigns=new Set(records.filter(r=>r.kind==='project').map(r=>(r.data as Project).legacyCampaignId)),adoptedPosts=new Set(records.filter(r=>r.kind==='deliverable').map(r=>(r.data as Deliverable).legacyPostId));
+  const campaigns=records.filter(r=>r.kind==='campaign'&&!adoptedCampaigns.has(r.id)) as HqRecord<{name:string;owner?:string}>[];
+  const posts=records.filter(r=>r.kind==='post'&&!adoptedPosts.has(r.id)&&!(r.data as {consignment?:unknown}).consignment&&!(r.data as {recurrence?:unknown}).recurrence&&!r.id.startsWith('radar_')) as HqRecord<{title:string;owner?:string}>[];
+  return <details className="panel hq-details"><summary>Adopt existing campaigns and calendar posts</summary><p>Move work into HQ explicitly. Original records remain preserved as read-only history. Historical approvals and publishing labels require fresh confirmation.</p><p className="muted">Create a dated occurrence from a recurring template before adopting it. Editorial handoff is available in Work. Original data and attached media remain available.</p><ul className="hq-deliverables">{[...campaigns.map(r=>({...r,kind:'campaign',title:r.data.name})),...posts.map(r=>({...r,kind:'post',title:r.data.title}))].map(r=><li key={r.kind+r.id}><span>{r.title}</span><Button variant="outline" disabled={busy||(!c.admin&&r.data.owner!==c.staffId)} onClick={async()=>{const result=await act({action:r.kind==='campaign'?'adopt-campaign':'adopt-post',id:r.id});if(result?.id)router.push(r.kind==='campaign'?'/projects/'+result.id:'/projects/work/'+result.id);}}>Adopt {r.kind}</Button></li>)}</ul>{!campaigns.length&&!posts.length&&<p>No eligible legacy work remains.</p>}</details>;
+}
+
+function EditorialHandoff({records,context:c,act,busy}:{records:WorkspaceRecord[];context:HqContext;act:Action;busy:boolean}){
+ const [owner,setOwner]=useState(''),[approver,setApprover]=useState(''),[effort,setEffort]=useState('standard');const router=useRouter();
+ const adopted=new Set(records.filter(r=>r.kind==='deliverable').map(r=>(r.data as Deliverable).legacyPostId));const posts=records.filter(r=>r.kind==='post'&&(r.data as {radarId?:string}).radarId&&!adopted.has(r.id)) as HqRecord<{title:string;status:string}>[];
+ return <details className="panel hq-details"><summary>Hand off approved editorial work</summary><p>Approved editorial sources can become one standalone HQ deliverable. Choose its accountable owner, approver and effort. The original remains available; instructions, committed deadlines, final files and publishing confirmation need explicit review in HQ.</p>{c.canCoordinate||c.admin?<><Person label="Editorial work owner" value={owner} onChange={setOwner} staff={c.staff}/><Person label="Editorial work approver" value={approver} onChange={setApprover} staff={c.staff}/><Choice label="Editorial work effort" value={effort} onChange={setEffort} options={effortLevels}/><ul className="hq-deliverables">{posts.map(p=><li key={p.id}><span>{p.data.title} · {p.data.status}</span><Button disabled={busy||!owner||!approver||p.data.status!=='approved'} onClick={async()=>{const result=await act({action:'adopt-editorial',id:p.id,owner,approver,effort});if(result?.id)router.push('/projects/work/'+result.id);}}>Hand off {p.data.title}</Button></li>)}</ul>{!posts.length&&<p>No editorial calendar copies await handoff. Approve the source and add it to the calendar in the editorial queue first.</p>}</>:<p>A request coordinator can hand off an approved editorial source.</p>}<Link href="/requests?view=editorial">Open editorial queue →</Link></details>;
+}
+
+type Comment={id:string;actor:string;body:string;created_at:string;mentions?:string[]};
+type Activity={id:string;actor:string;action:string;created_at:string;snapshot:{version?:number;title?:string;approval?:{by:string};review?:{decision:'approve'|'changes';reviewedVersion:number};decision?:{reason:string};budget?:{amountCents:number};amount_cents?:number;category?:string;note?:string}};
+export function Discussion({id,kind,context:c,act,busy}:{id:string;kind:'project'|'deliverable'|'request';context:HqContext;act:Action;busy:boolean}) {
+  const [comments,setComments]=useState<Comment[]>([]),[activity,setActivity]=useState<Activity[]>([]),[next,setNext]=useState<number|null>(null),[error,setError]=useState(''),[body,setBody]=useState(''),[mentions,setMentions]=useState<string[]>([]),[loading,setLoading]=useState(true),[refresh,setRefresh]=useState(0);
+  const commentId=useRef(clientId());
+  useEffect(()=>{const refresh=()=>setRefresh(n=>n+1);window.addEventListener('hq-records-changed',refresh);return()=>window.removeEventListener('hq-records-changed',refresh);},[]);
+  const load=useCallback(async(offset:number,signal?:AbortSignal)=>{try{const data=await json<{comments:Comment[];activity:Activity[];nextOffset:number|null}>('/api/hq?kind='+kind+'&id='+encodeURIComponent(id)+'&offset='+offset,{signal});setComments(old=>offset?[...old,...data.comments]:data.comments);setActivity(old=>offset?[...old,...data.activity]:data.activity);setNext(data.nextOffset);setError('');}catch(e){if(!signal?.aborted)setError((e as Error).message);}finally{if(!signal?.aborted)setLoading(false);}},[id,kind]);
+  useEffect(()=>{const controller=new AbortController();json<{comments:Comment[];activity:Activity[];nextOffset:number|null}>('/api/hq?kind='+kind+'&id='+encodeURIComponent(id)+'&offset=0',{signal:controller.signal}).then(data=>{setComments(data.comments);setActivity(data.activity);setNext(data.nextOffset);setError('');}).catch(e=>{if(!controller.signal.aborted)setError(e.message);}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();},[id,kind,refresh]);
+  const name=(staffId:string)=>c.staff.find(s=>s.id===staffId)?.name||staffId;
+  return <section className="panel"><h2>Comments and activity</h2>{error&&<p role="alert">{error} <Button variant="outline" onClick={()=>setRefresh(n=>n+1)}>Retry history</Button></p>}
+    <form className="hq-form" onSubmit={async e=>{e.preventDefault();if(await act({action:'comment',id,kind,commentId:commentId.current,body,mentions})){setBody('');setMentions([]);commentId.current=clientId();setRefresh(n=>n+1);}}}><Field label="Add an internal comment"><Textarea required maxLength={5000} value={body} onChange={e=>{setBody(e.target.value);commentId.current=clientId();}}/></Field><People label="Mention people (notify in app)" value={mentions} onChange={people=>{setMentions(people);commentId.current=clientId();}} staff={c.staff}/><Button type="submit" disabled={busy}>Post comment</Button></form>
+    <ul className="hq-discussion">{comments.map(x=><li key={x.id}><strong>{name(x.actor)}</strong><time>{recordedTime(x.created_at)}</time><p className="hq-preserve-text">{x.body}</p>{!!x.mentions?.length&&<p className="muted">Mentioned: {x.mentions.map(name).join(', ')}</p>}</li>)}</ul>
+    <details className="hq-details" open><summary>Activity history</summary><ul className="hq-discussion">{activity.map(x=><li key={x.id}><strong>{name(x.actor)}</strong><time>{recordedTime(x.created_at)}</time><p>{x.action.replaceAll('-',' ').replaceAll('_',' ')}{x.snapshot.title?' · '+x.snapshot.title:''}{x.snapshot.version?' · version '+x.snapshot.version:''}{x.action==='review'&&x.snapshot.review?' · '+(x.snapshot.review.decision==='approve'?'Approved':'Changes requested')+' · reviewed version '+x.snapshot.review.reviewedVersion:''}{x.snapshot.amount_cents!==undefined?' · '+money(x.snapshot.amount_cents)+' '+x.snapshot.category+' · '+x.snapshot.note:''}{x.action==='decide-request'&&x.snapshot.decision?.reason?' · '+x.snapshot.decision.reason:''}</p></li>)}</ul></details>
+    {loading&&<p role="status">Loading history…</p>}{next!==null&&<Button variant="outline" disabled={loading} onClick={()=>{setLoading(true);void load(next);}}>Load earlier comments and activity</Button>}
+  </section>;
+}
+
+function SourceRequests({records,kind,id}:{records:WorkspaceRecord[];kind:string;id:string}) {
+ const requests=records.filter(r=>r.kind==='request'&&(r.data as {conversion?:{kind:string;id:string}}).conversion?.kind===kind&&(r.data as {conversion?:{id:string}}).conversion?.id===id);
+ return requests.length?<section className="panel"><h2>Original requests</h2><ul>{requests.map(r=><li key={r.id}><Link href={'/requests/'+r.id}>{(r.data as {title:string}).title}</Link><p className="muted">Requested deadline: {dateLabel((r.data as {requestedDeadline:string}).requestedDeadline)} · separate from the production commitment</p></li>)}</ul></section>:null;
+}

@@ -1,6 +1,7 @@
 import {identity,bucket,saveRecord,apiError} from '@/lib/storage';
 import {z} from 'zod';
-const schema=z.object({name:z.string().min(1).max(250),type:z.enum(['image/jpeg','image/png','image/webp','video/mp4','video/quicktime','video/webm']),size:z.number().int().positive().max(40*1024*1024)});
+import {supportedAssetTypes,assetSizeLimit} from '@/lib/asset-policy';
+const schema=z.object({name:z.string().min(1).max(250),type:z.enum(supportedAssetTypes),size:z.number().int().positive().max(assetSizeLimit)});
 export async function POST(request:Request){
  try {
   const workspace=await identity(request);

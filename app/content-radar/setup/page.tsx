@@ -1,2 +1,2 @@
 import {redirect} from 'next/navigation';
-export default function Page(){redirect('/content-radar/editorial');}
+export default function Page(){redirect('/requests?view=staff');}

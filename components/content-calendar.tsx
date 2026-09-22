@@ -9,11 +9,12 @@ import {CalendarDays, Download, Pencil, Plus} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
+import {templateSaveSchema,type TemplateSave} from '@/lib/calendar-validation';
 import {clientId} from '@/lib/client-id';
 import {PLATFORMS} from '@/lib/marketing';
 import {calendarDay, calendarTime, calendarLocal, calendarGroups, calendarRelativeDay, nextTuesday, type CalendarPost, type CalendarPostData} from '@/lib/content-calendar';
 
-type Props = {campaigns: CampaignRecord[]; onSaveCampaign: (payload: CampaignSave) => Promise<boolean>; posts: CalendarPost[]; busy: boolean; loading: boolean; loadError?: string; saveError?: string; onSave: (id: string, data: CalendarPostData) => Promise<boolean>};
+type Props = {onSaveTemplate:(payload:TemplateSave)=>Promise<{id:string;existing:boolean}|null>; campaigns: CampaignRecord[]; onSaveCampaign: (payload: CampaignSave) => Promise<boolean>; posts: CalendarPost[]; busy: boolean; loading: boolean; loadError?: string; saveError?: string; onSave: (id: string, data: CalendarPostData) => Promise<boolean>};
 const emptyDraft: CalendarPostData = {title: '', date: '', timezone: 'America/Chicago', source: 'tbd', caption: '', status: 'draft', category: 'Topical'};
 const categories = ['Topical', 'Release', 'Brand / educational', 'Consignment'] as const;
 
@@ -29,9 +30,10 @@ function exportCalendar(posts: CalendarPost[], campaigns: CampaignRecord[]) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function ContentCalendar({posts, campaigns, busy, loading, loadError, saveError, onSave, onSaveCampaign}: Props) {
+export function ContentCalendar({posts, campaigns, busy, loading, loadError, saveError, onSave, onSaveCampaign, onSaveTemplate}: Props) {
   const [draft, setDraft] = useState<CalendarPostData>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [template,setTemplate]=useState<CalendarPost|null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const [message,setMessage]=useState('');
@@ -47,7 +49,7 @@ export function ContentCalendar({posts, campaigns, busy, loading, loadError, sav
 
   function openDraft(post?: CalendarPost, occurrence = false) {
     setMessage('');newId.current=null;
-    setEditingId(post && !occurrence ? post.id : null);
+    setEditingId(post && !occurrence ? post.id : null);setTemplate(occurrence&&post?post:null);
     setDraft(post ? {...post.data, date:calendarLocal(post.data.date)||post.data.date, ...(occurrence ? {recurrence: undefined, date: nextTuesday(post.data.date.slice(11, 16)), status: 'draft'} : {})} : {...emptyDraft});
     formRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
     titleRef.current?.focus({preventScroll: true});
@@ -88,8 +90,9 @@ export function ContentCalendar({posts, campaigns, busy, loading, loadError, sav
       const issues = approvalIssues(draft, campaigns.find(c => c.id === draft.consignment?.campaignId)?.data);
       if (['approved','published'].includes(draft.status) && issues.length) return setMessage(issues[0] + ' Change the post to review before saving unfinished changes.');
       saving.current=true;newId.current ||= clientId();
-      try{const ok = await onSave(editingId || newId.current, {...draft, title: draft.title.trim(), timezone: 'America/Chicago'});
-      if (ok) { setDraft({...emptyDraft}); setEditingId(null);newId.current=null;setMessage('Saved. Your calendar is up to date.'); }
+      try{const data={...draft, title: draft.title.trim(), timezone: 'America/Chicago' as const};
+      const ok = template ? await onSaveTemplate(templateSaveSchema.parse({id:newId.current,templateId:template.id,source:template.data,data})) : await onSave(editingId || newId.current,data);
+      if (ok) { setDraft({...emptyDraft}); setEditingId(null);setTemplate(null);newId.current=null;setMessage('Saved. Your calendar is up to date.'); }
       else setMessage('Could not save. Your entries are still here. Please retry.');
       }catch{setMessage('Could not save. Your entries are still here. Please retry.');}finally{saving.current=false;}
     }}>

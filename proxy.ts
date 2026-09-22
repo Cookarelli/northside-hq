@@ -14,4 +14,4 @@ export async function proxy(request:NextRequest) {
   response.headers.set('Cache-Control','private, no-store');
   return response;
 }
-export const config={matcher:['/','/login','/forgot-password','/reset-password','/api/:path*','/content-radar/:path*']};
+export const config={matcher:['/','/today','/work','/content','/results','/team','/settings','/projects/:path*','/calendar','/requests/:path*','/assets/:path*','/login','/forgot-password','/reset-password','/api/:path*','/content-radar/:path*']};

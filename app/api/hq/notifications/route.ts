@@ -1,0 +1,2 @@
+import {db,identity,apiError} from '@/lib/storage';
+export async function GET(request:Request){try{await identity();const offset=Number(new URL(request.url).searchParams.get('offset')||0);if(!Number.isSafeInteger(offset)||offset<0)return Response.json({error:'Choose a valid page.'},{status:400});const {data,error}=await (await db()).rpc('hub_hq_operations',{p_action:'notification-list',p_payload:{offset}});if(error)throw error;return Response.json(data,{headers:{'Cache-Control':'private, no-store'}});}catch(e){return apiError(e);}}

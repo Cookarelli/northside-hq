@@ -1,12 +1,12 @@
-# Northside Marketing Hub
+# Northside HQ
 
-Team workspace for launch planning, content production, Content Radar, draft review, a shared calendar, campaign links, and results.
+Northside Collectibles' internal workspace for projects, production, approvals and manual publishing. Primary navigation: **Today, Projects, Calendar, Requests, Assets**. These views share organization-scoped project and deliverable records, preserving the existing calendar, recurring series, campaign evidence, editorial sources, private asset studio, authentication and integrations.
 
-This repository combines the latest readable Hub interface and news aggregator with the Next.js/Supabase deployment. Text is larger, navigation has labeled buttons, and News & Content Radar has a prominent entry point.
+Read [the workflow, staff onboarding, preserved-data inventory, permissions, verification and rollout guide](docs/northside-hq.md). Social publishing remains manual. In-app assignment/review notifications persist; deadline reminders are checked while HQ is open because no background scheduler is configured.
 
 ## Run and verify
 
-Use Node 22.13 or newer and the pnpm version in `package.json`.
+Use Node 22.13 or newer and the pnpm version pinned in `package.json`.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -18,34 +18,21 @@ pnpm run build
 pnpm dev
 ```
 
-Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local` and in the Vercel deployment environments. Both values are Supabase public application configuration. No service-role key is used by the application. Never commit credentials or staff email lists.
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for the intended environment. These are public application configuration; no service-role key is used. Keep credentials, private staff contacts and test sessions out of source control. Use an isolated test database for verification; never seed production with fictional work.
 
-## Supabase
+## Existing deployment and database
 
-Apply the initial migration in `supabase/migrations` to an empty project. Its SQL is assembled in this order from the reviewed modules: `schema.sql`, `records.sql`, `radar.sql`, `feed.sql`, `editorial.sql`, `permissions.sql`. Tests execute these same modules in PostgreSQL using PGlite.
+Continue with `Cookarelli/marketinghub`, the existing Vercel project `marketinghub-7vl1`, and the existing Supabase project. Do not import a replacement repository/project or reset the database. Apply only pending additive migrations after checking remote migration history, in the order documented in [the rollout guide](docs/northside-hq.md#additive-migrations-and-rollout). Preserve existing record IDs, workspace `northside-marketing`, private storage bucket and deployment connections.
 
-Provision the approved staff roster in `private.staff_access` through a trusted administrator. Each row needs an email, workspace ID, staff ID, name, title, role (`admin` or `staff`), and active flag. The workspace created by this migration is `northside-marketing`. Keep the roster out of source control. Create each person's individual Auth login through Supabase Authentication and require a verified email. No shared password or setup code grants access.
+Individual Auth logins require verified email plus active membership in `private.staff_access`. Database RLS and checked transaction functions enforce organization and workflow permissions; client metadata never grants access. Project owners approve deliverables, designated approvers handle standalone work, configured budget approvers establish budgets and configured coordinators decide requests.
 
-Authorization joins the verified Auth email to the current private roster on every request. Client-editable user metadata is never authoritative. Exposed tables have row-level security; application writes go through named transaction functions with checked membership, fixed workspace scope, and database-assigned actors. History tables cannot be changed by the application role. Staff can view shared assets; the private Storage bucket permits scoped uploads and short-lived downloads.
+Submit changes as a draft PR against `main`, verify a protected preview using isolated data, and obtain Steve's production approval before merge/deploy. The guide separates completed local checks from hosted rollout gates and the deferred repository rename.
 
-## Password recovery
+## Retained tools
 
-The login page includes **Forgot password?**. See [password recovery setup and verification](docs/password-recovery.md) for the required Supabase redirect URL, email delivery configuration, and recovery checks.
+- **Calendar → Existing calendar entries and recurring series** retains the legacy editor. A Tuesday template creates one dated occurrence per Tuesday, safely reused on retry.
+- **Projects** retains launch planning, campaign adoption, tracked links and manual reporting. Approved editorial sources can be handed off once to canonical HQ production with an explicit owner/approver.
+- **Requests → Editorial queue** retains specialized content evidence and source approval. Source changes require renewed pending HQ approval.
+- **Assets → Library & studio / Research & sources** retains all saved media, clips, source collection and exports. Uploaded files are private; source collection remains staff-triggered.
 
-## Content Radar
-
-Open Content Radar, add the starter sources, then use **Refresh sources** or add a link manually. Publisher content is unverified until reviewed. Collection preserves publisher snapshots, deduplicates URLs, skips overlapping jobs, and stops stale workers after settings change. Network fetching is restricted to the reviewed publisher host list; redirects, response size, and collection time are bounded.
-
-Save a story, edit the captions and Reel outline, choose **Needs review**, and save. An administrator can approve the unchanged draft after required sources and media permissions are recorded. Approval does not publish externally. Add an approved draft to the shared calendar. Later material edits, fact changes, and product changes invalidate approval and mark the calendar copy for review.
-
-## Deployment and remaining activation
-
-Import this repository into Vercel as a Next.js project and set the two environment variables. Use a protected preview for initial testing. Verify sign-in, record saving after reload, upload/download, source refresh, review, and calendar handoff before directing the team to the new URL.
-
-The existing Hub is a separate deployment. Its records and uploaded media have not been imported into this new database. Export and review that data before migration; do not merge individual workspaces into shared data without checking the contents.
-
-Automatic daily collection is not enabled in this migration. Staff-triggered collection is available. AI drafting, Shopify stock sync, transcription, external social publishing, and in-app video rendering are not connected. The local video-rendering helper remains available in Content studio.
-
-## Consignment campaigns
-
-The Marketing Calendar includes reusable five-stage consignment campaigns, schedule previews, conflict warnings, and safe rescheduling. See [workflow and deployment instructions](docs/consignment-campaigns.md). Apply the consignment migration before deploying the feature.
+See [password recovery](docs/password-recovery.md) and [consignment evidence and campaign behavior](docs/consignment-campaigns.md). Earlier deployment documents are historical checkpoints, not current production migration evidence. Shopify, ad accounts, AI generation, automatic transcription, external social publishing and in-app rendering remain unconnected.

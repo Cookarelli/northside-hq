@@ -35,7 +35,7 @@ export default function ForgotPassword() {
   }
 
   return <main className="auth-shell"><section className="panel">
-    <p className="brand-word">NORTHSIDE MARKETING</p>
+    <p className="brand-word">NORTHSIDE HQ</p>
     <h1>Forgot password?</h1>
     <p>Enter your team email and we’ll send you a link to set a new password.</p>
     <form onSubmit={submit} aria-busy={busy}>

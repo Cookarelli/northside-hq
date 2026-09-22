@@ -3,8 +3,9 @@ import "./globals.css";
 import {ThemeProvider} from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: "Northside Marketing Hub",
-  description: "Launch planning, content production and campaign measurement for Northside Collectibles.",
+  title: "Northside HQ",
+  description: "Northside Collectibles’ internal workspace for projects, production, approvals and publishing.",
+  robots: {index: false, follow: false},
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
