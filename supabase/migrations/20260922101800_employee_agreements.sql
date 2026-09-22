@@ -65,7 +65,7 @@ declare
   assignment private.agreement_assignments;
   acceptance private.agreement_acceptances;
 begin
-  select * into staff
+  select a.* into staff
   from private.staff_access a
   join auth.users u on lower(u.email)=a.email
   where u.id=uid and a.org_id=w and a.active;
@@ -143,7 +143,7 @@ declare
   doc private.agreement_documents;
   assignment private.agreement_assignments;
 begin
-  select * into staff
+  select a.* into staff
   from private.staff_access a
   join auth.users u on lower(u.email)=a.email
   where u.id=uid and a.org_id=w and a.active;
