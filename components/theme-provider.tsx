@@ -1,28 +1,36 @@
 'use client';
 
 import {useSyncExternalStore} from 'react';
+import {usePathname} from 'next/navigation';
 import {ThemeProvider as NextThemeProvider, useTheme} from 'next-themes';
-import {Moon} from 'lucide-react';
+import {Moon, Sun} from 'lucide-react';
+import {hqSections} from '@/lib/hq-navigation';
 
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
 const serverSnapshot = () => false;
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const {resolvedTheme, setTheme} = useTheme();
   const mounted = useSyncExternalStore(subscribe, clientSnapshot, serverSnapshot);
   const dark = mounted && resolvedTheme === 'dark';
-  return <div className="appearance-bar">
-    <button className="theme-toggle" type="button" role="switch" aria-label="Dark mode"
+  return <button className="theme-toggle" type="button" role="switch" aria-label="Dark mode"
       aria-checked={dark} disabled={!mounted} onClick={() => setTheme(dark ? 'light' : 'dark')}>
-      <Moon size={20} aria-hidden="true"/><span>Dark mode</span><span className="theme-state">{dark ? 'On' : 'Off'}</span>
-    </button>
-  </div>;
+      {dark ? <Moon size={20} aria-hidden="true"/> : <Sun size={20} aria-hidden="true"/>}
+      <span>{dark ? 'Dark mode' : 'Light mode'}</span>
+      <span className="theme-switch-track" aria-hidden="true"><span/></span>
+    </button>;
+}
+
+function AppearanceBar() {
+  const pathname = usePathname();
+  const hasWorkspaceHeader = pathname === '/' || hqSections.some(({href}) => pathname === href || pathname.startsWith(`${href}/`));
+  return hasWorkspaceHeader ? null : <div className="appearance-bar"><ThemeToggle/></div>;
 }
 
 export function ThemeProvider({children}: {children: React.ReactNode}) {
   return <NextThemeProvider attribute="class" defaultTheme="system" enableSystem
     storageKey="northside-color-theme" disableTransitionOnChange>
-    <ThemeToggle/>{children}
+    <AppearanceBar/>{children}
   </NextThemeProvider>;
 }

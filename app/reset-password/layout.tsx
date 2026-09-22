@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Reset password | Northside Marketing Hub',
+  title: 'Reset password | Northside HQ',
   referrer: 'no-referrer',
   robots: { index: false, follow: false },
 };

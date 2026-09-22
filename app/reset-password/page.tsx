@@ -55,7 +55,7 @@ export default function ResetPassword() {
   }
 
   return <main className="auth-shell"><section className="panel">
-    <p className="brand-word">NORTHSIDE MARKETING</p>
+    <p className="brand-word">NORTHSIDE HQ</p>
     <h1>{state === 'done' ? 'Password updated' : 'Set a new password'}</h1>
     {state === 'checking' && <p role="status">Checking your reset link…</p>}
     {error && <p className="notice error auth-notice" role="alert">{error}</p>}

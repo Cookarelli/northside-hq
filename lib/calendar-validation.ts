@@ -5,7 +5,7 @@ const wall = z.string().refine(value => {try {chicagoInstant(value); return true
 const label = z.string().trim().min(1).max(500);
 export const socialPlatforms = ['facebook', 'instagram', 'x', 'youtube', 'tiktok', 'snapchat'] as const;
 export const postSchema = z.object({
-  title: label, date: z.string().min(10), timezone: z.literal('America/Chicago'), source: z.string().max(100),
+  title: label, date: wall, timezone: z.literal('America/Chicago'), source: z.string().max(100),
   caption: z.string().max(10000), status: z.enum(['draft','review','approved','published']),
   category: z.enum(['Topical','Release','Brand / educational','Consignment']).optional(),
   recurrence: z.literal('weekly-tuesday').optional(), references: z.array(z.union([https,z.literal('')])).max(60).transform(a => a.filter(Boolean)).optional(),
@@ -36,3 +36,6 @@ export const campaignSaveSchema = z.object({
   for (const p of payload.posts) if (!p.data.consignment || p.data.consignment.campaignId !== payload.id || p.id !== `consignment_${payload.id}_${p.data.consignment.slot}`) ctx.addIssue({code:'custom', message:'Invalid campaign post identity.'});
   if (!payload.base.campaign && payload.posts.some(p => p.data.status !== 'draft')) ctx.addIssue({code:'custom', message:'New campaign posts must start as drafts.'});
 });
+
+export const templateSaveSchema=z.object({id:z.string().uuid(),templateId:z.string().regex(/^[a-zA-Z0-9_-]{1,180}$/),source:z.record(z.unknown()),data:postSchema}).strict();
+export type TemplateSave=z.infer<typeof templateSaveSchema>;
