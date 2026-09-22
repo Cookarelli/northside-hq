@@ -4,11 +4,11 @@ The login page links to `/forgot-password`. Supabase sends the recovery email; t
 
 ## Supabase setup
 
-In the existing production project `sjbjotfzsnaolecxklxr`, under **Authentication → URL Configuration**:
+In the existing production project `yogdhpfattuxicwyxylb`, under **Authentication → URL Configuration**:
 
 - Site URL: `https://marketinghub-7vl1.vercel.app`
 - Add the exact redirect URL: `https://marketinghub-7vl1.vercel.app/reset-password`
-- Keep existing required redirect URLs. Do not add a broad production wildcard.
+- Keep existing required redirect URLs. Do not add a broad production wildcard.\n- For local testing, also allow `http://localhost:3000/reset-password`.\n- Confirm the Vercel Production environment has `NEXT_PUBLIC_SUPABASE_URL=https://yogdhpfattuxicwyxylb.supabase.co` and the matching publishable key.
 
 The default **Reset Password** email template can keep its `{{ .ConfirmationURL }}` link. The app uses PKCE; request and open the email link in the same browser. For a deliberately customized token-hash template, the supported link is `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`. Do not change other email templates for this feature.
 

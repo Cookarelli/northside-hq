@@ -1,4 +1,7 @@
-create function private.save_record(p_kind text,p_id text,p_data jsonb) returns void
+-- Allow authenticated Northside staff to persist the new HQ request workflow.
+-- This preserves the existing workspace and authorization model; it only adds the request record kind.
+
+create or replace function private.save_record(p_kind text,p_id text,p_data jsonb) returns void
 language plpgsql security definer set search_path='' as $$
 declare w text:=private.require_staff(); pending jsonb; existing jsonb; campaign jsonb;
 begin
@@ -40,12 +43,3 @@ begin
  insert into public.marketing_records(workspace_id,kind,id,data) values(w,p_kind,p_id,p_data)
  on conflict(workspace_id,kind,id) do update set data=excluded.data,updated_at=now();
 end $$;
-create function public.hub_save_record(p_kind text,p_id text,p_data jsonb) returns void
-language sql security invoker set search_path='' as $$ select private.save_record(p_kind,p_id,p_data) $$;
-
-insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values('marketing-assets','marketing-assets',false,41943040,array['image/jpeg','image/png','image/webp','video/mp4','video/quicktime','video/webm']);
-create policy hub_asset_read on storage.objects for select to authenticated
-using(bucket_id='marketing-assets' and split_part(name,'/',1)=(select private.workspace()));
-create policy hub_asset_upload on storage.objects for insert to authenticated
-with check(bucket_id='marketing-assets' and split_part(name,'/',1)=(select private.workspace()) and array_length(string_to_array(name,'/'),1)=2);
