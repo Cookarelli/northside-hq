@@ -12,6 +12,7 @@ type Props={
 export function AgreementActions({agreementId,employeeName,hardGate,reviewDueAt}:Props){
   const [fullName,setFullName]=useState('');
   const [busy,setBusy]=useState(false);
+  const [accepted,setAccepted]=useState(false);
   const [error,setError]=useState('');
 
   async function act(action:'accept'|'defer'){
@@ -34,10 +35,10 @@ export function AgreementActions({agreementId,employeeName,hardGate,reviewDueAt}
       ? 'The review period has ended. Accept the agreement to continue into Northside HQ.'
       : `You may sign now voluntarily, or continue to HQ and review it through ${new Date(reviewDueAt).toLocaleDateString('en-US',{timeZone:'America/Chicago',month:'long',day:'numeric',year:'numeric'})}.`}</p>
     <label className="field"><span>Type your full name exactly as shown: {employeeName}</span><input value={fullName} onChange={e=>setFullName(e.target.value)} autoComplete="name"/></label>
-    <label className="check-field"><input type="checkbox" required form="agreement-accept"/><span>I have read and understand this agreement and choose to accept it electronically.</span></label>
+    <label className="check-field"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>I have read and understand this agreement and choose to accept it electronically.</span></label>
     {error&&<p role="alert" className="notice error">{error}</p>}
     <div className="button-row">
-      <button id="agreement-accept" type="button" disabled={busy||fullName.trim().length<2} onClick={()=>act('accept')}>{busy?'Saving…':'Accept & Sign'}</button>
+      <button id="agreement-accept" type="button" disabled={busy||fullName.trim().length<2||!accepted} onClick={()=>act('accept')}>{busy?'Saving…':'Accept & Sign'}</button>
       {!hardGate&&<button type="button" className="secondary-action" disabled={busy} onClick={()=>act('defer')}>Continue during review period</button>}
     </div>
   </section>;
