@@ -1,3 +1,4 @@
+import {AgreementUnavailable} from '@/components/agreement-unavailable';
 import {redirect} from 'next/navigation';
 import {agreementGate,agreementSignedUrl} from '@/lib/agreements';
 import {identity} from '@/lib/storage';
@@ -8,7 +9,8 @@ export const dynamic='force-dynamic';
 
 export default async function RequiredAgreement(){
   try{await identity();}catch{redirect('/login');}
-  const gate=await agreementGate();
+  let gate;
+  try {gate=await agreementGate();} catch {return <AgreementUnavailable/>;}
   if(!gate.required||!gate.agreementId||!gate.storagePath) redirect('/today');
   const signedUrl=await agreementSignedUrl(gate.storagePath);
 
