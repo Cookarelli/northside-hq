@@ -1,38 +1,51 @@
 'use client';
 
+import {useState} from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {usePathname} from 'next/navigation';
-import {CalendarDays, FolderKanban, Images, Inbox, Sun} from 'lucide-react';
-import {hqSections, sectionForPath} from '@/lib/hq-navigation';
+import {BarChart3, CalendarDays, CheckSquare2, FileText, FolderKanban, Images, LayoutDashboard, Menu, Settings2, Users, Plus} from 'lucide-react';
+import {hqSections, pageForPath, sectionForPath} from '@/lib/hq-navigation';
 import {HqNotifications} from '@/components/hq-notifications';
 import {SignOut} from '@/components/sign-out';
 import {ThemeToggle} from '@/components/theme-provider';
+import {PageHeader} from '@/components/hq-ui';
+import {Button} from '@/components/ui/button';
+import {Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger} from '@/components/ui/sheet';
 
-const icons = {today: Sun, projects: FolderKanban, calendar: CalendarDays, requests: Inbox, assets: Images};
+const icons = {overview: LayoutDashboard, work: CheckSquare2, calendar: CalendarDays, campaigns: FolderKanban, content: FileText, results: BarChart3, assets: Images, team: Users, settings: Settings2};
+
+function Brand() {
+  return <Link href="/today" className="hq-brand" aria-label="Northside HQ home"><span className="hq-brand-mark" aria-hidden="true">N<span>•</span></span><span><strong>Northside HQ</strong><small>Northside Collectibles</small></span></Link>;
+}
+
+function Navigation({onNavigate}: {onNavigate?: () => void}) {
+  const active = sectionForPath(usePathname());
+  return <nav className="hq-navigation" aria-label="Main navigation">{(['primary', 'secondary'] as const).map(group => <div key={group} className={`hq-nav-${group}`}>
+    <p className="hq-nav-label">{group === 'primary' ? 'Workspace' : 'Manage'}</p>
+    {hqSections.filter(item => item.group === group).map(item => {
+      const Icon = icons[item.id];
+      return <Link key={item.id} href={item.href} onClick={onNavigate} aria-current={active === item.id ? 'page' : undefined}><Icon size={19} aria-hidden="true"/><span>{item.label}</span></Link>;
+    })}
+  </div>)}</nav>;
+}
 
 export function HqShell({children}: {children: React.ReactNode}) {
   const pathname = usePathname();
-  const active = sectionForPath(pathname);
-  const section = hqSections.find(item => item.id === active)!;
-  const research = pathname === '/assets/research';
+  const page = pageForPath(pathname);
+  const [open, setOpen] = useState(false);
   return <div className="hub hq-shell">
     <a className="skip-link" href="#hq-main">Skip to main content</a>
-    <header className="masthead hq-masthead">
-      <Link href="/today" className="hq-brand" aria-label="Northside HQ home">
-        <Image src="/northside-collectibles-blue.svg" alt="Northside Collectibles" width={2070} height={572} unoptimized loading="eager" className="hq-logo"/>
-      </Link>
-      <div className="header-meta"><ThemeToggle/><HqNotifications/><SignOut/></div>
-    </header>
-    <div className="hq-frame">
-      <nav className="hq-navigation" aria-label="Main navigation">{hqSections.map(item => {
-        const Icon = icons[item.id];
-        return <Link key={item.id} href={item.href} aria-current={active === item.id ? 'page' : undefined}><Icon size={22} aria-hidden="true"/><span>{item.label}</span></Link>;
-      })}</nav>
-      <main className="workspace hq-workspace" id="hq-main" tabIndex={-1}>
-        <div className="hq-page-heading"><div><p className="eyebrow">NORTHSIDE HQ{research ? ' / ASSETS' : ''}</p><h1>{research ? 'Research & sources' : section.label}</h1><p className="muted">{research ? 'Collect stories, save ideas and keep the original sources close.' : section.description}</p></div><span className="hq-timezone">Central time<br/><strong>America/Chicago</strong></span></div>
+    <aside className="hq-sidebar"><Brand/><p className="hq-command-label">Operations Command Center</p><Navigation/><div className="hq-sidebar-footer"><span className="hq-workspace-dot" aria-hidden="true"/>Internal workspace</div></aside>
+    <div className="hq-main-frame">
+      <header className="hq-topbar">
+        <div className="hq-topbar-location"><div className="hq-mobile-nav"><Sheet open={open} onOpenChange={setOpen}><SheetTrigger asChild><Button variant="ghost" aria-label="Open navigation"><Menu size={20}/>Menu</Button></SheetTrigger><SheetContent side="left" className="hq-nav-drawer"><SheetTitle className="sr-only">Northside HQ navigation</SheetTitle><SheetDescription className="sr-only">Choose a workspace page.</SheetDescription><Brand/><p className="hq-command-label">Operations Command Center</p><Navigation onNavigate={() => setOpen(false)}/></SheetContent></Sheet></div><span className="hq-desktop-location">Northside HQ <span aria-hidden="true">/</span> <strong>{page.label}</strong></span><span className="hq-mobile-location">Northside HQ</span></div>
+        <div className="hq-utilities"><span className="hq-timezone">Central time</span><ThemeToggle/><HqNotifications/><SignOut/></div>
+      </header>
+      <main className="hq-main" id="hq-main" tabIndex={-1}>
+        <PageHeader title={page.title} description={page.description} breadcrumb={page.breadcrumb}
+          primaryAction={page.id === 'overview' ? <Button asChild><Link href="/projects#new-campaign"><Plus size={16}/>New Campaign</Link></Button> : undefined}/>
         {children}
-        <footer className="hub-footer"><span>Northside HQ · Northside Collectibles</span><span>Publishing is manual · Updates stay in the app</span></footer>
+        <footer className="hub-footer"><span>Northside HQ · Northside Collectibles</span><span>Operations Command Center</span></footer>
       </main>
     </div>
   </div>;
