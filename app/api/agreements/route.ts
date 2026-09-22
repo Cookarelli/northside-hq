@@ -3,10 +3,11 @@ import {identity} from '@/lib/storage';
 import {sessionClient} from '@/lib/supabase';
 import {z} from 'zod';
 
-const bodySchema=z.discriminatedUnion('action',[
-  z.object({action:z.literal('accept'),agreementId:z.string().uuid(),fullName:z.string().trim().min(2).max(200)}),
-  z.object({action:z.literal('defer'),agreementId:z.string().uuid()})
-]);
+const bodySchema=z.object({
+  action:z.literal('accept'),
+  agreementId:z.string().uuid(),
+  fullName:z.string().trim().min(2).max(200)
+});
 
 function sameOrigin(request:Request){
   const origin=request.headers.get('origin');
@@ -30,12 +31,6 @@ export async function POST(request:Request){
     if(!parsed.success) return Response.json({error:'Invalid agreement request.'},{status:400});
     const client=await sessionClient();
 
-    if(parsed.data.action==='defer'){
-      const {data,error}=await client.rpc('hub_defer_agreement',{p_agreement_id:parsed.data.agreementId});
-      if(error) throw error;
-      return Response.json(data,{headers:{'Cache-Control':'no-store'}});
-    }
-
     const forwarded=request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'';
     const ip=/^[0-9a-fA-F:.]+$/.test(forwarded)?forwarded:'';
     const {data,error}=await client.rpc('hub_accept_agreement',{
@@ -48,7 +43,7 @@ export async function POST(request:Request){
     return Response.json(data,{headers:{'Cache-Control':'no-store'}});
   }catch(e){
     const message=e instanceof Error?e.message:'Agreement action failed.';
-    const safe=/full name|review period|Acceptance is now required/i.test(message)?message:'Could not save the agreement action.';
+    const safe=/full name|Agreement unavailable|must be provided/i.test(message)?message:'Could not save the agreement action.';
     return Response.json({error:safe},{status:400,headers:{'Cache-Control':'no-store'}});
   }
 }
