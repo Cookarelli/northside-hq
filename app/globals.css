@@ -492,3 +492,20 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-page-heading { margin-bottom: 0; }
 .hq-content .main-tabs.hq-secondary { grid-template-columns: repeat(4,minmax(0,1fr)); }
 @media(max-width:640px) { .hq-content .main-tabs.hq-secondary { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+
+
+/* Versioned employee agreement gate */
+.agreement-shell{max-width:1080px;margin:0 auto;padding:32px 24px 56px}
+.agreement-heading{display:grid;gap:.75rem}
+.agreement-heading h1{max-width:880px}
+.agreement-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:.5rem}
+.agreement-meta span{display:flex;flex-direction:column;gap:.25rem;padding:14px;border:1px solid var(--border);border-radius:8px;background:var(--muted)}
+.agreement-meta b{font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-foreground)}
+.agreement-document .section-title{margin-bottom:14px}
+.agreement-document iframe{display:block;width:100%;height:min(72vh,900px);border:1px solid var(--border);border-radius:8px;background:#fff}
+.agreement-actions{display:grid;gap:.75rem}
+.agreement-actions .button-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:.25rem}
+.agreement-actions button{min-height:46px;padding:10px 16px;border:1px solid var(--primary);border-radius:8px;background:var(--primary);color:var(--primary-foreground);font-weight:700}
+.agreement-actions .secondary-action{background:var(--card);color:var(--foreground);border-color:var(--input)}
+@media(max-width:760px){.agreement-shell{padding:20px 14px 40px}.agreement-meta{grid-template-columns:1fr 1fr}.agreement-document iframe{height:62vh}}
+@media(max-width:520px){.agreement-meta{grid-template-columns:1fr}.agreement-actions .button-row>*{width:100%}}
