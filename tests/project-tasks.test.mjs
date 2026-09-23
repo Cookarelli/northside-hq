@@ -34,7 +34,7 @@ before(async()=>{
  migration=await readFile(new URL('../supabase/migrations/20260919014854_northside_hq_projects_deliverables.sql',import.meta.url),'utf8');await db.exec(migration);
  migration=await readFile(new URL('../supabase/hq-workflow.sql',import.meta.url),'utf8');await db.exec(migration);
  migration=await readFile(new URL('../supabase/hq-operations.sql',import.meta.url),'utf8');await db.exec(migration);
- migration=await readFile(new URL('../supabase/migrations/20260923162335_project_tasks_assignments.sql',import.meta.url),'utf8');await db.exec(migration);await db.exec(migration);
+ migration=await readFile(new URL('../supabase/migrations/20260923165617_project_tasks_assignments.sql',import.meta.url),'utf8');await db.exec(migration);await db.exec(migration);
 });
 after(async()=>{await db?.close();await rm(dir,{recursive:true,force:true});});
 

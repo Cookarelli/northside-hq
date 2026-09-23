@@ -23,7 +23,7 @@ The HQ calendar reads the same canonical deliverable record. Rescheduling change
 
 ## Migration and release
 
-Apply `supabase/migrations/20260923162335_project_tasks_assignments.sql` before deploying the updated app. This implementation has not applied the migration to production.
+Apply `supabase/migrations/20260923165617_project_tasks_assignments.sql` before deploying the updated app. Applied to production on September 23, 2026, recorded as version `20260923165617`. Existing record counts and checksums were verified unchanged; the NDA gate and anonymous-access restrictions were verified intact. The commands below are for other environments or future recovery, not a request to reapply production.
 
 From the repository checkout, with Supabase CLI authenticated:
 
@@ -54,4 +54,8 @@ If application rollback is necessary, roll back the app while retaining the addi
 
 New UI components: `StaffPicker`, `ProjectTaskForm`, `TaskActions`, `DeliverableDetails`, and `MyAssignments`. Updated existing project, dashboard, schedule, calendar, and API components use the shared helpers in `lib/project-tasks.ts`.
 
-The new interface has not had an interactive browser walkthrough: Chrome automation is blocked by an open extension panel. The earlier calendar-only change had a separate fixture walkthrough; that result does not verify the new task forms. No production records were edited during implementation.
+The initial interface walkthrough was blocked by Chrome. Browser access is now restored for deployment verification. The earlier calendar-only change had a separate fixture walkthrough; that result does not verify the new task forms. No production records were edited during implementation.
+
+## Deployment repair
+
+Vercel reported a missing client-reference manifest for `app/(hq)/page.tsx`. Both that page and `app/page.tsx` resolved to `/`. Remove the duplicate route and keep the existing root redirect to `/today`; the `/today` route continues through the unchanged auth and NDA-gated HQ layout.

@@ -20,7 +20,7 @@ before(async()=>{
  await db.exec(await readFile(new URL('../supabase/migrations/20260922101800_employee_agreements.sql',import.meta.url),'utf8'));
  await db.exec(await readFile(new URL('../supabase/migrations/20260922113000_employee_agreements_immediate_gate.sql',import.meta.url),'utf8'));
  await db.exec(await hardening());await db.exec('commit');
- await db.exec(await readFile(new URL('../supabase/migrations/20260923162335_project_tasks_assignments.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/migrations/20260923165617_project_tasks_assignments.sql',import.meta.url),'utf8'));
  assert.deepEqual((await db.query('select * from marketing_records')).rows,before);
 });
 after(async()=>await db?.close());
