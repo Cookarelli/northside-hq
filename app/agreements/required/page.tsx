@@ -12,7 +12,11 @@ export default async function RequiredAgreement(){
   let gate;
   try {gate=await agreementGate();} catch {return <AgreementUnavailable/>;}
   if(!gate.required||!gate.agreementId||!gate.storagePath) redirect('/today');
-  const signedUrl=await agreementSignedUrl(gate.storagePath);
+  let signedUrl;
+  try {signedUrl=await agreementSignedUrl(gate.storagePath);} catch {
+    console.error('Required agreement PDF is unavailable in private storage.');
+    return <AgreementUnavailable/>;
+  }
 
   return <><div className="appearance-bar"><ThemeToggle/></div><main className="agreement-shell">
     <section className="panel agreement-heading">
