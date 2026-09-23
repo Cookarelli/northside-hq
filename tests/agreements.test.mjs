@@ -20,6 +20,7 @@ before(async()=>{
  await db.exec(await readFile(new URL('../supabase/migrations/20260922101800_employee_agreements.sql',import.meta.url),'utf8'));
  await db.exec(await readFile(new URL('../supabase/migrations/20260922113000_employee_agreements_immediate_gate.sql',import.meta.url),'utf8'));
  await db.exec(await hardening());await db.exec('commit');
+ await db.exec(await readFile(new URL('../supabase/migrations/20260923165617_project_tasks_assignments.sql',import.meta.url),'utf8'));
  assert.deepEqual((await db.query('select * from marketing_records')).rows,before);
 });
 after(async()=>await db?.close());
@@ -41,6 +42,7 @@ test('immediate hard gate ignores deferred dates and allows only the controlled 
  assert.equal((await db.query("select to_regprocedure('public.hub_defer_agreement(uuid)') f")).rows[0].f,null);
  await assert.rejects(accept('Not the staff name'),/full name/);
  await assert.rejects(db.query("select hub_hq('context','{}')"),/signature required/);
+ await assert.rejects(db.query("select hub_project_tasks('save-task','{}')"),/signature required/);
 });
 test('acceptance uses server identity/time, is idempotent and releases access',async()=>{
  await actor();const start=Date.now();const first=await accept();assert.ok(new Date(first.acceptedAt).getTime()>=start-1000);const retry=await accept();assert.equal(retry.acceptedAt,first.acceptedAt);
@@ -60,6 +62,7 @@ test('a new version requires acceptance while preserving the prior signature acr
  await db.query("insert into private.agreement_documents(id,org_id,version,title,storage_path,document_hash,effective_date,active) values($1,'northside-marketing','local-test-v2','Updated local test agreement','northside/test-v2.pdf',repeat('b',64),current_date-1,true)",[nextDoc]);
  await actor();const pending=await gate();assert.equal(pending.required,true);assert.equal(pending.agreementId,nextDoc);
  await assert.rejects(db.query("select hub_hq('context','{}')"),/signature required/);
+ await assert.rejects(db.query("select hub_project_tasks('save-task','{}')"),/signature required/);
  await db.query('select hub_accept_agreement($1,$2,$3,$4)',[nextDoc,'Test Employee','127.0.0.1','version-test']);
  await actor();assert.equal((await gate()).required,false);
  await db.exec('reset role');
