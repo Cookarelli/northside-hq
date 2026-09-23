@@ -39,7 +39,8 @@ export async function preparePasswordReset(
   const accessToken = hash.get('access_token');
   let result;
   if (code) {
-    result = await auth.exchangeCodeForSession(code);
+    const flowId = url.searchParams.get('sb_flow_id');
+    result = await auth.exchangeCodeForSession(code, flowId ? {flowId} : undefined);
   } else if (tokenHash && url.searchParams.get('type') === 'recovery') {
     result = await auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
   } else if (accessToken && hash.get('refresh_token') && hash.get('type') === 'recovery') {
