@@ -1,5 +1,7 @@
-import {redirect} from 'next/navigation';
+import {AuthLanding} from '@/components/auth-landing';
+
+export const metadata = {referrer: 'no-referrer' as const};
 
 export default function Home(){
-  redirect('/today');
+  return <AuthLanding/>;
 }
