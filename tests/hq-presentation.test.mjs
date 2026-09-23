@@ -37,3 +37,10 @@ test('rescheduled canonical work moves once and completed work keeps its detail 
  const doneEntries=calendarEntries([complete],[project],[],[],'2026-09-01','2026-09-30');assert.equal(doneEntries.length,1);assert.equal(doneEntries[0].status,'Complete');
  assert.equal(calendarEntries([{...original,data:{...original.data,status:'in_progress',waiting:true}}],[project],[],[],'2026-09-01','2026-09-30')[0].status,'Waiting');
 });
+
+test('a server-confirmed completion appears immediately within the rounded UI clock minute',()=>{
+ const completed=task('just-finished','2026-09-23T09:00',{status:'done',completedAt:'2026-09-23T17:00:45Z'});
+ assert.deepEqual(assignmentGroups([completed],[project],'jon',now).groups.map(g=>[g.id,g.records.map(r=>r.id)]),[['complete',['just-finished']]]);
+ const future={...completed,data:{...completed.data,completedAt:'2026-09-24T17:00:45Z'}};
+ assert.equal(assignmentGroups([future],[project],'jon',now).groups.length,0);
+});

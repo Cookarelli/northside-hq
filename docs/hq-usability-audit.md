@@ -1,59 +1,61 @@
-# HQ usability and workflow audit — September 23, 2026
+# Final HQ workflow and usability audit — September 23, 2026
 
-## Release decision
+## Readiness
 
-The code and database regression checks pass. This is a **draft release candidate**, not a completed interactive audit or a production deployment. Desktop, laptop, tablet, and mobile browser acceptance remains blocked by Chrome's open-extension interface and pending macOS computer-use permissions. No production test projects were created and no production records were changed or deleted.
+The core project/deliverable workflows passed browser and database testing and are ready for real project data **after this PR is merged and deployed**, using the existing in-app notifications.
 
-Email reminders are also an existing capability gap: this repository checks in-app deadline reminders while HQ is open. It has no background email reminder sender/scheduler. The audit preserves this behavior; it does not claim to validate email delivery.
+**Background email reminders are not implemented in this repository.** If automatic email reminders are a launch requirement, that remains a blocker. No email delivery or email rescheduling is claimed as tested. Existing in-app reminders are checked while HQ is open.
 
-## Workflow evidence
+The browser audit used the actual application components with an isolated local PostgreSQL-compatible database running the repository's SQL functions and policies. Test identities represented Steve/management and Jon/ordinary staff. The fixture replaces the production sign-in/NDA entry point only in its separate local copy; production authentication, NDA gating, data and permissions were untouched. No test records or messages were sent to production.
 
-| Requested workflow | Evidence and result | Remaining acceptance |
-| --- | --- | --- |
-| Create project | Database tests cover creation, owner validation, persistence, project types, dates and permissions. Dashboard empty-state action now opens the creation form. | Click through the form from Home and verify the resulting card. General projects do not have separate start/target-completion fields; existing event/release/auction dates remain supported. |
-| Assign people | Existing roster and server assignment checks retained. Search, selected staff chips, removal, and checkbox selection are shared across forms. Existing tests reject duplicate deliverable staff and inactive staff. Owner colors remain independent of assigned staff. | Browser search/select/remove and keyboard interaction. |
-| Create deliverable | Database tests cover canonical record creation, multiple staff, priority, notes, date validation and role checks. Calendar tests verify source-record projection without duplicate task entries. | Submit the UI form and check all three surfaces. New deliverables start Not Started; the project row exposes status changes after creation. |
-| Complete work | Assigned-staff status changes and server-owned completion timestamps pass database tests. UI grouping tests move completed work out of active groups into recent history. New test proves in-app reminders stop after the reminder check. | Browser one-click completion, visible project progress and calendar status refresh. |
-| Reschedule | Tests verify one canonical record, current-version enforcement, correct calendar date, and one active reminder at the new due time. Old reminder history resolves rather than disappearing. | Browser editing and cross-page refresh. Email scheduling cannot be tested because it is not implemented. |
-| Overdue work | Chicago-time grouping and urgency tests pass. Visible text labels now appear on shared work rows, project cards, assignment groups and team deadlines. | Visual prominence at all viewports. |
-| Calendar to project | Deep-link tests pass. Calendar items retain associated deliverable/project links. Detail pages retain owner, assigned staff, due date and status. | Browser navigation and back-to-project interaction. |
-| Staff view | Database tests enforce assignment permissions; quick-completion helper tests reject unrelated staff, deleted work, closed projects and publishing workflows. New My Assignments route groups actionable work. | Signed-in staff experience and keyboard walkthrough. |
-| Management view | Existing management rights preserved. Active cards, team deadlines, project people, inline deliverable controls and activity are available. | Management dashboard scan test. |
-| Mobile | Responsive CSS now uses a compact month grid plus selected-day agenda, stacked work rows/forms, four primary navigation items and touch-sized controls. | 390px/768px/1280px/1440px browser testing, overflow checks and touch/keyboard actions are **not yet verified**. |
+## Workflows tested
 
-## Friction corrected
+| Workflow | Browser result |
+| --- | --- |
+| 1. Create project | Passed. From Home → Projects → Add project, created an active event project with title, description, Consignment owner, Jon/Zach staff and an event date. It immediately appeared as a project card and opened its detail page. Its event appeared on the matching calendar day. The assigned staff view included the project. |
+| 2. Assign people | Passed. Searched for Steve, added him, removed Zach, searched a nonexistent name and received clear feedback. Selecting Jon again left exactly one Jon chip. Saved project people became Jon/Steve; owner remained Consignment. Verified purple computed border on cards and project header. |
+| 3. Create deliverable | Passed. Created “Audit creative handoff” with date/time, Steve/Jon, High priority and notes. It appeared inside the project, exactly once on the calendar, and in Jon's assignments. Changed its status to In Progress inline. New deliverables retain the existing Not Started default. |
+| 4. Complete work | Passed. From mobile My Assignments, completed the deliverable in one click. It left active groups and appeared in Completed recently. Calendar showed Complete; project progress became 1 of 2. Notification history marked the old deadline “No longer due for action.” |
+| 5. Reschedule | Passed for the existing in-app workflow. Edited the deliverable from its project from September 23 at 3:00 PM to September 24 at 10:30 AM. Project detail, staff assignments and calendar reflected the new time; calendar contained one entry. Database regression verifies old reminders resolve and the new deadline has one active reminder. Email scheduling is unavailable. |
+| 6. Overdue item | Passed. The seeded overdue graphic appeared in the staff Home group, My Assignments, project deliverable list, management team deadlines and project card with explicit Overdue text. |
+| 7. Calendar to project | Passed. Calendar link opened the deliverable with title, parent project, owner, assigned staff, due date and status. The project link returned directly to the full project. |
+| 8. Staff view | Passed under the ordinary staff database role. Jon saw Overdue/Today/Upcoming/recent completion groups and two assigned projects. Management editing controls were absent. Jon could complete assigned work and create a self-assigned deliverable within his project. |
+| 9. Management view | Passed under the management database role. Active cards, owners, staff, progress, team deadlines, overdue labels and recent activity were visible. Steve could edit schedules and add Zach to a deliverable without changing Consignment ownership. |
+| 10. Mobile | Passed at 390px. Checked assignments, opened a project, completed work, created a dated urgent self-assigned deliverable, and used Month/Week/Day/Today plus the selected-day agenda. |
 
-- Dashboard order is Calendar → My Assignments → Active Projects → Upcoming Deliverables → Recent Activity. Long dashboard lists have explicit links to full views.
-- Home, Calendar, Projects and My Assignments form the primary navigation. Requests and Assets remain under More tools.
-- Calendar items emphasize title, project, owner and time with subtle owner borders. Month cells limit detail and expose additional items through Day view. Smaller layouts expose a selected-day agenda.
-- Calendar task statuses now display Waiting and Complete consistently instead of inheriting the generic production labels.
-- Shared work rows show project, owner, assigned staff, due date, status and priority. Authorized staff can complete operational deliverables directly. Publishing approval/confirmation steps remain separate.
-- My Assignments uses disjoint Overdue, Today, Upcoming and Completed recently groups; empty groups disappear. Confirmed server responses immediately update the assignment display.
-- Project cards have consistent title/metadata ordering, restrained owner accents, title truncation, progress and textual urgency.
-- Project deliverables appear before financial tools. Inline editing exposes schedule and staff, while status and completion controls stay in the list. Budgets, optional resources and comments use disclosure sections.
-- Creation links open the project form directly; staff search has a useful no-results message. Assignment validation asks for a staff member plainly. Deliverable forms focus the title and restore focus on close.
-- Shared spacing, surfaces, labels, button sizing and focus styles replace conflicting HQ rules. An old grid rule that overrode the new work rows was corrected.
-- Closed projects are excluded from new-work targets, matching existing server restrictions.
+## Friction found and fixed during the final audit
 
-## Changed components
+1. **Completed work briefly disappeared from both active and recent groups.** The UI clock is rounded to the minute while the database completion timestamp includes seconds. The recent-completion filter now includes the current clock minute. Added a regression test and confirmed immediate recent-history placement in the browser.
+2. **A style rule masked project owner accents.** A border shorthand with `!important` overrode the inline owner color. It now sets only border width/style. Confirmed Consignment purple remains visible on the project header and cards.
+3. **Missing event dates produced generic server feedback.** Active event/release/auction forms now use native required-date validation matching the existing server requirements. A blank event date receives focus before submission. Draft behavior is preserved.
+4. **Project creation left focus outside the form.** New forms now focus Project title and restore focus to Add project on cancel. Verified at mobile width.
+5. **Notifications called a deliverable assignment ownership.** Deliverable notifications display “Assigned to you” instead of “Assigned as owner”; project ownership messages are preserved. Stored notification records and delivery logic are unchanged.
+6. **Campaign tools competed with the staff project list.** Launch plan, Tracked links and Results are grouped under Campaign tools. Verified those existing tools remain accessible and returning to Overview preserves visible keyboard focus.
 
-Main pages: Home, Calendar, Projects, project detail, deliverable detail, My Assignments, and navigation shell.
+These changes are small corrections to the completed design pass, not a redesign or a new data model.
 
-New shared code: `HqWorkItem`, `HqProjectDeliverables`, `HqAssignmentsPage`, `/assignments`, and presentation helpers for assignment groups, urgency and activity labels. Existing staff picker and project card components are reused.
+## Responsive and accessibility evidence
 
-Tests: presentation/calendar/permission regression cases and a database reminder lifecycle test. The local browser fixture uses a separate temporary database and is not shipped.
+- Home/calendar and project detail with the deliverable form were checked at **390, 768, 1280 and 1440 pixels**. Document width matched viewport width in all eight checks; no horizontal page overflow.
+- Mobile assignment and project-creation forms also measured 390px without overflow. Week and Day calendars remained within the viewport.
+- Desktop/laptop project cards had equal measured heights and consistent owner borders. Light and dark appearances were visually inspected; the original dark preference and default viewport were restored afterward.
+- Tested staff picker labels, selection/removal feedback, native required-date focus, form entry/cancel focus, visible keyboard outlines and the skip link reaching `hq-main`. All visible fields in the project/deliverable form had accessible labels in the DOM check.
+- Owner contrast regression tests, including CEO yellow, pass. Owner names remain present alongside colors.
+- Final browser console error check was empty. An earlier reload had an extension-injected hydration warning referring to `scrnli_recorder_root`; it did not recur on the final pass and no application workaround or extension setting change was introduced.
 
-## Checks
+## Final checks
 
-- Lint: passes with four pre-existing warnings in Hub, login, agreement actions and sign-out. No new warnings.
+- Lint: passes, with four unchanged pre-existing warnings in Hub, login, agreement actions and sign-out.
 - Typecheck: passes.
-- Tests: 91 passing.
+- Tests: **92 passing**.
 - Production build: passes.
-- Owner color contrast regression tests: pass, including CEO yellow.
-- Interactive accessibility, responsive screenshots and browser console checks: blocked, not claimed as passed.
 
-## Deliberately unchanged
+## Remaining limitations and unchanged behavior
 
-Authentication, NDA gating, staff roles, database policies and migrations, existing records, publishing approvals, manual destination confirmations, recoverable deletion/history, canonical deliverable-calendar synchronization, and notification delivery rules are unchanged. No dependencies were added. No migration commands are needed for this pass.
+- Email reminders/background scheduling remain absent. The app explicitly describes its while-open in-app reminder behavior.
+- General projects do not have dedicated start/target-completion fields. Existing event/release/auction dates and deliverable deadlines remain supported; no speculative fields were added.
+- New deliverables start Not Started; status can be changed immediately from the project list after creation.
+- This was an isolated browser/database acceptance run, not a new production authentication or email-provider delivery test. Production auth and NDA code were unchanged; existing security regression tests remain passing.
+- No schema changes, migrations, dependencies, production data edits/deletions, or publishing-workflow changes. **No migration commands are needed.**
 
-Before a final go-live sign-off, unblock browser control and finish the interactive workflow/viewport checklist above. If email reminders are required for launch, implement and verify that capability as a separate scoped change.
+Changes are on `codex/hq-usability-polish`, PR #8. The branch has not been merged or deployed to production by this audit.

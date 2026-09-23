@@ -596,7 +596,7 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-card-staff p{margin:4px 0}
 .hq-project-progress{display:grid;gap:7px;margin-top:12px;font-size:.8rem;color:var(--muted-foreground)}
 .hq-project-progress progress{width:100%;height:5px;accent-color:var(--foreground)}
-.hq-owner-row{border-left:3px solid!important}
+.hq-owner-row{border-left-width:3px;border-left-style:solid}
 .hq-header-meta{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-top:16px;font-size:.9rem}
 .hq-project-header h2{font-size:1.8rem;line-height:1.2;margin-top:8px}
 .hq-project-people h2{margin-bottom:12px}

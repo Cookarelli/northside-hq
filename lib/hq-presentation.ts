@@ -8,7 +8,8 @@ export function assignmentGroups(records:HqRecord<Deliverable>[],projects:HqReco
   const overdue=data.overdue,ids=new Set(overdue.map(r=>r.id));
   const dueToday=data.all.filter(r=>!ids.has(r.id)&&r.data.productionDue.slice(0,10)===today);
   dueToday.forEach(r=>ids.add(r.id));
-  const recent=records.filter(({data:d})=>!d.deletedAt&&finished(d)&&[d.owner,d.publisher,...d.contributors].includes(staffId)&&!!d.completedAt&&Date.parse(d.completedAt)<=now&&Date.parse(d.completedAt)>=now-7*86400000).sort((a,b)=>b.data.completedAt!.localeCompare(a.data.completedAt!));
+  // The shared UI clock is rounded to the minute; include server completions within that minute.
+  const recent=records.filter(({data:d})=>!d.deletedAt&&finished(d)&&[d.owner,d.publisher,...d.contributors].includes(staffId)&&!!d.completedAt&&Date.parse(d.completedAt)<now+60000&&Date.parse(d.completedAt)>=now-7*86400000).sort((a,b)=>b.data.completedAt!.localeCompare(a.data.completedAt!));
   return {groups:[{id:'overdue',label:'Overdue',records:overdue},{id:'today',label:'Today',records:dueToday},{id:'upcoming',label:'Upcoming',records:data.all.filter(r=>!ids.has(r.id))},{id:'complete',label:'Completed recently',records:recent}].filter(g=>g.records.length),projects:data.projects};
 }
 export function dueState(date:string,complete:boolean,now:number|null) {
