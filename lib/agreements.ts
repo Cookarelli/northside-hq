@@ -16,8 +16,8 @@ export type AgreementGate = {
   hardGate?: boolean;
 };
 
-export async function agreementGate(): Promise<AgreementGate> {
-  const client=await sessionClient();
+export async function agreementGate(client?: Awaited<ReturnType<typeof sessionClient>>): Promise<AgreementGate> {
+  client ??= await sessionClient();
   const {data,error}=await client.rpc('hub_agreement_gate');
   if(error) throw new Error('Agreement verification is unavailable. Please contact your administrator.');
   if(!data || typeof data.required!=='boolean' || (data.required && (!data.agreementId || !data.storagePath || data.hardGate!==true))) {
