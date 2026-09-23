@@ -21,6 +21,7 @@ export default async function RequiredAgreement(){
       <h1>{gate.title}</h1>
       <div className="agreement-meta">
         <span><b>Employee</b>{gate.employeeName}</span>
+        <span><b>Email</b>{gate.employeeEmail}</span>
         <span><b>Position</b>{gate.employeeTitle||'Northside staff'}</span>
         <span><b>Version</b>{gate.version}</span>
         <span><b>Date provided</b>{new Date(gate.providedAt!).toLocaleDateString('en-US',{timeZone:'America/Chicago'})}</span>

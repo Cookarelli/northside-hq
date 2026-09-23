@@ -52,6 +52,21 @@ test('acceptance uses server identity/time, is idempotent and releases access',a
  await assert.rejects(db.query("update private.agreement_documents set document_hash=repeat('b',64)"),/immutable/);
  await db.exec(await hardening());assert.deepEqual((await db.query('select * from private.agreement_acceptances')).rows,rows);
 });
+test('a new version requires acceptance while preserving the prior signature across sessions',async()=>{
+ await actor();assert.equal((await gate()).required,false);
+ await db.exec('reset role');
+ const original=(await db.query('select * from private.agreement_acceptances')).rows;
+ const nextDoc='20000000-0000-4000-8000-000000000002';
+ await db.query("insert into private.agreement_documents(id,org_id,version,title,storage_path,document_hash,effective_date,active) values($1,'northside-marketing','local-test-v2','Updated local test agreement','northside/test-v2.pdf',repeat('b',64),current_date-1,true)",[nextDoc]);
+ await actor();const pending=await gate();assert.equal(pending.required,true);assert.equal(pending.agreementId,nextDoc);
+ await assert.rejects(db.query("select hub_hq('context','{}')"),/signature required/);
+ await db.query('select hub_accept_agreement($1,$2,$3,$4)',[nextDoc,'Test Employee','127.0.0.1','version-test']);
+ await actor();assert.equal((await gate()).required,false);
+ await db.exec('reset role');
+ assert.deepEqual((await db.query('select * from private.agreement_acceptances where agreement_id=$1',[doc])).rows,original);
+ const next=(await db.query('select * from private.agreement_acceptances where agreement_id=$1',[nextDoc])).rows;
+ assert.equal(next.length,1);assert.equal(next[0].document_hash,'b'.repeat(64));assert.equal(next[0].user_agent,'version-test');assert.equal(next[0].ip_address,'127.0.0.1');
+});
 test('foreign staff, disabled staff and anonymous sessions cannot sign or access documents',async()=>{
  await actor(other);await assert.rejects(accept('Other Employee'),/unavailable/);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
  await db.exec("reset role;update private.staff_access set active=false where id='test'");await actor();await assert.rejects(gate(),/Staff access required/);
