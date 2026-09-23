@@ -40,3 +40,19 @@ test('calendar preserves source records, parent ownership, scheduled times, lega
  assert.equal(entries.find(e=>e.title==='Weekly · facebook').href,'/calendar#legacy-entry-series');
  assert.equal(JSON.stringify({records,projects,posts}),before);
 });
+
+test('date-only release imports never present placeholder noon as a confirmed schedule',async()=>{
+ const {isDateOnlyRelease}=await import('../lib/content-calendar.ts');
+ const {scheduleRows}=await import('../lib/hq-operations.ts');
+ const posts=[{id:'unknown-time',data:{title:'Release date only',category:'Release',source:'topps',date:'2026-09-29T12:00',caption:'Official Topps release calendar. Topps lists the date only; no exact release time is currently specified.',status:'draft'}},{id:'confirmed-time',data:{title:'Confirmed release',category:'Release',source:'topps',date:'2026-09-29T12:00',caption:'Release time shown by Topps and converted to Central Time.',status:'draft'}}];
+ const saved=JSON.stringify(posts);
+ assert.equal(isDateOnlyRelease(posts[0].data),true);
+ assert.equal(isDateOnlyRelease(posts[1].data),false);
+ const calendar=calendarEntries([],[],posts,[],'2026-09-29','2026-09-29');
+ const schedule=scheduleRows([],[],'publication',posts);
+ assert.equal(calendar.length,2);
+ assert.equal(calendar.find(e=>e.title.startsWith('Release date only')).dateOnly,true);
+ assert.equal(calendar.find(e=>e.title.startsWith('Confirmed release')).dateOnly,false);
+ assert.equal(schedule.find(e=>e.id==='unknown-time').dateOnly,true);
+ assert.equal(JSON.stringify(posts),saved);
+});

@@ -17,6 +17,14 @@ export function chicagoWall(instant: number) {
   const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
+// Legacy imports can carry an explicit offset; native schedule inputs need Chicago wall time.
+export function scheduleWall(value: string) {
+  if (/T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(value)) {
+    const instant=Date.parse(value);
+    if(Number.isFinite(instant))return chicagoWall(instant);
+  }
+  return value;
+}
 // Chicago uses UTC-5/UTC-6. Round-trip both candidates: never silently normalize a DST gap/fold.
 export function chicagoInstant(wall: string): number {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(wall)) throw new Error('Choose a complete Chicago date and time.');

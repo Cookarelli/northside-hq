@@ -1,4 +1,5 @@
 'use client';
+import {chicagoDay as date} from '@/lib/content-radar/dates';
 import Link from 'next/link';
 import {SourcePanel} from './sources';
 import { useEffect, useRef, useState } from 'react';
@@ -16,7 +17,6 @@ import type { RadarData,Filters,Item,Draft,RadarCommand } from '@/lib/content-ra
 function Choice({label,value,options,onChange,disabled=false}:{label:string;value:string;options:readonly string[]|{value:string;label:string}[];disabled?:boolean;onChange:(v:string)=>void}) {
  return <label className="field"><span>{label}</span><Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger aria-label={label}><SelectValue/></SelectTrigger><SelectContent>{options.map(o=>typeof o==='string'?<SelectItem value={o} key={o}>{o==='all'?'All':o}</SelectItem>:<SelectItem value={o.value} key={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></label>;
 }
-const date=(v:string|null)=>v?new Date(v.length===10?v+'T12:00:00Z':v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}):'Not supplied';
 const initialLink={title:'',url:'',sourceId:'manual',category:'Baseball',kind:'story',priority:'normal',publishedAt:'',eventDate:'',summary:'',tags:''};
 export default function Radar({organization}:{organization:string}) {
  const [filters,setFilters]=useState<Filters>(emptyFilters),[data,setData]=useState<RadarData|null>(null);
