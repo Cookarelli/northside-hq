@@ -1,3 +1,4 @@
+import {workStatus} from './project-tasks.ts';
 import {addDays,scheduleRows} from './hq-operations.ts';
 import {projectStatuses,type Deliverable,type HqRecord,type Project} from './hq-model.ts';
 import type {CalendarPost} from './content-calendar';
@@ -18,10 +19,11 @@ export function calendarEntries(records:HqRecord<Deliverable>[],projects:HqRecor
  const adopted=new Set(records.map(r=>r.data.legacyPostId));
  const legacy=posts.filter(p=>!adopted.has(p.id));
  const rows=[...scheduleRows(records,projects,'production'),...scheduleRows(records,projects,'publication',legacy,from,to)];
+ const recordMap=new Map(records.map(r=>[r.id,r]));
  const projectMap=new Map(projects.map(p=>[p.id,p])),postMap=new Map(legacy.map(p=>[p.id,p])),campaignMap=new Map(campaigns.map(c=>[c.id,c]));
  const entries:CalendarEntry[]=rows.map(r=>{
-  const project=projectMap.get(r.projectId),post=postMap.get(r.id),campaign=campaignMap.get(post?.data.consignment?.campaignId||'');
-  return {key:r.key,title:r.title+(r.platform?' · '+r.platform:r.kind==='deliverable'?' · Due':''),project:project?.data.title||campaign?.data.name||'Standalone',endAt:r.key.endsWith(':production')?records.find(d=>d.id===r.id)?.data.endAt:undefined,owner:project?.data.owner||campaign?.data.owner||r.owner,assigned:[...new Set([r.owner,r.publisher,...r.contributors].filter(Boolean))],date:r.date,status:r.stateLabel,href:r.kind==='deliverable'?'/projects/work/'+encodeURIComponent(r.id):'/calendar#legacy-entry-'+encodeURIComponent(r.id),consignment:!!post?.data.consignment||post?.data.category==='Consignment',projectData:project?.data};
+  const source=r.kind==='deliverable'?recordMap.get(r.id)?.data:undefined,project=projectMap.get(r.projectId),post=postMap.get(r.id),campaign=campaignMap.get(post?.data.consignment?.campaignId||'');
+  return {key:r.key,title:r.title+(r.platform?' · '+r.platform:r.kind==='deliverable'?' · Due':''),project:project?.data.title||campaign?.data.name||'Standalone',endAt:r.key.endsWith(':production')?source?.endAt:undefined,owner:project?.data.owner||campaign?.data.owner||r.owner,assigned:[...new Set([r.owner,r.publisher,...r.contributors].filter(Boolean))],date:r.date,status:source?.workflow==='task'?workStatus(source):r.stateLabel,href:r.kind==='deliverable'?'/projects/work/'+encodeURIComponent(r.id):'/calendar#legacy-entry-'+encodeURIComponent(r.id),consignment:!!post?.data.consignment||post?.data.category==='Consignment',projectData:project?.data};
  });
  for(const p of projects) for(const [label,date] of [['Event',p.data.eventAt],['Auction opens',p.data.auctionOpensAt],['Auction closes',p.data.auctionClosesAt]]) if(date) entries.push({key:p.id+label,title:p.data.type==='product_release'?'Release':label,project:p.data.title,owner:p.data.owner,assigned:p.data.members,date,status:projectStatuses[p.data.status],href:'/projects/'+encodeURIComponent(p.id),consignment:false,projectData:p.data});
  return entries.filter(e=>e.date&&e.date.slice(0,10)>=from&&e.date.slice(0,10)<=to).sort((a,b)=>a.date.localeCompare(b.date)||a.key.localeCompare(b.key));

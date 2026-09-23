@@ -516,38 +516,155 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .auth-shell .password-visibility:hover { background: var(--muted); }
 .auth-shell .password-visibility:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-/* Calendar-first HQ: shared owner accents are defined in lib/owner-colors.ts. */
-.hq-dashboard{display:grid;gap:24px;min-width:0}
-.hq-owner-legend{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;padding:0;margin:16px 0;font-size:.8rem}
+/* HQ presentation: owner accents come exclusively from lib/owner-colors.ts. */
+.hq-shell{--hq-radius:10px}
+.hq-shell .panel{padding:24px;margin-bottom:0;border-radius:var(--hq-radius);box-shadow:none}
+.hq-shell h1{font-size:clamp(1.9rem,3vw,2.4rem);font-weight:750}
+.hq-shell h2{font-size:1.3rem;font-weight:700;line-height:1.3}
+.hq-shell h3{font-size:1.05rem;font-weight:650}
+.hq-shell .section-title{gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.hq-shell .button-row{gap:8px;margin:0;flex-wrap:wrap}
+.hq-shell [data-slot=button]{min-height:44px;height:auto;padding:9px 14px;border-radius:7px;font-size:.875rem;white-space:normal;line-height:1.4}
+.hq-shell input:not([type=checkbox]),.hq-shell select,.hq-shell textarea{font-size:1rem;min-width:0;max-width:100%;border-radius:7px}
+.hq-shell select{background:var(--card);color:var(--foreground);border:1px solid var(--border);padding:8px 12px}
+.hq-shell :is(button,a,input,select,textarea,summary):focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.hq-shell .tag{font-size:.8rem;font-weight:500;border-radius:5px;background:var(--muted);color:var(--foreground)}
+.hq-shell .field{margin:0;gap:6px}
+.hq-shell .hq-form{display:grid;gap:16px}
+.hq-shell .campaign-fields{display:grid;gap:16px;min-width:0}
+.hq-shell .hq-form>.campaign-fields{margin:0}
+.hq-shell .hq-form .button-row{margin-top:8px}
+.hq-shell .hq-form.panel{background:var(--muted)}
+.hq-shell .hq-details>summary{min-height:44px;padding:10px 0;color:var(--foreground)}
+.hq-shell .hq-details[open]>summary{margin-bottom:16px}
+.hq-shell .hq-details .panel+.panel{margin-top:20px}
+.hq-meta{color:var(--muted-foreground);font-size:.875rem;line-height:1.5;margin:4px 0}
+.hq-dashboard,.hq-records{display:grid;gap:24px;min-width:0}
+.hq-records>*,.hq-dashboard>*,.hq-workspace>*{min-width:0}
+.hq-records>section>.two-fields{margin-bottom:20px}
+.hq-count{font-size:.85rem;font-weight:400;color:var(--muted-foreground);margin-left:6px}
+.hq-empty{padding:20px 0;color:var(--muted-foreground)}
+.hq-empty h3{color:var(--foreground)}
+.hq-more{display:inline-block;padding:12px 0;font-size:.875rem}
+.hq-page-heading{margin-bottom:0;align-items:flex-start}
+.hq-page-heading .eyebrow{font-weight:600;font-size:.72rem;letter-spacing:.07em;margin-bottom:8px}
+.hq-shell .hq-frame{grid-template-columns:192px minmax(0,1fr)}
+.hq-shell .hq-navigation{display:block;padding:24px 12px}
+.hq-primary-nav{display:grid;gap:4px}
+.hq-shell .hq-navigation a{font-size:.9rem;min-height:48px;padding:10px 12px;gap:10px}
+.hq-tools{margin-top:24px;border-top:1px solid var(--border);padding-top:12px}
+.hq-tools summary{font-size:.875rem;padding:10px 12px;cursor:pointer;color:var(--muted-foreground)}
+.hq-shell .hq-masthead{padding-top:12px;padding-bottom:12px;min-height:76px}
+.hq-shell .hq-logo{width:220px}
+.hq-owner-legend{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;padding:0;margin:12px 0;font-size:.8rem;color:var(--muted-foreground)}
 .hq-owner-legend li{display:flex;align-items:center;gap:6px}
-.hq-owner-legend li>span{width:10px;height:10px;border-radius:50%}
-.hq-visual-calendar{min-width:0}
-.hq-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;border:1px solid var(--border);background:var(--border)}
-.hq-calendar-day{min-width:0;padding:8px;background:var(--background);min-height:120px}
-.hq-calendar-day.is-today{box-shadow:inset 0 0 0 2px var(--foreground)}
-.hq-calendar-day h4{margin:0 0 8px;font-size:.75rem}
-.hq-calendar-day h4 button{cursor:pointer;text-align:left;padding:4px;border-radius:4px}
-.hq-calendar-day ul{padding:0;margin:0;list-style:none;display:grid;gap:6px;max-height:340px;overflow:auto}
-.hq-calendar-item{display:flex;flex-direction:column;gap:3px;border-left:3px solid;padding:8px;border-radius:5px;font-size:.72rem;line-height:1.4;text-decoration:none;overflow-wrap:anywhere}
-.hq-calendar-item:hover{text-decoration:underline}
-.hq-calendar-item:focus-visible,.hq-calendar-day button:focus-visible{outline:3px solid var(--foreground);outline-offset:2px}
-.hq-calendar-empty{font-size:.75rem}
-.hq-calendar-day:has(.hq-calendar-item){min-height:160px}
+.hq-owner-legend li>span{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.hq-calendar-hint{margin:0 0 16px}
+.hq-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.hq-weekday{padding:8px;background:var(--muted);font-size:.8rem;text-align:center;color:var(--muted-foreground)}
+.hq-calendar-day{background:var(--card);padding:6px;min-width:0}
+.hq-calendar-view-month .hq-calendar-day{min-height:116px}
+.hq-calendar-day.is-outside{background:var(--background)}
+.hq-calendar-day.is-selected{box-shadow:inset 0 0 0 2px var(--primary)}
+.hq-calendar-day h4{margin:0 0 6px;font-size:.8rem;font-weight:500}
+.hq-calendar-day h4 button{padding:6px 8px;min-height:32px;min-width:32px;border-radius:6px;color:var(--foreground);text-align:left}
+.hq-calendar-day.is-today h4 button{color:var(--primary-foreground);background:var(--primary);font-weight:700}
+.hq-calendar-day h4 button:hover{box-shadow:inset 0 0 0 1px var(--primary)}
+.hq-calendar-day ul,.hq-calendar-agenda ul{padding:0;margin:0;list-style:none;display:grid;gap:6px}
+.hq-calendar-item{display:flex;flex-direction:column;gap:2px;border-left:3px solid;padding:6px 7px;border-radius:4px;font-size:.8rem;line-height:1.4;color:var(--foreground);text-decoration:none;overflow-wrap:anywhere;background:var(--background);transition:background .12s}
+.hq-calendar-item strong{font-weight:600}
+.hq-calendar-item:hover{background:var(--muted);text-decoration:none;box-shadow:0 0 0 1px var(--border)}
+.hq-calendar-project,.hq-calendar-meta{color:var(--muted-foreground)}
+.hq-calendar-view-month .hq-calendar-item strong,.hq-calendar-view-month .hq-calendar-project{overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.hq-calendar-more{font-size:.8rem;min-height:32px;padding:5px 8px;text-align:left;color:var(--primary)}
 .hq-calendar-grid.hq-calendar-view-day{grid-template-columns:1fr}
-.hq-calendar-grid.hq-calendar-view-day>section ul{max-height:none;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-.hq-project-card{border-left:4px solid;min-width:0;overflow-wrap:anywhere}
-.hq-project-card p{font-size:.88rem}
-.hq-project-progress{display:grid;gap:7px;margin-top:16px;font-size:.8rem}
-.hq-project-progress progress{width:100%;height:8px;accent-color:var(--foreground)}
-.hq-owner-row{border-left:3px solid;padding-left:12px!important}
-@media(max-width:1100px){.hq-calendar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.hq-calendar-grid{grid-template-columns:1fr}.hq-calendar-day{min-height:auto}.hq-calendar-day ul{max-height:none}.hq-calendar-item{font-size:.85rem}.hq-visual-calendar .section-title{align-items:flex-start;gap:12px;flex-direction:column}}
-.hq-calendar-view-month .hq-calendar-day ul{max-height:170px}
-.hq-dashboard>.panel{margin-bottom:0}
-@media(max-width:600px){.hq-calendar-view-month .hq-calendar-day ul{max-height:none}.hq-calendar-view-month .hq-calendar-day:not(:has(li)):not(.is-today){display:none}}
-.hq-calendar-count{display:block;font-weight:400;padding:0 4px;color:var(--muted-foreground)}
-.hq-staff-picker{border:1px solid var(--border);border-radius:8px;padding:16px;margin:16px 0;min-width:0}
-.hq-staff-picker legend{font-weight:600;padding:0 6px}
+.hq-calendar-view-day .hq-calendar-day{padding:16px}
+.hq-calendar-view-day ul{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.hq-calendar-view-day .hq-calendar-item{padding:12px;font-size:.9rem}
+.hq-view-switch [aria-pressed=true]{background:var(--muted);color:var(--foreground);border-color:var(--foreground);box-shadow:inset 0 -2px var(--foreground)}
+.hq-calendar-agenda,.hq-day-dots{display:none}
+.hq-shell .hq-project-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:16px}
+.hq-project-card{display:flex;flex-direction:column;border-left:3px solid;min-width:0;overflow-wrap:anywhere}
+.hq-project-card h3{min-height:2.8em;margin-bottom:12px}
+.hq-project-card h3 a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--foreground);font-size:1.15rem}
+.hq-card-owner{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.875rem}
+.hq-card-next{display:grid;gap:4px;margin:20px 0 8px}
+.hq-card-next>a,.hq-card-next>span:last-child{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3em;font-size:.95rem}
+.hq-card-date{display:grid;gap:6px;font-size:.875rem;margin:0 0 16px}
+.hq-urgency{font-size:.8rem;font-weight:600;display:inline-block}
+.hq-card-staff{border-top:1px solid var(--border);padding-top:12px;margin-top:auto;font-size:.875rem}
+.hq-card-staff p{margin:4px 0}
+.hq-project-progress{display:grid;gap:7px;margin-top:12px;font-size:.8rem;color:var(--muted-foreground)}
+.hq-project-progress progress{width:100%;height:5px;accent-color:var(--foreground)}
+.hq-owner-row{border-left:3px solid!important}
+.hq-header-meta{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-top:16px;font-size:.9rem}
+.hq-project-header h2{font-size:1.8rem;line-height:1.2;margin-top:8px}
+.hq-project-people h2{margin-bottom:12px}
+.hq-assignment-group{margin-top:20px}
+.hq-work-list{list-style:none;margin:8px 0 0;padding:0}
+.hq-work-list .hq-work-item{display:flex;justify-content:space-between;gap:16px;border-top:0;border-bottom:1px solid var(--border);border-left:3px solid;padding:14px 12px;margin:8px 0;overflow-wrap:anywhere}
+.hq-work-copy{min-width:0;flex:1}
+.hq-work-title{font-weight:600;color:var(--foreground);font-size:1rem}
+.hq-work-date{font-size:.875rem;margin:6px 0}
+.hq-work-actions{display:flex;flex-direction:column;align-items:flex-end;gap:10px;max-width:45%}
+.hq-work-actions .button-row{justify-content:flex-end}
+.hq-work-tags{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end}
+.hq-project-links{list-style:none;padding:0;margin:8px 0;display:grid;gap:12px}
+.hq-project-links li{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hq-staff-picker{border:1px solid var(--border);border-radius:8px;padding:16px;margin:0;min-width:0}
+.hq-staff-picker legend{font-size:.875rem;font-weight:600;padding:0 6px}
 .hq-selected-staff{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.hq-staff-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px;max-height:180px;overflow:auto}
-.hq-staff-options label{display:flex;align-items:center;gap:8px;padding:6px}
+.hq-staff-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:4px;margin-top:12px;max-height:192px;overflow:auto}
+.hq-staff-options label{display:flex;align-items:center;gap:10px;padding:10px;min-height:44px;border-radius:6px;font-size:.9rem;cursor:pointer}
+.hq-staff-options label:hover{background:var(--muted)}
+.hq-staff-options label:has(:checked){background:var(--muted)}
+.hq-staff-options input{width:18px;height:18px;accent-color:var(--primary)}
+@media(max-width:1100px){
+ .hq-shell .hq-frame{grid-template-columns:164px minmax(0,1fr)}
+ .hq-shell .hq-navigation a{padding:10px 8px;font-size:.85rem}
+ .hq-calendar-view-week{grid-template-columns:1fr}
+ .hq-calendar-view-week .hq-calendar-day{padding:12px}
+ .hq-calendar-view-week ul{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+ .hq-calendar-view-month .hq-calendar-day{min-height:66px;padding:4px}
+ .hq-calendar-view-month .hq-calendar-day h4{margin:0}
+ .hq-calendar-view-month .hq-calendar-day h4 button{width:100%;min-height:56px;padding:6px;text-align:center}
+ .hq-calendar-view-month .hq-calendar-day ul,.hq-calendar-view-month .hq-calendar-more{display:none}
+ .hq-day-dots{display:flex;gap:3px;justify-content:center;margin-top:6px;height:6px}
+ .hq-day-dots i{width:5px;height:5px;border-radius:50%;box-shadow:0 0 0 1px var(--card)}
+ .hq-calendar-agenda{display:block;margin-top:20px}
+ .hq-calendar-agenda .hq-calendar-item{font-size:.9rem;padding:12px}
+ .hq-work-list .hq-work-item{flex-direction:column}
+ .hq-work-actions{max-width:100%;align-items:flex-start}
+ .hq-work-tags,.hq-work-actions .button-row{justify-content:flex-start}
+}
+@media(max-width:760px){
+ .hq-shell .hq-frame{display:block}
+ .hq-shell .hq-navigation{display:block;padding:8px 12px;position:static}
+ .hq-primary-nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+ .hq-shell .hq-navigation a{font-size:.8rem;min-height:64px;gap:4px;padding:8px 2px;flex-direction:column;text-align:center}
+ .hq-tools{margin-top:8px;padding:0;border:0}
+ .hq-tools summary{padding:8px;min-height:40px}
+ .hq-tools[open]{border-bottom:1px solid var(--border);padding-bottom:8px}
+ .hq-tools[open] a{display:inline-flex;flex-direction:row;min-height:44px;padding:8px 16px}
+ .hq-shell .hq-masthead{padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px}
+ .hq-shell .hq-logo{width:190px}
+ .hq-shell .hq-masthead .header-meta{display:flex;flex-wrap:wrap;width:auto;gap:8px}
+ .hq-shell .hq-masthead .hq-notifications>button{width:auto}
+ .hq-shell .hq-workspace{padding:20px 16px;gap:24px}
+ .hq-shell .panel{padding:18px}
+ .hq-shell .hq-timezone{display:none}
+ .hq-shell .two-fields{grid-template-columns:1fr;gap:16px}
+ .hq-shell .hq-page-heading{margin:0}
+ .hq-calendar-toolbar h3{width:100%}
+ .hq-visual-calendar .section-title{gap:12px}
+ .hq-owner-legend{gap:8px 12px}
+ .hq-calendar-view-month .hq-calendar-day{min-height:54px;padding:0}
+ .hq-calendar-view-month .hq-calendar-day h4 button{min-height:54px;padding:4px 2px}
+ .hq-weekday{padding:7px 0;font-size:.75rem}
+ .hq-calendar-view-day ul,.hq-calendar-view-week ul{grid-template-columns:1fr}
+ .hq-project-header h2{font-size:1.5rem}
+ .hq-work-list .hq-work-item{padding:12px 10px}
+ .hq-work-actions .field,.hq-work-actions select{max-width:100%}
+ .hq-shell .hub-footer{flex-direction:column;gap:8px}
+}
+@media(prefers-reduced-motion:reduce){.hq-calendar-item{transition:none}}

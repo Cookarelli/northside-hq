@@ -108,3 +108,22 @@ test('inactive staff cannot work or be assigned, and project members can add onl
  await actor('maker');const own=(await task('save-task',{id:'self-task',version:0,data:{...taskData,assignees:['maker']}})).data;assert.equal(own.owner,'maker');
  await assert.rejects(task('save-task',{id:'assign-others',version:0,data:{...taskData,assignees:['owner']}}),/owner or an administrator/);
 });
+
+test('workflow audit: rescheduling replaces active reminders and completion stops them for assigned staff',async()=>{
+ const {chicagoWall}=await import('../lib/consignment.ts');
+ const due=chicagoWall(Date.now()+3600000).slice(0,16),later=chicagoWall(Date.now()+7200000).slice(0,16);
+ await actor('owner');await saveProject('audit-project',{...project,title:'Workflow audit',members:['maker']});
+ let d=(await task('save-task',{id:'audit-task',version:0,data:{...taskData,projectId:'audit-project',assignees:['maker'],productionDue:due}})).data;
+ await actor('maker');await ops('reminders');await ops('reminders');
+ let active=(await notifications()).filter(n=>n.record_id==='audit-task'&&n.category==='deadline'&&!n.resolved_at);
+ assert.equal(active.length,1);assert.equal(active[0].metadata.dueAt,due);
+ await actor('owner');d=(await task('save-task',{id:'audit-task',version:d.version,data:{...taskData,projectId:'audit-project',assignees:['maker'],productionDue:later}})).data;
+ await actor('maker');await ops('reminders');
+ active=(await notifications()).filter(n=>n.record_id==='audit-task'&&n.category==='deadline'&&!n.resolved_at);
+ assert.equal(active.length,1);assert.equal(active[0].metadata.dueAt,later);
+ assert.ok((await notifications()).some(n=>n.record_id==='audit-task'&&n.metadata.dueAt===due&&n.resolved_at));
+ await task('task-status',{id:'audit-task',version:d.version,status:'complete'});await ops('reminders');
+ assert.equal((await notifications()).filter(n=>n.record_id==='audit-task'&&n.category==='deadline'&&!n.resolved_at).length,0);
+ assert.equal((await record('deliverable','audit-task')).status,'done');
+ assert.equal(Number((await db.query("select count(*) n from marketing_records where kind='deliverable' and id='audit-task'")).rows[0].n),1);
+});

@@ -1,7 +1,8 @@
 export const hqSections = [
-  {id: 'today', label: 'Today', href: '/today', description: 'Your team’s work, reviews and publishing schedule.'},
-  {id: 'projects', label: 'Projects', href: '/projects', description: 'Plan campaigns, prepare deliverables and follow the work.'},
+  {id: 'today', label: 'Home', href: '/today', description: 'Your team’s work, reviews and publishing schedule.'},
   {id: 'calendar', label: 'Calendar', href: '/calendar', description: 'Production and publishing, on one shared schedule.'},
+  {id: 'projects', label: 'Projects', href: '/projects', description: 'Plan campaigns, prepare deliverables and follow the work.'},
+  {id: 'assignments', label: 'My Assignments', href: '/assignments', description: 'Your priorities, deadlines and recently completed work.'},
   {id: 'requests', label: 'Requests', href: '/requests', description: 'Ask for work, track decisions and open editorial review.'},
   {id: 'assets', label: 'Assets', href: '/assets', description: 'Shared media, editing jobs and source material.'},
 ] as const;
