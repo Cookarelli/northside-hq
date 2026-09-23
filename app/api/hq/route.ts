@@ -2,6 +2,7 @@ import {db,identity,apiError} from '@/lib/storage';
 import {taskInput} from '@/lib/project-tasks';
 import {z} from 'zod';
 import {hqCommand} from '@/lib/hq-model';
+import {auctionEditorCommand} from '@/lib/auction-deliverables';
 
 const taskCommand=z.discriminatedUnion('action',[
  z.object({action:z.literal('save-task'),id:z.string().regex(/^[a-zA-Z0-9_-]{1,180}$/),version:z.number().int().min(0),data:taskInput}).strict(),
@@ -44,10 +45,10 @@ export async function POST(request:Request) {
     const raw=await request.text();
     if(Buffer.byteLength(raw)>150000) return Response.json({error:'This change is too large.'},{status:413,headers});
     let input:unknown; try {input=JSON.parse(raw);} catch {return Response.json({error:'Invalid request.'},{status:400,headers});}
-    const parsed=z.union([taskCommand,hqCommand]).safeParse(input);
+    const parsed=z.union([auctionEditorCommand,taskCommand,hqCommand]).safeParse(input);
     if(!parsed.success) return Response.json({error:parsed.error.issues[0]?.message||'Check the fields.'},{status:400,headers});
     const {action,...payload}=parsed.data;
-    const {data,error}=await (await db()).rpc(['save-task','task-status','task-delete','task-restore','task-metadata'].includes(action)?'hub_project_tasks':action==='adopt-editorial'?'hub_hq_editorial':['reschedule','reminders','notification-read','spend','spend-reverse','comment'].includes(action)?'hub_hq_operations':'hub_hq',action==='adopt-editorial'?{p_payload:payload}:{p_action:action,p_payload:payload});
+    const {data,error}=await (await db()).rpc(action==='save-auction-deliverable'?'hub_auction_deliverable':['save-task','task-status','task-delete','task-restore','task-metadata'].includes(action)?'hub_project_tasks':action==='adopt-editorial'?'hub_hq_editorial':['reschedule','reminders','notification-read','spend','spend-reverse','comment'].includes(action)?'hub_hq_operations':'hub_hq',['adopt-editorial','save-auction-deliverable'].includes(action)?{p_payload:payload}:{p_action:action,p_payload:payload});
     if(error) {
       if(['42501','40001','22023','23514'].includes(error.code)) return Response.json({error:error.message},{status:error.code==='42501'?403:error.code==='40001'?409:400,headers});
       throw error;
