@@ -16,6 +16,7 @@ import {useHqClock} from '@/components/use-hq-clock';
 import {HqWorkItem} from '@/components/hq-work-item';
 import {HqProjectDeliverables} from '@/components/hq-project-deliverables';
 import {HqProjectCard} from '@/components/hq-project-card';
+import {HqCampaignContext,DeliverableTimestamps} from '@/components/hq-campaign-context';
 import {HqSpending} from '@/components/hq-spending';
 import {PublishingPackagePanel} from '@/components/hq-publishing-package';
 import {ConsignmentReview} from '@/components/consignment-review';
@@ -54,6 +55,19 @@ export function HqWorkspace({view='list',id}:{view?:'list'|'project'|'deliverabl
   const eligibleProjects=projects.filter(p=>!['completed','archived'].includes(p.data.status)&&(c.admin||p.data.owner===c.staffId||p.data.members.includes(c.staffId)));
   const name=(staffId:string)=>c.staff.find(s=>s.id===staffId)?.name||staffId||'Unassigned';
   async function createRecord(command:Record<string,unknown>) {const result=await act(command);if(result?.id){setCreate(null);router.push(command.action==='save-project'?'/projects/'+result.id:'/projects/work/'+result.id);}}
+  if(project?.data.migratedToProjectId) {
+    const destination=projects.find(p=>p.id===project.data.migratedToProjectId);
+    return <div className="hq-records"><Link href="/projects">← All projects and work</Link>
+      {error&&<p role="alert" className="notice error">{error}</p>}{notice&&<p role="status">{notice}</p>}
+      <section className="panel"><p className="tag">Migrated · Archived</p><h2>{project.data.title}</h2>
+        <p>This campaign is now managed as separate deliverables under <Link href={'/projects/'+encodeURIComponent(project.data.migratedToProjectId)}>{destination?.data.title||'Collect Weekly Auctions'}</Link>.</p>
+        {project.data.migratedAt&&<p className="hq-meta">Moved {recordedTime(project.data.migratedAt)}</p>}
+        <ul>{deliverables.filter(d=>d.data.sourceProjectId===project.id).map(d=><li key={d.id}><Link href={'/projects/work/'+encodeURIComponent(d.id)}>{d.data.title}</Link></li>)}</ul>
+      </section>
+      <section className="panel"><h2>Original campaign information</h2><p className="hq-preserve-text">{project.data.brief}</p><p>Original owner: {name(project.data.owner)} · Assigned staff: {project.data.members.map(name).join(', ')}</p><ResourceLinks {...project.data} available={assets}/></section>
+      <Discussion key={project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>
+    </div>;
+  }
   return <div className="hq-records">
     {view!=='list'&&<Link href="/projects">← All projects and work</Link>}
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
@@ -68,6 +82,7 @@ export function HqWorkspace({view='list',id}:{view?:'list'|'project'|'deliverabl
       {c.admin&&<details className="panel hq-details"><summary>Workspace permissions</summary><h3>Budget approval</h3><p>Grant this separately from project ownership. Only these people can establish or change approved budgets.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={s.budgetApprover} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,enabled:e.target.checked})}/>{s.name}</label>)}</div><h3>Request coordinators</h3><p>These people can accept or decline requests and link them to production work.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={!!s.requestCoordinator} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,capability:'coordinate_requests',enabled:e.target.checked})}/>{s.name}</label>)}</div></details>}
     </>}
     {view!=='list'&&<SourceRequests records={records} kind={view} id={id!}/>}
+
     {view==='project' &&(project?<>
       <section className="panel hq-owner-row hq-project-header" style={{borderLeftColor:projectColor(project.data,name).accent}}><p className="hq-meta">{projectTypes[project.data.type]}</p><h2>{project.data.title}</h2><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><span className="tag">{projectStatuses[project.data.status]}</span><span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span></div></section>
       {(c.admin||project.data.owner===c.staffId||(!project.data.owner&&project.data.createdBy===c.staffId))&&<details className="panel hq-details"><summary>Edit project</summary><ProjectForm key={project.data.version} record={project} initial={projectDraft(project.data)} context={c} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/></details>}
@@ -87,10 +102,12 @@ export function HqWorkspace({view='list',id}:{view?:'list'|'project'|'deliverabl
       <section className="panel"><p>{parent&&<Link href={'/projects/'+parent.id}>{parent.data.title}</Link>}</p><h2>{deliverable.data.title}</h2><p>Primary project owner: {primaryOwnerLabel(parent?.data.owner||'',c.staff)}</p><p>Assigned staff: {taskAssignees(deliverable.data).map(name).join(', ')}</p><p className="hq-preserve-text">{deliverable.data.instructions||'No description'}</p><p>Due: {dateLabel(deliverable.data.productionDue)}{deliverable.data.endAt?' → '+dateLabel(deliverable.data.endAt):''}</p></section>
       <TaskActions record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
       {parent&&!['completed','archived'].includes(parent.data.status)&&canManageTask(deliverable.data,parent.data,c)&&<><Button variant="outline" onClick={()=>setCreate('task')}>Edit deliverable</Button>{create==='task'&&<ProjectTaskForm key={deliverable.data.version} project={parent} record={deliverable} context={c} busy={busy} onSave={act} onCancel={()=>setCreate(null)}/>}</>}
+      <HqCampaignContext deliverable={deliverable.data}/>
       <DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
       <Discussion key={deliverable.data.version} id={deliverable.id} kind="deliverable" context={c} act={act} busy={busy}/>
     </>:<>
       <section className="panel hq-owner-row" style={{borderLeftColor:(parent?projectColor(parent.data,name):ownerColor(deliverable.data.owner,name(deliverable.data.owner))).accent}}><p className="eyebrow">{parent?<Link href={'/projects/'+parent.id}>{parent.data.title}</Link>:'Standalone work'}</p><h2>{deliverable.data.title}</h2><p>Accountable owner: {name(deliverable.data.owner)} · Approver: {name(parent?.data.owner||deliverable.data.approver)}</p><p className="hq-preserve-text">{deliverable.data.instructions||'Instructions not yet recorded.'}</p><p>Effort: {deliverable.data.effort?effortLevels[deliverable.data.effort]:'Unknown'}{deliverable.data.estimatedHours!==null?' · '+deliverable.data.estimatedHours+' estimated hours':''}</p><p>Contributors: {deliverable.data.contributors.map(name).join(', ')||'None'}</p>{deliverable.data.publishing&&<><p>Format: {deliverable.data.format||'Not set'}</p><p className="hq-preserve-text">{deliverable.data.caption}</p>{deliverable.data.destinationUrl&&<a href={deliverable.data.destinationUrl} target="_blank" rel="noreferrer">Destination link →</a>}</>}{deliverable.data.blocked&&<p>Resolve block: {name(deliverable.data.blockedBy)}</p>}<Missing items={deliverableMissing(deliverable.data,parent?.data)}/><ResourceLinks {...deliverable.data} available={assets}/></section>
+      <HqCampaignContext deliverable={deliverable.data}/>
       <DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
       <ProductionPanel record={deliverable} project={parent?.data} context={c} act={act} busy={busy} name={name}/>
       {canWork(deliverable.data,parent?.data,c)&&<details className="panel hq-details"><summary>Edit deliverable</summary>
@@ -101,12 +118,13 @@ export function HqWorkspace({view='list',id}:{view?:'list'|'project'|'deliverabl
       {deliverable.data.legacyPost&&<details className="panel hq-details"><summary>Preserved calendar history</summary><p>Historical status: <strong>{deliverable.data.legacyPost.status}</strong>. This is not an HQ approval or confirmation that any destination was published.</p><p>Original date: {dateLabel(deliverable.data.legacyPost.date)} · Historical owner: {deliverable.data.legacyPost.owner||'Unknown'}</p><p className="hq-preserve-text">{deliverable.data.legacyPost.caption}</p><p>Historical asset references: {deliverable.data.legacyPost.assets?.join(', ')||'None recorded'}</p></details>}
       <Discussion key={deliverable.data.version} id={deliverable.id} kind="deliverable" context={c} act={act} busy={busy}/>
     </>:<p className="panel">This deliverable was not found in your workspace.</p>)}
+    {view==='deliverable'&&deliverable&&<DeliverableTimestamps deliverable={deliverable.data}/>}
   </div>;
 }
 
 function ProjectList({projects,deliverables,name}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string}) {
   const now=useHqClock(),[filter,setFilter]=useState('all'),[search,setSearch]=useState('');
-  const shown=projects.filter(p=>(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
+  const shown=projects.filter(p=>(!p.data.migratedToProjectId||filter==='archived')&&(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
   return <section><div className="two-fields"><Field label="Find a project"><Input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Project status" value={filter} onChange={setFilter} options={{all:'All projects',...projectStatuses}}/></div><div className="hq-project-grid">{shown.map(p=><HqProjectCard key={p.id} project={p} deliverables={deliverables} name={name} now={now}/>)}</div>{!shown.length&&<p className="notice">{projects.length?'No projects match your search. Try a different name or status.':'No projects yet. Choose Add project above to get started.'}</p>}</section>;
 }
 function DeliverableList({records,projects,context,act,busy}:{records:HqRecord<Deliverable>[];projects:HqRecord<Project>[];context:HqContext;act:Action;busy:boolean}) {

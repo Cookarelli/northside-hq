@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {Button} from '@/components/ui/button';
 import {calendarDay,calendarTime} from '@/lib/content-calendar';
 import type {Deliverable,HqRecord,HqContext,Project} from '@/lib/hq-model';
-import {primaryOwnerLabel,taskAssignees,taskPriorities,taskStatus,taskStatuses,workStatus} from '@/lib/project-tasks';
+import {taskAssignees,taskPriorities,taskStatus,taskStatuses,workStatus} from '@/lib/project-tasks';
 import {finished} from '@/lib/hq-operations';
 import {dueState,quickTaskAllowed} from '@/lib/hq-presentation';
 import {ownerColor,projectColor} from '@/lib/owner-colors';
@@ -14,7 +14,8 @@ export function HqWorkItem({record,project,context,act,busy=false,onEdit,statusC
   const canUpdate=!!act&&quickTaskAllowed(d,project?.data,context);
   return <li className="hq-work-item" style={{borderLeftColor:color.accent}}>
     <div className="hq-work-copy"><Link className="hq-work-title" href={'/projects/work/'+record.id}>{d.title}</Link>
-      <p className="hq-meta">{project?<Link href={'/projects/'+project.id}>{project.data.title}</Link>:'Standalone'} · Owner: {primaryOwnerLabel(project?.data.owner||d.owner,context.staff)}</p>
+      {d.campaignReference&&<p className="hq-meta">Campaign: {d.campaignReference}</p>}
+      <p className="hq-meta">{project?<Link href={'/projects/'+project.id}>{project.data.title}</Link>:'Standalone'} · Deliverable owner: {name(d.owner)}</p>
       <p className="hq-work-date"><span className="hq-urgency">{dueState(d.productionDue,finished(d),now)==='Overdue'?'Overdue · ':''}</span>{d.productionDue?<time dateTime={d.productionDue}>{calendarDay(d.productionDue)} · {calendarTime(d.productionDue)}</time>:'Unscheduled'}{d.endAt?' – '+calendarDay(d.endAt)+' '+calendarTime(d.endAt):''}</p>
       <p className="hq-meta">Assigned: {taskAssignees(d).map(name).join(', ')||'Unassigned'}</p>
       {d.blocked&&<p className="hq-meta">Blocked · {d.blockedReason}</p>}
