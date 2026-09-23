@@ -546,3 +546,8 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-dashboard>.panel{margin-bottom:0}
 @media(max-width:600px){.hq-calendar-view-month .hq-calendar-day ul{max-height:none}.hq-calendar-view-month .hq-calendar-day:not(:has(li)):not(.is-today){display:none}}
 .hq-calendar-count{display:block;font-weight:400;padding:0 4px;color:var(--muted-foreground)}
+.hq-staff-picker{border:1px solid var(--border);border-radius:8px;padding:16px;margin:16px 0;min-width:0}
+.hq-staff-picker legend{font-weight:600;padding:0 6px}
+.hq-selected-staff{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hq-staff-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px;max-height:180px;overflow:auto}
+.hq-staff-options label{display:flex;align-items:center;gap:8px;padding:6px}

@@ -14,7 +14,7 @@ export const ownerColors = {
 export function ownerColor(owner:string, name=owner, consignment=false) {
   if(consignment) return ownerColors.consignment;
   // Stable roster IDs: Joey is CEO; Brody owns Consignment (editorial-model roster).
-  const aliases:Record<string,keyof typeof ownerColors>={joey:'ceo',brody:'consignment'};
+  const aliases:Record<string,keyof typeof ownerColors>={joey:'ceo',brody:'consignment',nikb:'nik'};
   for(const value of [owner,name]) {
     const key=value.trim().toLowerCase().split(/\s+/)[0];
     if(Object.hasOwn(aliases,key)) return ownerColors[aliases[key]];
