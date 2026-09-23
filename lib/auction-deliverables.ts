@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {approvalCurrent,canWork,deliverableInput,deliverableMissing,type Deliverable,type HqContext,type HqRecord,type Project} from './hq-model.ts';
 import {instant} from './hq-operations.ts';
+import {deliverableBudgetInput} from './deliverable-budget.ts';
 import {scheduleWall} from './consignment.ts';
 
 export const auctionStatuses={not_started:'Not Started',in_progress:'In Progress',review:'Ready for Review',approved:'Approved',scheduled:'Scheduled',published:'Published'} as const;
@@ -26,7 +27,7 @@ export function campaignGroups(records:HqRecord<Deliverable>[]) {
  for(const record of records){
   const d=record.data,name=d.campaignReference?.trim();
   if(!name||d.deletedAt||!d.publishing||d.workflow==='task')continue;
-  const key=JSON.stringify([name,d.sourceProjectId||'',scheduleWall(d.auctionClosesAt||'').slice(0,10)]);
+  const key=d.auctionCampaignId||JSON.stringify([name,d.auction_number||'',d.sourceProjectId||'',scheduleWall(d.auctionClosesAt||'').slice(0,10)]);
   if(!groups.has(key))groups.set(key,{key,name,records:[]});
   groups.get(key)!.records.push(record);
  }
@@ -41,9 +42,9 @@ export function auctionStatusOptions(d:Deliverable,p:Project,c:HqContext):Auctio
   if(d.status==='in_progress')options.push('not_started');
   if(['to_do','needs_review','done'].includes(d.status))options.push('in_progress');
   if(['in_progress','ready'].includes(d.status))options.push('review');
-  if(d.status==='needs_review'&&p.owner===c.staffId&&!deliverableMissing(d,p).length&&d.submission?.contentVersion===d.contentVersion)options.push('approved');
+  if(d.status==='needs_review'&&!deliverableMissing(d,p).length&&d.submission?.contentVersion===d.contentVersion)options.push('approved');
  }
- if(d.publishing&&d.status==='ready'&&!d.blocked&&approvalCurrent(d,p)&&(d.publisher===c.staffId||p.owner===c.staffId)){
+ if(d.publishing&&d.status==='ready'&&!d.blocked&&approvalCurrent(d,p)){
   if(d.platforms.some(platform=>d.publications[platform]?.status!=='published'))options.push('scheduled','published');
  }
  return options;
@@ -56,4 +57,4 @@ export function auctionStatusCommand(status:AuctionStatus,record:HqRecord<Delive
 }
 
 // Shared validation for the editor and its single transactional save endpoint.
-export const auctionEditorCommand=z.object({action:z.literal('save-auction-deliverable'),id:z.string().regex(/^[a-zA-Z0-9_-]{1,180}$/),version:z.number().int().min(1),data:deliverableInput,metadata:z.object({priority:z.enum(['low','normal','high','urgent']),notes:z.string().max(12000)}).strict()}).strict();
+export const auctionEditorCommand=z.object({action:z.literal('save-auction-deliverable'),id:z.string().regex(/^[a-zA-Z0-9_-]{1,180}$/),version:z.number().int().min(1),data:deliverableInput,budget:deliverableBudgetInput.optional(),metadata:z.object({priority:z.enum(['low','normal','high','urgent']),notes:z.string().max(12000)}).strict()}).strict();

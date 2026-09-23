@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {chicagoInstant,chicagoWall} from './consignment.ts';
 import {addDays,actionable,instant} from './hq-operations.ts';
-import {productionStatuses,type Deliverable,type HqContext,type HqRecord,type Project,type Staff} from './hq-model.ts';
+import {canWork,productionStatuses,type Deliverable,type HqContext,type HqRecord,type Project,type Staff} from './hq-model.ts';
 
 export const taskStatuses={not_started:'Not Started',in_progress:'In Progress',waiting:'Waiting',complete:'Complete'} as const;
 export const taskPriorities={low:'Low',normal:'Normal',high:'High',urgent:'Urgent'} as const;
@@ -14,7 +14,7 @@ export function taskStatus(d:Deliverable):TaskStatus {return d.status==='done'?'
 export function workStatus(d:Deliverable){return d.workflow==='task'?taskStatuses[taskStatus(d)]:productionStatuses[d.status];}
 export function taskAssignees(d:Deliverable){return [...new Set([d.owner,...d.contributors].filter(Boolean))];}
 export function canManageTask(d:Deliverable|undefined,p:Project|undefined,c:HqContext){return c.admin||p?.owner===c.staffId||(!d?.projectId&&d?.approver===c.staffId);}
-export function canCompleteTask(d:Deliverable,p:Project|undefined,c:HqContext){return !d.deletedAt&&(canManageTask(d,p,c)||taskAssignees(d).includes(c.staffId));}
+export function canCompleteTask(d:Deliverable,p:Project|undefined,c:HqContext){return !d.deletedAt&&canWork(d,p,c);}
 export function primaryOwnerName(id:string,name:(id:string)=>string){return primaryOwnerChoices.find(([,ids])=>(ids as readonly string[]).includes(id))?.[0]||name(id)||'Unassigned';}
 export function primaryOwnerLabel(id:string,staff:Staff[]){return primaryOwnerName(id,id=>staff.find(s=>s.id===id)?.name||id);}
 export const primaryOwnerChoices=[['Consignment',['brody','consignment']],['Nik',['nikb','nik']],['Nick',['nick']],['Zach',['zach']],['CEO',['joey','ceo']],['Jon',['jon']],['Steve',['steve']]] as const;

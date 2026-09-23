@@ -2,7 +2,7 @@ import {readFile,readdir} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {blankProject,blankDeliverable} from '../../lib/hq-model.ts';
 
-export async function auctionDb(){
+export async function auctionDb({numbered=false}={}){
  const db=new PGlite(),actors=Object.fromEntries(['joey','steve','jon','brody','outsider','foreign','unsigned'].map((name,index)=>[name,`10000000-0000-4000-8000-${String(index+1).padStart(12,'0')}`]));
  await db.exec(`create role anon;create role authenticated;create role service_role;
  create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
@@ -32,5 +32,10 @@ export async function auctionDb(){
   await hq('save-deliverable',{id:'mj-'+hours,version:0,data:{...blankDeliverable,title:`Michael Jordan Auction — ${hours} Hour Reminder`,instructions:'Create the Michael Jordan consignment reminder. Check card and auction details before publishing.',owner:'jon',contributors:['steve','brody'],projectId:'weekly',productionDue:`2026-09-${day}T${time}:00`,publishAt:`2026-09-${day}T${time}:00`,format:'Vertical video',caption:'Michael Jordan auction reminder.',publisher:'steve',references:['https://example.test/mj-final.mp4'],linkRoles:{'https://example.test/mj-final.mp4':'final'}}});
  }
  await db.exec("reset role;update marketing_records set data=data||jsonb_build_object('campaignReference','Michael Jordan Consignment','reminderHours',substring(id from 4)::int,'auctionClosesAt','2026-09-27T21:00:00-05:00','priority','normal','notes','Check the auction details.','sourceProjectId','preserved-source','preservedMetadata',jsonb_build_object('keep',true)) where kind='deliverable'");
+ if(numbered){
+  await db.exec("reset role;update marketing_records set data=data||jsonb_build_object('sourceProjectId','mj-consignment-video-2026-09-23') where kind='deliverable'");
+  await db.query("select set_config('request.jwt.claim.sub','',false)");
+  const file=(await readdir(directory)).find(f=>f.endsWith('_auction_campaign_permissions_budgets.sql'));await db.exec(await readFile(new URL(file,directory),'utf8'));
+ }
  return {db,actor,hq,get,save};
 }

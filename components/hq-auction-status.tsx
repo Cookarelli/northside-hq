@@ -4,7 +4,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {auctionStatus,auctionStatuses,auctionStatusOptions,auctionStatusCommand,publicationSummary,type AuctionStatus} from '@/lib/auction-deliverables';
-import {approvalCurrent,deliverableMissing,type Deliverable,type HqContext,type HqRecord,type Project} from '@/lib/hq-model';
+import {canWork,approvalCurrent,deliverableMissing,type Deliverable,type HqContext,type HqRecord,type Project} from '@/lib/hq-model';
 import {calendarDay,calendarTime} from '@/lib/content-calendar';
 import {scheduleWall} from '@/lib/consignment';
 import type {Action} from '@/components/hq-workspace';
@@ -12,9 +12,7 @@ import type {Action} from '@/components/hq-workspace';
 export function AuctionStatusControl({record,project,context,act,busy}:{record:HqRecord<Deliverable>;project:Project;context:HqContext;act:Action;busy:boolean}) {
  const d=record.data,id=useId(),current=auctionStatus(d,project),options=auctionStatusOptions(d,project,context);
  const [intent,setIntent]=useState<'scheduled'|'published'|null>(null),[error,setError]=useState('');
- const publisher=context.staff.find(s=>s.id===d.publisher)?.name||d.publisher||'the assigned publisher';
- const approver=context.staff.find(s=>s.id===project.owner)?.name||project.owner;
- const eligible=d.publisher===context.staffId||project.owner===context.staffId;
+ const eligible=canWork(d,project,context);
  const confirmed=d.platforms.some(platform=>['scheduled','published'].includes(d.publications[platform]?.status));
  const missing=d.status==='needs_review'?deliverableMissing(d,project):[];
  async function change(value:AuctionStatus){
@@ -28,10 +26,10 @@ export function AuctionStatusControl({record,project,context,act,busy}:{record:H
   </select></label>
   {publicationSummary(d)&&<p className="hq-meta">{publicationSummary(d)}</p>}
   {d.status==='to_do'&&<p className="hq-meta">Start production, then mark Ready for Review.</p>}
-  {d.status==='needs_review'&&<p className="hq-meta">{approver} approves this version.{!!missing.length&&' Complete the required content before approval.'}</p>}
+  {d.status==='needs_review'&&<p className="hq-meta">Assigned deliverable staff, project members, and administrators can approve this version.{!!missing.length&&' Complete the required content before approval.'}</p>}
   {!!missing.length&&<details className="hq-details"><summary>Needed for approval ({missing.length})</summary><ul>{missing.map(item=><li key={item}>{item}</li>)}</ul></details>}
   {d.status==='ready'&&!approvalCurrent(d,project)&&<p className="hq-meta">The content or project changed. Submit this version for review again.</p>}
-  {d.status==='ready'&&!eligible&&<p className="hq-meta">{publisher} or {approver} records scheduling and publication.</p>}
+  {d.status==='ready'&&!eligible&&<p className="hq-meta">Assigned staff or an administrator records scheduling and publication.</p>}
   {confirmed&&eligible&&!intent&&!['completed','archived'].includes(project.status)&&<Button type="button" variant="outline" disabled={busy} onClick={()=>setIntent(current==='published'?'published':'scheduled')}>Platform confirmations</Button>}
   {intent&&eligible&&!['completed','archived'].includes(project.status)&&<section className="hq-auction-confirmations" aria-label={'Platform confirmations for '+d.title}>
    <div className="section-title"><h4>{intent==='scheduled'?'Confirm scheduling':'Confirm publication'}</h4><Button type="button" variant="outline" disabled={busy} onClick={()=>setIntent(null)}>Close confirmations</Button></div>

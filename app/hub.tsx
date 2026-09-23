@@ -64,7 +64,13 @@ export default function Hub({section}:{section:Exclude<HqSection,'requests'>}){
  async function save(kind:string,id:string,data:unknown,quiet=false){setBusy(true);try{await request('/api/records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,id,data})});await refresh();if(!quiet)toast.success('Saved');return true;}catch(e){toast.error((e as Error).message);return false;}finally{setBusy(false);}}
  async function saveTemplate(payload:TemplateSave){setBusy(true);try{const result=await hqJson<{id:string;existing:boolean}>('/api/calendar/templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});await refresh();toast.success(result.existing?'Existing Tuesday draft retained':'Tuesday draft saved');return result;}catch(e){toast.error((e as Error).message);return null;}finally{setBusy(false);}}
  async function saveCampaign(payload:CampaignSave){setBusy(true);try{await request('/api/campaigns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});await refresh();return true;}catch(e){toast.error((e as Error).message);return false;}finally{setBusy(false);}}
- useEffect(()=>{const changed=()=>{void refresh().catch(e=>setLoadError(e.message));};window.addEventListener('hq-records-changed',changed);return()=>window.removeEventListener('hq-records-changed',changed);},[]);
+ useEffect(()=>{
+  let loading=false;const changed=()=>{if(loading||document.visibilityState==='hidden')return;loading=true;void refresh().catch(e=>setLoadError(e.message)).finally(()=>{loading=false;});};
+  const channel=typeof BroadcastChannel==='undefined'?null:new BroadcastChannel('northside-hq-records');if(channel)channel.onmessage=changed;
+  window.addEventListener('hq-records-changed',changed);window.addEventListener('focus',changed);document.addEventListener('visibilitychange',changed);
+  const timer=window.setInterval(changed,30000);
+  return()=>{window.clearInterval(timer);channel?.close();window.removeEventListener('hq-records-changed',changed);window.removeEventListener('focus',changed);document.removeEventListener('visibilitychange',changed);};
+ },[]);
  const projects=records.filter(r=>r.kind==='project'),deliverables=records.filter(r=>r.kind==='deliverable');
  const adoptedCampaigns=new Set(projects.map(p=>p.data.legacyCampaignId)),adoptedPosts=new Set(deliverables.map(d=>d.data.legacyPostId));
  const campaigns=records.filter((r):r is Extract<Rec,{kind:'campaign'}>=>r.kind==='campaign'&&!adoptedCampaigns.has(r.id));

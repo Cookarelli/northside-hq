@@ -696,5 +696,14 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-auction-platform h5{text-transform:capitalize;font-size:1rem;font-weight:650;margin:0}
 .hq-auction-platform .check-field{align-items:flex-start}
 .hq-auction-editor .hq-details .campaign-fields{margin-top:12px}
+.hq-budget-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:18px 0 22px}
+.hq-budget-values dt{font-size:.85rem;color:var(--muted-foreground);margin-bottom:5px}
+.hq-budget-values dd{margin:0;font-size:1.05rem;font-weight:650;overflow-wrap:anywhere}
+.hq-budget-rollup{padding:18px 0;border-bottom:1px solid var(--border)}
+.hq-budget-rollup h4,.hq-budget-fields legend{font-size:1.1rem;font-weight:650}
+.hq-budget-fields{border:0;padding:0;margin:12px 0}
+.hq-auction-settings{margin-top:16px}
+.hq-auction-reminder{scroll-margin-top:20px}
+@media(max-width:760px){.hq-budget-values{grid-template-columns:1fr;gap:12px}}
 @media(max-width:1050px){.hq-auction-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.hq-auction-facts>div:nth-last-child(-n+2){grid-column:auto}.hq-auction-row-heading{flex-wrap:wrap}.hq-auction-row-heading .hq-work-tags{justify-content:flex-start}}
 @media(max-width:760px){.hq-auction-reminder{padding:16px}.hq-auction-facts{gap:16px}.hq-auction-row-controls{flex-direction:column;gap:14px}.hq-auction-row-controls>.hq-auction-status,.hq-auction-row-controls>[data-slot=button]{width:100%}.hq-auction-status>.field{max-width:none}.hq-auction-facts>div:nth-last-child(-n+2){grid-column:1/-1}.hq-shell .hq-auction-campaign-heading h3{font-size:1.3rem}}

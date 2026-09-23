@@ -64,7 +64,7 @@ test('moves the existing three IDs, calculates Chicago times and preserves all u
  for(const row of before.records.filter(r=>r.kind==='asset'||r.id==='unrelated'))assert.deepEqual(after.records.find(r=>r.id===row.id),row);
  const records=after.records.filter(r=>r.kind==='deliverable'),projects=after.records.filter(r=>r.kind==='project');
  const entries=calendarEntries(records,projects,[],[],'2026-09-25','2026-09-27');
- assert.equal(entries.filter(e=>e.key.endsWith(':production')).length,3);assert.ok(!entries.some(e=>e.href==='/projects/'+sourceId));
+ assert.equal(entries.filter(e=>e.key.endsWith(':reminder')).length,3);assert.ok(!entries.some(e=>e.href==='/projects/'+sourceId));
  assert.equal(calendarTime(expected[2]),'7:00 p.m. CT');
  const saved=await snapshot();await db.exec(migration);assert.deepEqual(await snapshot(),saved,'Replay cannot change records or append duplicate history/notifications');
 });

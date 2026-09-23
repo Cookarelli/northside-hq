@@ -30,7 +30,7 @@ test('six statuses follow actual approval and per-platform confirmations; notes-
  d=(await f.hq('production',{id:'mj-24',version:d.version,status:'in_progress'})).data;
  assert.equal(auctionStatus(d,p),'in_progress');
  d=(await f.hq('production',{id:'mj-24',version:d.version,status:'needs_review'})).data;
- assert.equal(auctionStatus(d,p),'review');assert.ok(!auctionStatusOptions(d,p,context).includes('approved'));
+ assert.equal(auctionStatus(d,p),'review');assert.ok(auctionStatusOptions(d,p,context).includes('approved'));
  await f.actor('joey');assert.ok(auctionStatusOptions(d,p,await f.hq('context')).includes('approved'));
  d=(await f.hq('review',{id:'mj-24',version:d.version,decision:'approve',comment:''})).data;
  assert.equal(auctionStatus(d,p),'approved');const approval=d.approval;

@@ -8,7 +8,7 @@ export function HqCampaignContext({deliverable:d}:{deliverable:Deliverable}) {
  if(!d.campaignReference)return null;
  const links=[...new Set([d.destinationUrl,d.campaignAuction?.batchUrl,...(d.campaignAuction?.cards.map(card=>card.url)||[])].filter((url):url is string=>!!url&&/^https:\/\//.test(url)))];
  return <section className="panel">
-  <h2>Campaign / batch</h2><p><strong>{d.campaignReference}</strong></p>
+  <h2>Campaign / batch</h2>{d.auction_number&&<p><strong>Auction #{d.auction_number}</strong></p>}<p><strong>{d.campaignReference}</strong></p>
   {d.campaignBrief&&<p className="hq-preserve-text">{d.campaignBrief}</p>}
   <p>Due: {d.productionDue?time(d.productionDue):'Not set'}</p>
   <p>Target publish time: {d.publishAt?time(d.publishAt):'Not set'}</p>

@@ -3,6 +3,8 @@ import {useEffect,useRef,useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
+import {BudgetFields} from '@/components/deliverable-budget';
+import {parseUsd,usdInput} from '@/lib/deliverable-budget';
 import {StaffPicker} from '@/components/staff-picker';
 import {MaterialsEditor,type Asset} from '@/components/hq-materials';
 import {auctionEditorCommand} from '@/lib/auction-deliverables';
@@ -13,7 +15,7 @@ import type {Action} from '@/components/hq-workspace';
 export function AuctionDeliverableEditor({record,project,context,assets,busy,act,onClose}:{record:HqRecord<Deliverable>;project:Project;context:HqContext;assets:Asset[];busy:boolean;act:Action;onClose:()=>void}) {
  const titleRef=useRef<HTMLInputElement>(null);
  useEffect(()=>{const previous=document.activeElement;titleRef.current?.focus();return()=>{if(previous instanceof HTMLElement&&previous.isConnected)previous.focus();};},[]);
- const d=record.data,[data,setData]=useState(()=>deliverableDraft(d)),[priority,setPriority]=useState<TaskPriority>(d.priority||'normal'),[notes,setNotes]=useState(d.notes||''),[pending,setPending]=useState(false),[error,setError]=useState('');
+ const d=record.data,[data,setData]=useState(()=>deliverableDraft(d)),[priority,setPriority]=useState<TaskPriority>(d.priority||'normal'),[notes,setNotes]=useState(d.notes||''),[planned,setPlanned]=useState(usdInput(d.plannedBudgetCents)),[actual,setActual]=useState(usdInput(d.actualSpendCents)),[pending,setPending]=useState(false),[error,setError]=useState('');
  const manager=canManageTask(d,project,context),locked=d.platforms.some(p=>['scheduled','published'].includes(d.publications[p]?.status));
  const update=(patch:Partial<DeliverableInput>)=>setData(old=>({...old,...patch}));
  const due=(value:string)=>update({productionDue:value,...(data.publishAt===data.productionDue?{publishAt:value}:{})});
@@ -21,7 +23,8 @@ export function AuctionDeliverableEditor({record,project,context,assets,busy,act
  if(data.owner&&!staffOptions[data.owner])staffOptions[data.owner]=data.owner+' (inactive)';
  return <form className="hq-auction-editor hq-form" aria-label={'Edit '+d.title} onSubmit={async e=>{
   e.preventDefault();if(pending)return;setError('');
-  const parsed=auctionEditorCommand.safeParse({action:'save-auction-deliverable',id:record.id,version:d.version,data,metadata:{priority,notes}});
+  let budget;try{budget={plannedBudgetCents:parseUsd(planned),actualSpendCents:parseUsd(actual)};}catch(e){setError((e as Error).message);return;}
+  const parsed=auctionEditorCommand.safeParse({budget,action:'save-auction-deliverable',id:record.id,version:d.version,data,metadata:{priority,notes}});
   if(!parsed.success){setError(parsed.error.issues[0].message);return;}
   if(await act(parsed.data))onClose();else setError('Your changes are still here. Resolve the message above before saving again.');
  }}>
@@ -48,8 +51,9 @@ export function AuctionDeliverableEditor({record,project,context,assets,busy,act
    <label className="field"><span>Priority</span><select value={priority} onChange={e=>setPriority(e.target.value as TaskPriority)}>{Object.entries(taskPriorities).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>
    <label className="field"><span>Internal notes</span><Textarea rows={3} maxLength={12000} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
   </fieldset>
+  <BudgetFields planned={planned} actual={actual} onPlanned={setPlanned} onActual={setActual} disabled={busy}/>
   {!locked&&<p className="hq-meta">Changes to content need fresh approval. Priority and notes do not change an approved publishing package.</p>}
   {error&&<p role="alert" className="notice error">{error}</p>}
-  <div className="button-row"><Button type="submit" disabled={busy||pending||(locked&&!manager)}>{busy?'Saving…':'Save deliverable'}</Button><Button type="button" variant="outline" disabled={busy||pending} onClick={onClose}>Cancel</Button></div>
+  <div className="button-row"><Button type="submit" disabled={busy||pending}>{busy?'Saving…':'Save deliverable'}</Button><Button type="button" variant="outline" disabled={busy||pending} onClick={onClose}>Cancel</Button></div>
  </form>;
 }
