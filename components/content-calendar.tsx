@@ -6,7 +6,7 @@ import {approvalIssues} from '@/lib/consignment-review';
 import {ConsignmentCampaign, ProductionFields} from '@/components/consignment-campaign';
 import type {CampaignRecord, CampaignSave} from '@/lib/consignment';
 import {useRef, useState} from 'react';
-import {CalendarDays, Download, Pencil, Plus} from 'lucide-react';
+import {CalendarDays, Download, ExternalLink, Pencil, Plus} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -41,8 +41,10 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
   const formRef = useRef<HTMLFormElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const dated = posts.filter(p => !p.data.recurrence).sort((a, b) => a.data.date.localeCompare(b.data.date));
+  const releases = dated.filter(p => p.data.category === 'Release' && p.data.source === 'topps');
+  const datedContent = dated.filter(p => !(p.data.category === 'Release' && p.data.source === 'topps'));
   const recurring = posts.filter(p => p.data.recurrence).sort((a, b) => a.data.date.slice(11).localeCompare(b.data.date.slice(11)));
-  const days = [...new Set(dated.map(p => p.data.date.slice(0, 10)))];
+  const days = [...new Set(datedContent.map(p => p.data.date.slice(0, 10)))];
 
   function openDraft(post?: CalendarPost, occurrence = false) {
     setEditingId(post && !occurrence ? post.id : null);
@@ -50,6 +52,18 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
     setDraft(post ? {...post.data, ...(occurrence ? {recurrence: undefined, date: nextTuesday(post.data.date.slice(11, 16)), status: 'draft'} : {})} : {...emptyDraft});
     formRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
     titleRef.current?.focus({preventScroll: true});
+  }
+
+  function releaseCard(post: CalendarPost) {
+    const p = post.data;
+    const dateOnly = p.caption.includes('Topps lists the date only');
+    return <article className="panel calendar-card release-card" key={post.id}>
+      <div className="calendar-card-top"><time dateTime={p.date}>{dateOnly ? 'Date only' : calendarTime(p.date)}</time><span className="tag">Topps release</span></div>
+      <h3>{p.title}</h3>
+      <p className="muted">{dateOnly ? 'Exact release time not listed by Topps' : 'Official Topps release time · Central'}</p>
+      {p.caption ? <p className="calendar-notes">{p.caption}</p> : null}
+      {p.references?.[0] ? <div className="calendar-card-actions"><Button variant="outline" asChild><a href={p.references[0]} target="_blank" rel="noreferrer"><ExternalLink size={18}/>View Topps calendar</a></Button></div> : null}
+    </article>;
   }
 
   function card(post: CalendarPost) {
@@ -79,11 +93,19 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
       <div className="button-row"><Button variant="outline" disabled={loading || !posts.length} onClick={() => exportCalendar([...dated, ...recurring], campaigns)}><Download size={18}/>Export calendar</Button><Button onClick={() => openDraft()}><Plus size={18}/>New draft</Button></div>
     </div>
     <ConsignmentCampaign posts={posts} campaigns={campaigns} disabled={busy || loading} onSave={onSaveCampaign}/>
+    <section className="calendar-recurring" aria-labelledby="release-calendar">
+      <div className="section-title"><div><p className="eyebrow">RELEASE CALENDAR</p><h2 id="release-calendar">Upcoming Topps releases</h2><p className="muted">Official Topps release-calendar dates. Topps notes that dates are subject to change, so use the source link to confirm before publishing release-day content.</p></div>{releases.length ? <span className="tag">{releases.length} upcoming</span> : null}</div>
+      {!releases.length ? <p className="panel">No Topps releases are currently loaded.</p> :
+        <div className="calendar-days">{[...new Set(releases.map(p=>p.data.date.slice(0,10)))].map(day=><section key={day} aria-label={calendarDay(day)}>
+          <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{releases.filter(p=>p.data.date.startsWith(day)).length} releases</span></div>
+          <div className="calendar-post-grid">{releases.filter(p=>p.data.date.startsWith(day)).map(releaseCard)}</div>
+        </section>)}</div>}
+    </section>
     {loading ? <p role="status" className="notice">Loading the calendar…</p> : null}
-    {!loading && !dated.length ? <p className="panel">No dated drafts yet. Add your first post below.</p> : null}
+    {!loading && !datedContent.length ? <p className="panel">No dated content drafts yet. Add your first post below.</p> : null}
     <div className="calendar-days">{days.map(day => <section key={day} aria-label={calendarDay(day)}>
-      <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{dated.filter(p => p.data.date.startsWith(day)).length} posts</span></div>
-      <div className="calendar-post-grid">{dated.filter(p => p.data.date.startsWith(day)).map(card)}</div>
+      <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{datedContent.filter(p => p.data.date.startsWith(day)).length} posts</span></div>
+      <div className="calendar-post-grid">{datedContent.filter(p => p.data.date.startsWith(day)).map(card)}</div>
     </section>)}</div>
     {recurring.length ? <section className="calendar-recurring" aria-labelledby="weekly-series"><p className="eyebrow">REPEAT EACH WEEK</p><h2 id="weekly-series">Every Tuesday</h2><p className="muted">Use each series to prepare its next dated draft. Publishing remains manual.</p><div className="calendar-post-grid">{recurring.map(card)}</div></section> : null}
     <form ref={formRef} className="panel calendar-form" onSubmit={async e => {
