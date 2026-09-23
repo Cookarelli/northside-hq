@@ -707,3 +707,8 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 @media(max-width:760px){.hq-budget-values{grid-template-columns:1fr;gap:12px}}
 @media(max-width:1050px){.hq-auction-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.hq-auction-facts>div:nth-last-child(-n+2){grid-column:auto}.hq-auction-row-heading{flex-wrap:wrap}.hq-auction-row-heading .hq-work-tags{justify-content:flex-start}}
 @media(max-width:760px){.hq-auction-reminder{padding:16px}.hq-auction-facts{gap:16px}.hq-auction-row-controls{flex-direction:column;gap:14px}.hq-auction-row-controls>.hq-auction-status,.hq-auction-row-controls>[data-slot=button]{width:100%}.hq-auction-status>.field{max-width:none}.hq-auction-facts>div:nth-last-child(-n+2){grid-column:1/-1}.hq-shell .hq-auction-campaign-heading h3{font-size:1.3rem}}
+
+.hq-add-auction { margin: 0 0 24px; }
+.hq-auction-allocation-inputs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.hq-auction-shared { margin: 16px 0; overflow-wrap:anywhere; }
+@media (max-width:640px) { .hq-auction-allocation-inputs {grid-template-columns:1fr;} }

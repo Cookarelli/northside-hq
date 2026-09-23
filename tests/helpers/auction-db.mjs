@@ -36,6 +36,7 @@ export async function auctionDb({numbered=false}={}){
   await db.exec("reset role;update marketing_records set data=data||jsonb_build_object('sourceProjectId','mj-consignment-video-2026-09-23') where kind='deliverable'");
   await db.query("select set_config('request.jwt.claim.sub','',false)");
   const file=(await readdir(directory)).find(f=>f.endsWith('_auction_campaign_permissions_budgets.sql'));await db.exec(await readFile(new URL(file,directory),'utf8'));
+  const reusable=(await readdir(directory)).find(f=>f.endsWith('_reusable_weekly_auctions.sql'));if(reusable)await db.exec(await readFile(new URL(reusable,directory),'utf8'));
  }
  return {db,actor,hq,get,save};
 }

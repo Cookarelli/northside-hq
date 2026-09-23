@@ -22,7 +22,7 @@ test('backfill attaches #245 to the same three IDs without a project/calendar co
  assert.deepEqual(all.map(r=>r.id),['mj-2','mj-24','mj-48']);assert.equal((await f.get(campaignId,'auction_campaign')).auction_number,245);
  assert.equal((await f.db.query("select count(*) n from marketing_records where kind='project'")).rows[0].n,1);
  assert.equal((await f.db.query("select count(*) n from marketing_records where kind='post'")).rows[0].n,0);
- assert.equal((await f.db.query("select count(*) n from hq_activity where action='auction campaign updated' and actor='migration'")).rows[0].n,3);
+ assert.equal((await f.db.query("select count(*) n from hq_activity where action='auction campaign updated' and actor='migration' and not snapshot ? 'campaignOwner'")).rows[0].n,3);
  await f.db.exec('reset role');const before=await snapshot();await f.db.exec(migration);assert.deepEqual(await snapshot(),before);
 });
 test('calendar derives exactly three numbered reminders with Central dates, staff owner colors and project deep links',async()=>{

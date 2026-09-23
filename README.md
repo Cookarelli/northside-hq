@@ -26,6 +26,8 @@ Continue with `Cookarelli/marketinghub`, the existing Vercel project `marketingh
 
 Individual Auth logins require verified email plus active membership in `private.staff_access`. Database RLS and checked transaction functions enforce organization and workflow permissions; client metadata never grants access. Active project members, individual deliverable assignees and administrators can update deliverable status, approve submitted work and record publication confirmations. Configured budget approvers establish project budgets; involved staff record deliverable budgets and actual spending. Configured coordinators decide requests.
 
+**Collect Weekly Auctions** is the permanent home for numbered auction campaigns. **Add Auction Campaign** suggests the next number and creates three reminders, with optional campaign and deliverable budgets. Campaign members can also work on their reminders. See [auction creation, calendar behavior, permissions and migration verification](docs/mj-consignment-deliverables.md#reusable-weekly-auction-campaigns).
+
 Submit changes as a draft PR against `main`, verify a protected preview using isolated data, and obtain Steve's production approval before merge/deploy. The guide separates completed local checks from hosted rollout gates and the deferred repository rename.
 
 ## Retained tools

@@ -32,7 +32,7 @@ export function campaignGroups(records:HqRecord<Deliverable>[]) {
   groups.get(key)!.records.push(record);
  }
  const byDue=(a:HqRecord<Deliverable>,b:HqRecord<Deliverable>)=>(instant(a.data.productionDue)??Infinity)-(instant(b.data.productionDue)??Infinity)||((b.data.reminderHours||0)-(a.data.reminderHours||0))||a.id.localeCompare(b.id);
- return [...groups.values()].map(g=>({...g,records:g.records.sort(byDue)})).sort((a,b)=>byDue(a.records[0],b.records[0])||a.name.localeCompare(b.name));
+ return [...groups.values()].map(g=>({...g,records:g.records.sort(byDue)})).sort((a,b)=>(b.records[0].data.auction_number||0)-(a.records[0].data.auction_number||0)||byDue(a.records[0],b.records[0])||a.name.localeCompare(b.name));
 }
 export function auctionStatusOptions(d:Deliverable,p:Project,c:HqContext):AuctionStatus[] {
  if(d.deletedAt||['completed','archived'].includes(p.status)||!canWork(d,p,c))return [];
