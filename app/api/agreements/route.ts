@@ -3,6 +3,7 @@ import {identity} from '@/lib/storage';
 import {sessionClient} from '@/lib/supabase';
 import {isIP} from 'node:net';
 import {z} from 'zod';
+import {agreementActionError} from '@/lib/agreement-action';
 
 const bodySchema=z.object({
   action:z.literal('accept'),
@@ -44,10 +45,10 @@ export async function POST(request:Request){
       p_user_agent:request.headers.get('user-agent')||''
     });
     if(error) throw error;
+    if(!data?.ok || !data.acceptedAt) throw new Error('Incomplete agreement response');
     return Response.json(data,{headers:{'Cache-Control':'no-store'}});
   }catch(e){
-    const message=e instanceof Error?e.message:'Agreement action failed.';
-    const safe=/full name|Agreement unavailable|must be provided/i.test(message)?message:'Could not save the agreement action.';
-    return Response.json({error:safe},{status:400,headers:{'Cache-Control':'no-store'}});
+    const failure=agreementActionError(e);
+    return Response.json({error:failure.error},{status:failure.status,headers:{'Cache-Control':'no-store'}});
   }
 }
