@@ -1,6 +1,7 @@
 import {agreementGate} from '@/lib/agreements';
 import {identity} from '@/lib/storage';
 import {sessionClient} from '@/lib/supabase';
+import {isIP} from 'node:net';
 import {z} from 'zod';
 
 const bodySchema=z.object({
@@ -12,6 +13,11 @@ const bodySchema=z.object({
 function sameOrigin(request:Request){
   const origin=request.headers.get('origin');
   return !!origin && origin===new URL(request.url).origin;
+}
+
+function forwardedIp(request:Request){
+  const candidate=request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'';
+  return isIP(candidate)?candidate:'';
 }
 
 export async function GET(){
@@ -31,12 +37,10 @@ export async function POST(request:Request){
     if(!parsed.success) return Response.json({error:'Invalid agreement request.'},{status:400});
     const client=await sessionClient();
 
-    const forwarded=request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'';
-    const ip=/^[0-9a-fA-F:.]+$/.test(forwarded)?forwarded:'';
     const {data,error}=await client.rpc('hub_accept_agreement',{
       p_agreement_id:parsed.data.agreementId,
       p_full_name:parsed.data.fullName,
-      p_ip:ip,
+      p_ip:forwardedIp(request),
       p_user_agent:request.headers.get('user-agent')||''
     });
     if(error) throw error;
