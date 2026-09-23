@@ -7,6 +7,11 @@ export async function GET(request:Request) {
     const workspace=await identity();
     const client=await db();
     const url=new URL(request.url), kind=url.searchParams.get('kind'), id=url.searchParams.get('id');
+    if (kind==='activity' && !id) {
+      const {data,error}=await client.from('hq_activity').select('id,actor,kind,record_id,action,created_at,snapshot').eq('org_id',workspace).in('kind',['project','deliverable','request']).order('created_at',{ascending:false}).order('id').limit(10);
+      if(error) throw error;
+      return Response.json({activity:(data||[]).map(item=>({...item,snapshot:{title:item.snapshot?.title}}))},{headers});
+    }
     if (!kind && !id) {
       const {data,error}=await client.rpc('hub_hq',{p_action:'context',p_payload:{}});
       if(error) throw error;

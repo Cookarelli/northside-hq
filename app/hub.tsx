@@ -43,7 +43,7 @@ export default function Hub({section}:{section:Exclude<HqSection,'requests'>}){
  const [legacyCalendarOpen,setLegacyCalendarOpen]=useState(false);
  const [tab,setTab]=useState<string>(defaultTab),[records,setRecords]=useState<Rec[]>([]),[loading,setLoading]=useState(true),[loadError,setLoadError]=useState(''),[busy,setBusy]=useState(false);
  useEffect(()=>{
-   const sync=()=>{const value=window.location.hash.slice(1);setTab(section==='projects'&&['launch','tracking','performance'].includes(value)?value:defaultTab);};
+   const sync=()=>{const value=window.location.hash.slice(1);if(section==='calendar'&&(value==='existing-calendar'||value.startsWith('legacy-entry-')))setLegacyCalendarOpen(true);setTab(section==='projects'&&['launch','tracking','performance'].includes(value)?value:defaultTab);};
    sync();window.addEventListener('hashchange',sync);window.addEventListener('popstate',sync);
    return()=>{window.removeEventListener('hashchange',sync);window.removeEventListener('popstate',sync);};
  },[section,defaultTab]);
@@ -91,7 +91,7 @@ export default function Hub({section}:{section:Exclude<HqSection,'requests'>}){
  <Tabs value={tab} onValueChange={navigateTab}>
  {section==='projects'&&<TabsList className="main-tabs hq-secondary" aria-label="Project tools"><TabsTrigger value="projects">Overview</TabsTrigger><TabsTrigger value="launch">Launch plan</TabsTrigger><TabsTrigger value="tracking">Tracked links</TabsTrigger><TabsTrigger value="performance">Results</TabsTrigger></TabsList>}
  {section==='assets'&&<nav className="hq-secondary-links" aria-label="Asset tools"><Link href="/assets" aria-current="page">Library &amp; studio</Link><Link href="/assets/research">Research &amp; sources</Link></nav>}
- {tab==='today'&&<HqToday records={deliverables} projects={projects} posts={posts} loading={loading} failed={!!loadError}/>}
+ {tab==='today'&&<HqToday records={deliverables} projects={projects} posts={posts} campaigns={campaigns} loading={loading} failed={!!loadError}/>}
  <TabsContent value="projects">
    <HqWorkspace/>
    {!loading&&!loadError&&<details className="panel hq-details"><summary>Legacy campaign tools</summary><p>These tools manage campaigns that have not been adopted into HQ. Use the adoption controls above to bring an existing campaign and its posts into the shared workflow.</p><ConsignmentCampaign campaigns={campaigns} posts={posts} disabled={busy} onSave={saveCampaign}/></details>}

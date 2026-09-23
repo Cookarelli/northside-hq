@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
+import {ownerColor} from '@/lib/owner-colors';
 
 import {ConsignmentReview, OutstandingTasks} from '@/components/consignment-review';
 import {approvalIssues} from '@/lib/consignment-review';
 import {ConsignmentCampaign, ProductionFields} from '@/components/consignment-campaign';
 import type {CampaignRecord, CampaignSave} from '@/lib/consignment';
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {CalendarDays, Download, ExternalLink, Pencil, Plus} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
@@ -40,6 +41,17 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
   const draftId=useRef(clientId()),saving=useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  useEffect(()=>{
+    let frame=0;
+    const reveal=()=>{
+      if(loading || !window.location.hash.startsWith('#legacy-entry-'))return;
+      let id:string;try{id=decodeURIComponent(window.location.hash.slice(1));}catch{return;}
+      const target=document.getElementById(id);
+      frame=requestAnimationFrame(()=>target?.scrollIntoView({block:'center'}));
+    };
+    reveal();window.addEventListener('hashchange',reveal);
+    return()=>{cancelAnimationFrame(frame);window.removeEventListener('hashchange',reveal);};
+  },[loading,posts]);
   const dated = posts.filter(p => !p.data.recurrence).sort((a, b) => a.data.date.localeCompare(b.data.date));
   const releases = dated.filter(p => p.data.category === 'Release' && p.data.source === 'topps');
   const datedContent = dated.filter(p => !(p.data.category === 'Release' && p.data.source === 'topps'));
@@ -57,7 +69,7 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
   function releaseCard(post: CalendarPost) {
     const p = post.data;
     const dateOnly = p.caption.includes('Topps lists the date only');
-    return <article className="panel calendar-card release-card" key={post.id}>
+    return <article className="panel calendar-card release-card" id={'legacy-entry-'+post.id} key={post.id}>
       <div className="calendar-card-top"><time dateTime={p.date}>{dateOnly ? 'Date only' : calendarTime(p.date)}</time><span className="tag">Topps release</span></div>
       <h3>{p.title}</h3>
       <p className="muted">{dateOnly ? 'Exact release time not listed by Topps' : 'Official Topps release time · Central'}</p>
@@ -70,7 +82,7 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
     const p = post.data;
     const campaign = campaigns.find(c => c.id === p.consignment?.campaignId)?.data;
     const radar = post.id.startsWith('radar_');
-    return <article className="panel calendar-card" key={post.id}>
+    return <article className="panel calendar-card hq-owner-row" id={'legacy-entry-'+post.id} style={{borderLeftColor:ownerColor(p.owner||'',p.owner,!!p.consignment||p.category==='Consignment').accent}} key={post.id}>
       <div className="calendar-card-top"><time dateTime={p.date}>{calendarTime(p.date)}</time><span className="tag">{p.category || 'Content'}</span></div>
       <h3>{p.title}</h3>
       <p className="muted">{p.platforms?.join(', ') || (p.source === 'tbd' ? 'Platform to confirm' : p.source)} · {p.status}</p>

@@ -515,3 +515,34 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .auth-shell .password-visibility { justify-self: end; width: auto; min-height: 36px; margin: 0; padding: 4px 8px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); font-size: .875rem; }
 .auth-shell .password-visibility:hover { background: var(--muted); }
 .auth-shell .password-visibility:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* Calendar-first HQ: shared owner accents are defined in lib/owner-colors.ts. */
+.hq-dashboard{display:grid;gap:24px;min-width:0}
+.hq-owner-legend{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;padding:0;margin:16px 0;font-size:.8rem}
+.hq-owner-legend li{display:flex;align-items:center;gap:6px}
+.hq-owner-legend li>span{width:10px;height:10px;border-radius:50%}
+.hq-visual-calendar{min-width:0}
+.hq-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;border:1px solid var(--border);background:var(--border)}
+.hq-calendar-day{min-width:0;padding:8px;background:var(--background);min-height:120px}
+.hq-calendar-day.is-today{box-shadow:inset 0 0 0 2px var(--foreground)}
+.hq-calendar-day h4{margin:0 0 8px;font-size:.75rem}
+.hq-calendar-day h4 button{cursor:pointer;text-align:left;padding:4px;border-radius:4px}
+.hq-calendar-day ul{padding:0;margin:0;list-style:none;display:grid;gap:6px;max-height:340px;overflow:auto}
+.hq-calendar-item{display:flex;flex-direction:column;gap:3px;border-left:3px solid;padding:8px;border-radius:5px;font-size:.72rem;line-height:1.4;text-decoration:none;overflow-wrap:anywhere}
+.hq-calendar-item:hover{text-decoration:underline}
+.hq-calendar-item:focus-visible,.hq-calendar-day button:focus-visible{outline:3px solid var(--foreground);outline-offset:2px}
+.hq-calendar-empty{font-size:.75rem}
+.hq-calendar-day:has(.hq-calendar-item){min-height:160px}
+.hq-calendar-grid.hq-calendar-view-day{grid-template-columns:1fr}
+.hq-calendar-grid.hq-calendar-view-day>section ul{max-height:none;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.hq-project-card{border-left:4px solid;min-width:0;overflow-wrap:anywhere}
+.hq-project-card p{font-size:.88rem}
+.hq-project-progress{display:grid;gap:7px;margin-top:16px;font-size:.8rem}
+.hq-project-progress progress{width:100%;height:8px;accent-color:var(--foreground)}
+.hq-owner-row{border-left:3px solid;padding-left:12px!important}
+@media(max-width:1100px){.hq-calendar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.hq-calendar-grid{grid-template-columns:1fr}.hq-calendar-day{min-height:auto}.hq-calendar-day ul{max-height:none}.hq-calendar-item{font-size:.85rem}.hq-visual-calendar .section-title{align-items:flex-start;gap:12px;flex-direction:column}}
+.hq-calendar-view-month .hq-calendar-day ul{max-height:170px}
+.hq-dashboard>.panel{margin-bottom:0}
+@media(max-width:600px){.hq-calendar-view-month .hq-calendar-day ul{max-height:none}.hq-calendar-view-month .hq-calendar-day:not(:has(li)):not(.is-today){display:none}}
+.hq-calendar-count{display:block;font-weight:400;padding:0 4px;color:var(--muted-foreground)}
