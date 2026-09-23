@@ -16,7 +16,7 @@ import {chicagoInstant} from '@/lib/consignment';
 import {templateSaveSchema,type TemplateSave} from '@/lib/calendar-validation';
 import {clientId} from '@/lib/client-id';
 import {PLATFORMS} from '@/lib/marketing';
-import {calendarDay, calendarTime, nextTuesday, type CalendarPost, type CalendarPostData} from '@/lib/content-calendar';
+import {calendarDay, calendarTime, isDateOnlyRelease, nextTuesday, type CalendarPost, type CalendarPostData} from '@/lib/content-calendar';
 
 type Props = {onSaveTemplate:(payload:TemplateSave)=>Promise<{id:string;existing:boolean}|null>; campaigns: CampaignRecord[]; onSaveCampaign: (payload: CampaignSave) => Promise<boolean>; posts: CalendarPost[]; busy: boolean; loading: boolean; onSave: (id: string, data: CalendarPostData) => Promise<boolean>};
 const emptyDraft: CalendarPostData = {title: '', date: '', timezone: 'America/Chicago', source: 'tbd', caption: '', status: 'draft', category: 'Topical'};
@@ -24,7 +24,7 @@ const categories = ['Topical', 'Release', 'Brand / educational', 'Consignment'] 
 
 function exportCalendar(posts: CalendarPost[], campaigns: CampaignRecord[]) {
   const rows = [['Date / recurrence', 'Time (Central)', 'Category', 'Title', 'Platform', 'Status', 'Caption and production notes', 'References', 'Owner', 'Platforms', 'Production tasks', 'Asset references', 'Consignment metadata', 'Campaign details', 'Completed tasks', 'Staff picks', 'Verification'],
-    ...posts.map(({data: p}) => [p.recurrence ? 'Every Tuesday' : p.date.slice(0, 10), calendarTime(p.date), p.category || '', p.title, p.source === 'tbd' ? 'To confirm' : p.source, p.status, p.caption, (p.references || []).join('\n'), p.owner || '', (p.platforms || [p.source]).join(', '), (p.tasks || []).join('\n'), (p.assets || []).join('\n'), p.consignment ? JSON.stringify(p.consignment) : '', p.consignment ? JSON.stringify(campaigns.find(c => c.id === p.consignment?.campaignId)?.data || {}) : '', (p.completedTasks || []).join('\n'), p.staffPicks || '', JSON.stringify(p.verification || {})])];
+    ...posts.map(({data: p}) => [p.recurrence ? 'Every Tuesday' : p.date.slice(0, 10), isDateOnlyRelease(p) ? 'Time not announced' : calendarTime(p.date), p.category || '', p.title, p.source === 'tbd' ? 'To confirm' : p.source, p.status, p.caption, (p.references || []).join('\n'), p.owner || '', (p.platforms || [p.source]).join(', '), (p.tasks || []).join('\n'), (p.assets || []).join('\n'), p.consignment ? JSON.stringify(p.consignment) : '', p.consignment ? JSON.stringify(campaigns.find(c => c.id === p.consignment?.campaignId)?.data || {}) : '', (p.completedTasks || []).join('\n'), p.staffPicks || '', JSON.stringify(p.verification || {})])];
   const csv = rows.map(row => row.map(value => {
     const text = /^[=+@\-]/.test(value) ? "'" + value : value;
     return '"' + text.replace(/"/g, '""') + '"';
@@ -68,9 +68,9 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
 
   function releaseCard(post: CalendarPost) {
     const p = post.data;
-    const dateOnly = p.caption.includes('Topps lists the date only');
+    const dateOnly = isDateOnlyRelease(p);
     return <article className="panel calendar-card release-card" id={'legacy-entry-'+post.id} key={post.id}>
-      <div className="calendar-card-top"><time dateTime={p.date}>{dateOnly ? 'Date only' : calendarTime(p.date)}</time><span className="tag">Topps release</span></div>
+      <div className="calendar-card-top"><time dateTime={dateOnly?p.date.slice(0,10):p.date}>{dateOnly ? 'Date only' : calendarTime(p.date)}</time><span className="tag">Topps release</span></div>
       <h3>{p.title}</h3>
       <p className="muted">{dateOnly ? 'Exact release time not listed by Topps' : 'Official Topps release time · Central'}</p>
       {p.caption ? <p className="calendar-notes">{p.caption}</p> : null}

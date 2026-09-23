@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {chicagoInstant} from './consignment.ts';
+import {chicagoInstant,scheduleWall} from './consignment.ts';
 import {postSchema} from './calendar-validation.ts';
 import type {CalendarPostData} from './content-calendar';
 import type {Campaign} from './consignment';
@@ -49,8 +49,14 @@ export type WorkspaceRecord = {kind:string;id:string;data:unknown};
 export const blankProject:ProjectInput = {title:'',type:'general',brief:'',owner:'',members:[],status:'draft',eventAt:'',auctionOpensAt:'',auctionClosesAt:'',assets:[],references:[],assetRoles:{},linkRoles:{},allocations:[],auction:null};
 export const blankDeliverable:DeliverableInput = {title:'',instructions:'',owner:'',contributors:[],projectId:'',approver:'',productionDue:'',publishAt:'',format:'',platforms:['facebook','instagram'],caption:'',destinationUrl:'',effort:'standard',estimatedHours:null,publishing:true,blocked:false,blockedReason:'',blockedBy:'',assets:[],references:[],assetRoles:{},linkRoles:{},evidence:{},publisher:'',requiresFinalFile:true,requiresCaption:true,promotionMode:'organic',promotionChannel:'',promotionCents:0};
 export const blankRequest:RequestInput={title:'',purpose:'',requestedDeadline:'',assets:[],references:[],assetRoles:{},linkRoles:{}};
-export function projectDraft(p:Project):ProjectInput {return Object.fromEntries(Object.keys(blankProject).map(k=>[k,p[k as keyof ProjectInput]??blankProject[k as keyof ProjectInput]])) as ProjectInput;}
-export function deliverableDraft(d:Deliverable):DeliverableInput {return Object.fromEntries(Object.keys(blankDeliverable).map(k=>[k,k==='effort' ? d.effort || '' : d[k as keyof DeliverableInput]??(k==='requiresCaption'||k==='requiresFinalFile'?d.publishing:blankDeliverable[k as keyof DeliverableInput])])) as DeliverableInput;}
+export function projectDraft(p:Project):ProjectInput {
+  const draft=Object.fromEntries(Object.keys(blankProject).map(k=>[k,p[k as keyof ProjectInput]??blankProject[k as keyof ProjectInput]])) as ProjectInput;
+  return {...draft,eventAt:scheduleWall(draft.eventAt),auctionOpensAt:scheduleWall(draft.auctionOpensAt),auctionClosesAt:scheduleWall(draft.auctionClosesAt)};
+}
+export function deliverableDraft(d:Deliverable):DeliverableInput {
+  const draft=Object.fromEntries(Object.keys(blankDeliverable).map(k=>[k,k==='effort' ? d.effort || '' : d[k as keyof DeliverableInput]??(k==='requiresCaption'||k==='requiresFinalFile'?d.publishing:blankDeliverable[k as keyof DeliverableInput])])) as DeliverableInput;
+  return {...draft,productionDue:scheduleWall(draft.productionDue),publishAt:scheduleWall(draft.publishAt)};
+}
 export function finalMaterials(d:Pick<Deliverable,'assets'|'references'|'assetRoles'|'linkRoles'>) {return {finalAssets:d.assets.filter(id=>d.assetRoles?.[id]==='final'),finalLinks:d.references.filter(url=>d.linkRoles?.[url]==='final')};}
 export function projectMissing(p:Project|ProjectInput) {
   const issues:string[]=[];

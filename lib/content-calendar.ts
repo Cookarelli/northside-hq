@@ -1,5 +1,6 @@
 import type {CampaignVerification} from './consignment-review';
 import type {ConsignmentMeta} from './consignment';
+import {scheduleWall} from './consignment.ts';
 export type CalendarPostData = {
   title: string;
   date: string;
@@ -22,14 +23,20 @@ export type CalendarPostData = {
 
 export type CalendarPost = {id: string; data: CalendarPostData};
 
+// Older Topps imports stored noon when the publisher supplied only a date.
+// Preserve those records without presenting the placeholder as a confirmed time.
+export function isDateOnlyRelease(post: CalendarPostData) {
+  return post.category === 'Release' && post.source === 'topps' && post.caption.includes('Topps lists the date only');
+}
+
 // Treat stored dates as Chicago wall-clock values, independent of browser timezone.
 export function calendarDay(date: string) {
   return new Intl.DateTimeFormat('en-US', {weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'})
-    .format(new Date(date.slice(0, 10) + 'T12:00:00Z'));
+    .format(new Date(scheduleWall(date).slice(0, 10) + 'T12:00:00Z'));
 }
 
 export function calendarTime(date: string) {
-  const [hour, minute] = date.slice(11, 16).split(':').map(Number);
+  const [hour, minute] = scheduleWall(date).slice(11, 16).split(':').map(Number);
   return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour >= 12 ? 'p.m.' : 'a.m.'} CT`;
 }
 
