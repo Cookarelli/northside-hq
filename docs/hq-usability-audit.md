@@ -30,7 +30,7 @@ The browser audit used the actual application components with an isolated local 
 3. **Missing event dates produced generic server feedback.** Active event/release/auction forms now use native required-date validation matching the existing server requirements. A blank event date receives focus before submission. Draft behavior is preserved.
 4. **Project creation left focus outside the form.** New forms now focus Project title and restore focus to Add project on cancel. Verified at mobile width.
 5. **Notifications called a deliverable assignment ownership.** Deliverable notifications display “Assigned to you” instead of “Assigned as owner”; project ownership messages are preserved. Stored notification records and delivery logic are unchanged.
-6. **Campaign tools competed with the staff project list.** Launch plan, Tracked links and Results are grouped under Campaign tools. Verified those existing tools remain accessible and returning to Overview preserves visible keyboard focus.
+6. **Campaign tools competed with the staff project list.** Store Open Checklist, Tracked links and Results are grouped under Campaign tools. Verified those existing tools remain accessible and returning to Overview preserves visible keyboard focus.
 
 These changes are small corrections to the completed design pass, not a redesign or a new data model.
 

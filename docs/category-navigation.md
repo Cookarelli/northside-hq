@@ -5,7 +5,7 @@ The top-level categories remain Home, Calendar, Projects, My Assignments, Reques
 | Category / subpage | Major areas | Default |
 | --- | --- | --- |
 | Home | My work, Schedule, Active projects, Recent activity | My work |
-| Projects | Projects, Deliverables, Handoffs, Launch plan, Tracked links, Results | Projects |
+| Projects | Projects, Deliverables, Handoffs, Store Open Checklist, Tracked links, Results | Projects |
 | Normal project | Overview, Deliverables, Assets, Budget, Notes / Activity | Deliverables when work exists; otherwise Overview |
 | Collect Weekly Auctions | Current Auction, Deliverables, Assets, Budget & Reconciliation, Auction History, Project information, Notes / Activity | Current Auction |
 | Deliverable | Work, Assets, Budget, Publishing, Source review, Notes / Activity | Work |

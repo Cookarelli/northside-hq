@@ -29,7 +29,7 @@ Projects → Workspace permissions is administrator-only and manages budget appr
 
 | Existing surface | Implementation and persisted data | Reuse / new location |
 | --- | --- | --- |
-| Launch plan (`/#launch`, initial default) | `app/hub.tsx`, `StrategySummary`; `marketing_records` kind `plan`, ID `launch`; proposed budget scenarios, campaign ID, opening details, forecasts | Projects → Launch plan. A saved proposal is **not** an approved project budget. Keep scenario and strategy helpers. |
+| Store Open Checklist (`/#launch`, initial default) | `app/hub.tsx`, `StrategySummary`; `marketing_records` kind `plan`, ID `launch`; proposed budget scenarios, campaign ID, opening details, forecasts | Projects → Store Open Checklist. A saved proposal is **not** an approved project budget. Keep scenario and strategy helpers. |
 | Content studio (`/#studio`) | Private upload/finalize/download, video preview, transcript matching, clip windows and review, saved `asset` and `clipjob` records, editing recipe and public Python renderer | Assets → Library & studio. Preserve every asset ID, key, media endpoint, saved job, and renderer URL. Show all saved assets, not just the first 12. |
 | Calendar (`/#calendar`) | `ContentCalendar`, saved `post` records; dated entries, recurring Tuesday templates, CSV, editorial handoff, status editing | Calendar. Keep dated and recurring records intact. |
 | Consignment campaigns (inside Calendar) | `ConsignmentCampaign`, `campaign` records plus posts with stable `consignment` identity; five stages, active staff assignment, multi-platform plans, tasks, asset references, rescheduling, verification, retries and conflict detection | Projects overview reuses these campaign records and the **same** campaign editor; Calendar retains scheduling and production editing. Do not create a second campaign store. |
@@ -45,7 +45,7 @@ The application is Next.js App Router / React 19 / TypeScript with Tailwind 4, s
 
 ## Shell and compatibility
 
-Primary navigation is **Today, Projects, Calendar, Requests, Assets**, with labeled mobile navigation, a skip link, persistent dark mode, readable controls, loading/error states and a visible Chicago time zone. Launch planning, tracked links, manual results, original campaigns, source research, editorial evidence and asset studio remain secondary tools. No placeholder module replaces these working features.
+Primary navigation is **Today, Projects, Calendar, Requests, Assets**, with labeled mobile navigation, a skip link, persistent dark mode, readable controls, loading/error states and a visible Chicago time zone. Store Open Checklistning, tracked links, manual results, original campaigns, source research, editorial evidence and asset studio remain secondary tools. No placeholder module replaces these working features.
 
 Compatibility plan:
 

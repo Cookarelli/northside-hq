@@ -8,7 +8,7 @@ export function StrategySummary({ onNavigate }: { onNavigate: (tab: string) => v
   const allocation = budgetRows(5000);
   return <>
     <div className="section-heading">
-      <div><p className="eyebrow">EXECUTIVE SUMMARY</p><h2>Northside launch strategy</h2>
+      <div><p className="eyebrow">EXECUTIVE SUMMARY</p><h2>Store opening strategy</h2>
         <p className="section-description">Build local awareness, drive store and Shopify sales, and turn new collectors into repeat customers.</p>
       </div>
       <span className="tag blue">$5,000 budget ask</span>
@@ -19,7 +19,7 @@ export function StrategySummary({ onNavigate }: { onNavigate: (tab: string) => v
         <p>Focus paid advertising on Facebook, Instagram and Google local search. Support it with store updates, product highlights, Boomski clips and the weekly <strong>Northside Locks</strong> series featuring three staff picks.</p>
         <p>Use email, the Northside app and our custom loyalty program to encourage repeat visits. Repurpose organic content for TikTok, X and Snapchat.</p>
         <div className="summary-heading"><span className="step-number">02</span><h3>The launch window</h3></div>
-        <p>Run a rolling 30 day campaign: <strong>15 days before opening, opening day and 14 days after.</strong> Early November is the working target; the final date and address must be confirmed before ads launch.</p>
+        <p>Run a rolling 30 day campaign: <strong>15 days before opening, opening day and 14 days after.</strong> The checklist’s Store Opens milestone anchors the campaign. Confirm the store address and offer before ads launch.</p>
         <div className="timeline-compact">
           <div><b>Before opening</b><span>Store previews and opening updates.</span></div>
           <div><b>Opening week</b><span>Local ads, clear directions and a reason to visit.</span></div>
@@ -37,7 +37,7 @@ export function StrategySummary({ onNavigate }: { onNavigate: (tab: string) => v
         </section>
         <section className="panel decision-panel">
           <h3>Decisions needed</h3>
-          <ul className="plain-list"><li>Approve the $5,000 media ceiling.</li><li>Confirm the opening date, address and offer.</li><li>Confirm app readiness and show dates.</li></ul>
+          <ul className="plain-list"><li>Approve the $5,000 media ceiling.</li><li>Confirm the store address and opening offer.</li><li>Confirm app readiness and show dates.</li></ul>
           <p className="muted">Steven leads execution and reporting. Joey approves spending and the launch offer; the team supplies content and store updates.</p>
         </section>
       </aside>

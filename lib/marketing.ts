@@ -1,5 +1,6 @@
+import {STORE_OPEN_PLAN_FIELDS} from './store-opening.ts';
 export const PLATFORMS = ['facebook','instagram','x','snapchat','tiktok'];
-export const DEFAULT_PLAN = {budget:5000,launchDate:'',address:'',campaign:'northside_new_store_launch',aov:85,margin:25};
+export const DEFAULT_PLAN = {budget:5000,address:'',campaign:'northside_new_store_launch',aov:85,margin:25,...STORE_OPEN_PLAN_FIELDS};
 export const ROADMAP = [
  ['Now','Launch control','Budget model, saved campaign settings, weekly content plan, UTM links, uploaded assets, timestamped transcript matching, manual clip review, editing exports and manual performance entry.'],
  ['Next · 1–2 development weeks','Automatic video processing','Connect a timestamped speech provider and a separate FFmpeg worker. Add resumable large uploads, job progress, preview renders, subtitles, thumbnails and approved export bundles. Estimate depends on access and sample footage.'],

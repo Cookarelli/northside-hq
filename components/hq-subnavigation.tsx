@@ -4,9 +4,15 @@ import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 import {useEffect,useRef,type ReactNode} from 'react';
 import {selectedTab,tabHref,type HqTab} from '@/lib/hq-tabs';
 
-export function useHqTab(tabs:readonly HqTab[],fallback:string,legacyHashes?:Record<string,string>){
+export function useHqTab(tabs:readonly HqTab[],fallback:string,legacyHashes?:Record<string,string>,legacyTabs?:Record<string,string>){
  const params=useSearchParams(),pathname=usePathname(),router=useRouter();
  const query=params.toString();
+ useEffect(()=>{
+  const current=new URLSearchParams(query),requested=current.get('tab');
+  if(!requested||!legacyTabs||!Object.hasOwn(legacyTabs,requested))return;
+  current.set('tab',legacyTabs[requested]);
+  router.replace(pathname+'?'+current.toString()+window.location.hash,{scroll:false});
+ },[legacyTabs,pathname,query,router]);
  useEffect(()=>{
   if(!legacyHashes)return;
   const migrate=()=>{if(new URLSearchParams(window.location.search).has('tab'))return;
@@ -16,7 +22,7 @@ export function useHqTab(tabs:readonly HqTab[],fallback:string,legacyHashes?:Rec
   };
   migrate();window.addEventListener('hashchange',migrate);return()=>window.removeEventListener('hashchange',migrate);
  },[legacyHashes,pathname,query,router]);
- return selectedTab(tabs,params.get('tab'),fallback);
+ return selectedTab(tabs,params.get('tab'),fallback,legacyTabs);
 }
 
 // These are page links, not in-memory ARIA tabs: native link keyboard behavior,
