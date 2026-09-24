@@ -18,7 +18,7 @@ export function HqWorkItem({record,project,context,act,busy=false,onEdit,statusC
   useEffect(()=>{if(focused){row.current?.scrollIntoView({block:'start'});row.current?.focus({preventScroll:true});}},[focused]);
   const canUpdate=!!act&&quickTaskAllowed(d,project?.data,context);
   return <li ref={row} id={'deliverable-'+record.id} tabIndex={-1} className="hq-work-item" style={{borderLeftColor:color.accent}}>
-    <div className="hq-work-copy"><Link className="hq-work-title" href={deliverableHref(record.id,d)}>{d.title}</Link>
+    <div className="hq-work-copy"><Link className="hq-work-title" href={statusControl?'/projects/work/'+encodeURIComponent(record.id)+'?tab=work':deliverableHref(record.id,d)}>{d.title}</Link>
       {d.campaignReference&&<p className="hq-meta">Campaign: {d.campaignReference}</p>}
       <p className="hq-meta">{project?<Link href={'/projects/'+project.id}>{project.data.title}</Link>:'Standalone'} · Deliverable owner: {name(d.owner)}</p>
       <p className="hq-work-date"><span className="hq-urgency">{dueState(d.productionDue,finished(d),now)==='Overdue'?'Overdue · ':''}</span>{d.productionDue?<time dateTime={d.productionDue}>{calendarDay(d.productionDue)} · {calendarTime(d.productionDue)}</time>:'Unscheduled'}{d.endAt?' – '+calendarDay(d.endAt)+' '+calendarTime(d.endAt):''}</p>

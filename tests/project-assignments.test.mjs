@@ -24,7 +24,7 @@ test('dated tasks have one linked calendar entry, follow edits, and disappear on
  let record=task('closing',{productionDue:'2026-09-27T21:00',endAt:'2026-09-27T22:00',waiting:true});
  const entries=()=>calendarEntries([record],projects,[],[],'2026-09-01','2026-09-30');
  assert.equal(entries().length,1);assert.equal(entries()[0].owner,'brody');assert.equal(entries()[0].endAt,'2026-09-27T22:00');assert.equal(entries()[0].status,'Waiting');
- assert.deepEqual(entries()[0].assigned,['jon','steve']);assert.equal(entries()[0].href,'/projects/work/closing');
+ assert.deepEqual(entries()[0].assigned,['jon','steve']);assert.equal(entries()[0].href,'/projects/auction?tab=deliverables&deliverable=closing#deliverable-closing');
  record={...record,data:{...record.data,productionDue:'2026-09-28T09:00',endAt:''}};
  assert.equal(entries().length,1);assert.equal(entries()[0].date,'2026-09-28T09:00');
  record={...record,data:{...record.data,deletedAt:'2026-09-23T12:00:00Z'}};assert.equal(entries().length,0);

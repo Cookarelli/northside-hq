@@ -109,7 +109,7 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
     </div>
     <ConsignmentCampaign posts={posts} campaigns={campaigns} disabled={busy || loading} onSave={onSaveCampaign}/></>}
     {area==='releases'&&<section className="calendar-recurring" aria-labelledby="release-calendar">
-      <div className="section-title"><div><p className="eyebrow">RELEASE CALENDAR</p><h2 id="release-calendar">Upcoming Topps releases</h2><p className="muted">Official Topps release-calendar dates. Topps notes that dates are subject to change, so use the source link to confirm before publishing release-day content.</p></div>{releases.length ? <span className="tag">{releases.length} upcoming</span> : null}</div>
+      <div className="section-title"><div><p className="eyebrow">RELEASE CALENDAR</p><h2 id="release-calendar">Upcoming Topps releases</h2><Link href="/assets/research?tab=releases">Release verification →</Link><p className="muted">Official Topps release-calendar dates. Topps notes that dates are subject to change, so use the source link to confirm before publishing release-day content.</p></div>{releases.length ? <span className="tag">{releases.length} upcoming</span> : null}</div>
       {!releases.length ? <p className="panel">No Topps releases are currently loaded.</p> :
         <div className="calendar-days">{[...new Set(releases.map(p=>p.data.date.slice(0,10)))].map(day=><section key={day} aria-label={calendarDay(day)}>
           <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{releases.filter(p=>p.data.date.startsWith(day)).length} releases</span></div>

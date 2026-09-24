@@ -23,4 +23,4 @@ export function reminderDue(d:Deliverable){
  try {const close=/T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(d.auctionClosesAt)?Date.parse(d.auctionClosesAt):chicagoInstant(d.auctionClosesAt);return chicagoWall(close-d.reminderHours!*3600000);}catch{return '';}
 }
 export function auctionCalendarTitle(d:Deliverable){return (d.auction_number?'#'+d.auction_number+' ':'')+(/^#\d+\s+/.test(d.title)?d.title.replace(/^#\d+\s+/,''):d.title.replace(/^Michael Jordan Auction(?= — )/,'Michael Jordan'));}
-export function deliverableHref(id:string,d:Deliverable){return d.projectId&&d.campaignReference?'/projects/'+encodeURIComponent(d.projectId)+'?tab=deliverables&deliverable='+encodeURIComponent(id)+'#deliverable-'+encodeURIComponent(id):'/projects/work/'+encodeURIComponent(id);}
+export function deliverableHref(id:string,d:Pick<Deliverable,'projectId'>){return d.projectId?'/projects/'+encodeURIComponent(d.projectId)+'?tab=deliverables&deliverable='+encodeURIComponent(id)+'#deliverable-'+encodeURIComponent(id):'/projects/work/'+encodeURIComponent(id);}

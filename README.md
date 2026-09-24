@@ -1,6 +1,6 @@
 # Northside HQ
 
-Northside Collectibles' internal workspace for projects, production, approvals and manual publishing. Primary navigation: **Today, Projects, Calendar, Requests, Assets**. These views share organization-scoped project and deliverable records, preserving the existing calendar, recurring series, campaign evidence, editorial sources, private asset studio, authentication and integrations.
+Northside Collectibles' internal workspace for projects, production, approvals and manual publishing. Primary navigation: **Home, Calendar, Projects, My Assignments, Requests, Assets, Operations**. These views share organization-scoped project and deliverable records, preserving the existing calendar, recurring series, campaign evidence, editorial sources, private asset library, authentication and integrations.
 
 Read [the workflow, staff onboarding, preserved-data inventory, permissions, verification and rollout guide](docs/northside-hq.md). Social publishing remains manual. In-app assignment/review notifications persist; deadline reminders are checked while HQ is open because no background scheduler is configured.
 
@@ -48,3 +48,5 @@ Northside HQ uses a horizontal top navigation and shared, URL-driven subnavigati
 Assets has exactly two category tabs: All Assets and Jon’s Content. Jon’s Content derives from authenticated uploader identity and assets attached to work assigned to Jon; unknown historical ownership is not guessed. Uploads keep the existing private bucket, immutable file IDs and retry-safe finalization. The archived renderer is retained under `docs/archive/`, outside active public routes.
 
 See [navigation verification](docs/category-navigation.md) for the migration and verification scope.
+
+See [category defaults, auction tabs, direct links and app-wide navigation verification](docs/category-navigation.md) for the shared category → tab/subpage → action navigation.

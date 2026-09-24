@@ -1,7 +1,10 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
+import {useSearchParams,useRouter} from 'next/navigation';
+import {HqSubnavigation} from '@/components/hq-subnavigation';
+import {requestDetailTabs,selectedTab} from '@/lib/hq-tabs';
+import {deliverableHref} from '@/lib/auction-campaigns';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
@@ -11,6 +14,7 @@ import {blankRequest,destinations,effortLevels,projectTypes,recordedTime,type De
 import {clientId} from '@/lib/client-id';
 const requestStatuses={new:'New',accepted:'Accepted',declined:'Declined'};
 export function HqRequests({id}:{id?:string}) {
+ const tab=selectedTab(requestDetailTabs,useSearchParams().get('tab'),'request');
  const [workspace,setWorkspace]=useState<Workspace|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[retry,setRetry]=useState(0),[creating,setCreating]=useState(false),[filter,setFilter]=useState('all'),[message,setMessage]=useState('');
  const lock=useRef(false),errorRef=useRef<HTMLDivElement>(null),router=useRouter();
  useEffect(()=>{const controller=new AbortController();loadWorkspace(controller.signal).then(setWorkspace).catch(e=>{if(!controller.signal.aborted)setError(e.message);});return()=>controller.abort();},[retry]);
@@ -22,11 +26,12 @@ export function HqRequests({id}:{id?:string}) {
  const name=(id:string)=>c.staff.find(s=>s.id===id)?.name||id;
  const save=async(command:Record<string,unknown>)=>{const result=await act(command);if(result?.id){setCreating(false);router.push('/requests/'+result.id);}};
  return <div className="hq-workspace">{errorPanel}{message&&<p role="status">{message}</p>}{id?<><Link href="/requests">← All requests</Link>{record?<>
- <section className="panel"><span className="tag">{requestStatuses[record.data.status]}</span><h2>{record.data.title}</h2><p>Requested by {name(record.data.requester)} · {recordedTime(record.data.createdAt)}</p><p className="hq-preserve-text">{record.data.purpose}</p><p>Requested deadline: {dateLabel(record.data.requestedDeadline)}</p><p className="muted">This is the requester’s preference. Production commitments are recorded on the linked deliverable.</p><ResourceLinks {...record.data} available={assets}/>
+ <h2>{record.data.title}</h2><HqSubnavigation tabs={requestDetailTabs} active={tab} label="Request sections"/>
+ {tab==='request'&&<><section className="panel"><span className="tag">{requestStatuses[record.data.status]}</span><h3>Request details</h3><p>Requested by {name(record.data.requester)} · {recordedTime(record.data.createdAt)}</p><p className="hq-preserve-text">{record.data.purpose}</p><p>Requested deadline: {dateLabel(record.data.requestedDeadline)}</p><p className="muted">This is the requester’s preference. Production commitments are recorded on the linked deliverable.</p><ResourceLinks {...record.data} available={assets}/>
  {record.data.decision&&<p>{requestStatuses[record.data.status]} by {name(record.data.decision.by)} · {recordedTime(record.data.decision.at)}{record.data.decision.reason?' · '+record.data.decision.reason:''}</p>}
- {record.data.conversion&&<Link href={(record.data.conversion.kind==='project'?'/projects/':'/projects/work/')+record.data.conversion.id}>Open accepted work →</Link>}</section>
+ {record.data.conversion&&<Link href={record.data.conversion.kind==='project'?'/projects/'+record.data.conversion.id+'?tab=overview':deliverableHref(record.data.conversion.id,(workspace.records.find(r=>r.kind==='deliverable'&&r.id===record.data.conversion?.id)?.data||{projectId:''}) as Deliverable)}>Open accepted work →</Link>}</section>
  {record.data.status==='new'&&<>{(record.data.requester===c.staffId||c.canCoordinate)&&<details className="panel hq-details"><summary>Edit request</summary><RequestForm key={record.data.version} record={record} assets={assets} busy={busy} onSave={save}/></details>}{c.canCoordinate?<DecisionForm key={record.data.version} record={record} records={workspace.records} context={c} busy={busy} act={act}/>:<p className="notice">A request coordinator will accept this into production or record a decision reason.</p>}</>}
- <Discussion key={record.data.version} id={id} kind="request" context={c} act={act} busy={busy}/></>:<p className="panel">This request was not found in your workspace.</p>}</>:<>
+ </>}{tab==='notes'&&<Discussion key={record.data.version} id={id} kind="request" context={c} act={act} busy={busy}/>}</>:<p className="panel">This request was not found in your workspace.</p>}</>:<>
  <div className="button-row"><Button onClick={()=>setCreating(true)}>New request</Button></div>
  {creating&&<section className="panel"><RequestForm assets={assets} busy={busy} onSave={save} onCancel={()=>setCreating(false)}/></section>}
  <Choice label="Request status" value={filter} onChange={setFilter} options={{all:'All requests',...requestStatuses}}/>

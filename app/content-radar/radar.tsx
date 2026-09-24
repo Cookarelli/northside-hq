@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import {HqSubnavigation,HqTabPanel,useHqTab} from '@/components/hq-subnavigation';
 import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 import {tabHref} from '@/lib/hq-tabs';
-const researchTabs=[{id:'feed',label:'Feed'},{id:'releases',label:'Releases'},{id:'chase',label:'Chase Cards'},{id:'drafts',label:'Drafts'},{id:'sources',label:'Sources'}];
+const researchTabs=[{id:'feed',label:'Feed'},{id:'releases',label:'Release verification'},{id:'chase',label:'Chase Cards'},{id:'drafts',label:'Drafts'},{id:'sources',label:'Sources'}];
 import { Button } from '@/components/ui/button';
 import { Collapsible,CollapsibleTrigger,CollapsibleContent } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,7 @@ export default function Radar({organization}:{organization:string}) {
  </article>;}
  return <section className="radar-workspace" aria-label="Research and sources">
   <p><Link href="/assets">← All Assets</Link></p>
-  <div className="intro"><div><h2>Saved research &amp; ideas</h2><p>Collect hobby news and prepare your next post.</p><div className="button-row radar-shortcuts"><Button asChild><Link href="/requests?tab=editorial">Review stories &amp; drafts</Link></Button><Button variant="outline" asChild><Link href="/calendar">Open calendar</Link></Button></div></div>
+  <div className="intro"><div><h2>Saved research &amp; ideas</h2><p>Collect hobby news and prepare your next post.</p><div className="button-row radar-shortcuts"><Button asChild><Link href="/requests?tab=editorial">Review stories &amp; drafts</Link></Button><Button variant="outline" asChild><Link href={tab==='releases'?'/calendar?tab=releases':'/calendar?tab=schedule'}>{tab==='releases'?'Release Calendar':'Open calendar'}</Link></Button></div></div>
   <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button disabled={offline}><Plus size={18}/>Add a link</Button></DialogTrigger><DialogContent className="radar-dialog"><DialogHeader><DialogTitle>Add a hobby story</DialogTitle><DialogDescription>Keep the original link and add the details you know. New links start unverified.</DialogDescription></DialogHeader>
   <form onSubmit={async e=>{e.preventDefault();const saved=await mutate({action:'add-item',data:{...link,sourceId:link.sourceId==='manual'?null:link.sourceId,category:link.category as Item['category'],kind:link.kind as Item['kind'],priority:link.priority as Item['priority'],publishedAt:link.publishedAt||null,eventDate:link.eventDate||null,tags:[...new Set(link.tags.split(',').map(t=>t.trim()).filter(Boolean))]}});if(saved){setLink(initialLink);setOpen(false);}}}>
    <label className="field"><span>Title</span><Input required maxLength={300} value={link.title} onChange={e=>setLink({...link,title:e.target.value})}/></label>

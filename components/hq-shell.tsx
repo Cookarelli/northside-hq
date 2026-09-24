@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import {usePathname} from 'next/navigation';
-import {CalendarDays, FolderKanban, Images, Inbox, Sun, ListChecks} from 'lucide-react';
+import {CalendarDays, FolderKanban, Images, Inbox, Sun, ListChecks, Settings} from 'lucide-react';
 import {hqSections, sectionForPath} from '@/lib/hq-navigation';
 import {useActiveNavigation} from '@/components/hq-subnavigation';
 import {HqNotifications} from '@/components/hq-notifications';
 import {SignOut} from '@/components/sign-out';
 import {ThemeToggle} from '@/components/theme-provider';
 
-const icons = {today: Sun, projects: FolderKanban, calendar: CalendarDays, assignments: ListChecks, requests: Inbox, assets: Images};
+const icons = {today: Sun, projects: FolderKanban, calendar: CalendarDays, assignments: ListChecks, requests: Inbox, assets: Images, operations: Settings};
 
 export function HqShell({children}: {children: React.ReactNode}) {
   const pathname = usePathname();

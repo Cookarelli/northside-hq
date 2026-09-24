@@ -31,7 +31,7 @@ test('urgency uses due instant without replacing owner identity',()=>{
 test('rescheduled canonical work moves once and completed work keeps its detail link',()=>{
  const original=task('t','2026-09-23T09:00'),rescheduled={...original,data:{...original.data,productionDue:'2026-09-25T14:00'}};
  const entries=calendarEntries([rescheduled],[project],[],[],'2026-09-01','2026-09-30');
- assert.equal(entries.length,1);assert.equal(entries[0].date,'2026-09-25T14:00');assert.equal(entries[0].href,'/projects/work/t');
+ assert.equal(entries.length,1);assert.equal(entries[0].date,'2026-09-25T14:00');assert.equal(entries[0].href,'/projects/p?tab=deliverables&deliverable=t#deliverable-t');
  const complete={...rescheduled,data:{...rescheduled.data,status:'done',completedAt:'2026-09-23T16:00:00Z'}};
  assert.equal(assignmentGroups([complete],[project],'jon',now).groups[0].id,'complete');
  const doneEntries=calendarEntries([complete],[project],[],[],'2026-09-01','2026-09-30');assert.equal(doneEntries.length,1);assert.equal(doneEntries[0].status,'Complete');
