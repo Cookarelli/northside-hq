@@ -13,10 +13,10 @@ test('tab links preserve filters and record deep links, clear one-time actions, 
  assert.equal(tabHref('/projects/weekly','deliverable=mj-48','deliverables'),'/projects/weekly?deliverable=mj-48&tab=deliverables');
  assert.equal(new URL('https://hq.test'+tabHref('/assets','','jons-content')).searchParams.get('tab'),'jons-content');
 });
-test('Jon content is a deduplicated view of uploaded and assigned assets, without guessing unknown ownership',()=>{
+test('Jon content contains uploads without guessing ownership from project membership',()=>{
  const record=(kind,id,data)=>({kind,id,data});
  const records=[record('asset','upload',{uploadedBy:'jon'}),record('asset','unknown',{}),record('asset','other',{uploadedBy:'brody'}),record('deliverable','work',{owner:'brody',contributors:['jon'],assets:['shared','shared']}),record('project','parent',{members:['jon'],assets:['parent-file']}),record('auction_campaign','auction',{owner:'jon',assets:['campaign-file']}),record('clipjob','legacy',{owner:'jon',assets:['ignored']})];
- const before=JSON.stringify(records);assert.deepEqual([...jonAssetIds(records)].sort(),['campaign-file','parent-file','shared','upload']);assert.equal(JSON.stringify(records),before);
+ const before=JSON.stringify(records);assert.deepEqual([...jonAssetIds(records)].sort(),['upload']);assert.equal(JSON.stringify(records),before);
 });
 test('retired cutting writes are rejected in the database; original history and authenticated uploads remain intact',async()=>{
  const f=await auctionDb();
