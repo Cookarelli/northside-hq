@@ -1,6 +1,22 @@
 -- One immutable storage object / asset ID is one media version. Existing records,
 -- private storage policies, deliverable approval and publishing RPCs remain in place.
 begin;
+-- Acquire the required locks together before changing dependent functions/triggers.
+-- Each failed attempt releases its locks, allowing short live requests to finish
+-- without a lock-order cycle. Give up after two seconds rather than blocking users.
+do $$
+declare attempt integer;
+begin
+ for attempt in 1..40 loop
+  begin
+   lock table auth.users, public.marketing_records in access exclusive mode nowait;
+   return;
+  exception when lock_not_available then
+   if attempt=40 then raise; end if;
+  end;
+  perform pg_sleep(0.05);
+ end loop;
+end $$;
 create or replace function private.media_review_required(a jsonb) returns boolean
 language sql immutable set search_path='' as $$
  select coalesce(a->>'uploadedBy',a->>'owner','')='jon'

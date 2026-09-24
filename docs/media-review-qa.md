@@ -34,6 +34,6 @@ Verified light mode at **1280 × 900** and **390 × 844**:
 
 ## Migration and rollout
 
-Apply `20260924175937_direct_media_review.sql` before deploying the application change. It adds JSON metadata and named functions/triggers to the existing record system; no new tables, buckets, administrator roles or social integrations. It conservatively backfills existing Jon photos/videos using recorded evidence, and leaves existing publication records intact.
+Apply `20260924183335_direct_media_review.sql` before deploying the application change. It adds JSON metadata and named functions/triggers to the existing record system; no new tables, buckets, administrator roles or social integrations. It conservatively backfills existing Jon photos/videos using recorded evidence, and leaves existing publication records intact.
 
-No production migration or deployment was performed for this PR. Hosted Auth and real Storage transfers were not mutated during verification; their existing private bucket policies and immutable-upload configuration are preserved.
+The production migration was applied on September 24, 2026. Its version matches Supabase’s recorded migration timestamp. The migration acquires its table locks together with a bounded retry, avoiding lock-order conflicts with active app requests. Post-migration checks confirmed unchanged business records, asset/storage counts and staff roles; anonymous review and direct staff table updates remain denied. Security advisors introduced no new findings. Hosted Auth and real Storage transfers were not mutated during verification; existing private bucket policies and immutable-upload configuration are preserved.

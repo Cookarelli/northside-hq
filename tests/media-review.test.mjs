@@ -152,7 +152,7 @@ test('backfill uses reliable current-version approvals/publication evidence, pre
  }
  await f.db.exec('alter table marketing_records enable trigger hq_media_publication_guard;alter table marketing_records enable trigger hq_media_completion');
  await f.db.query("select set_config('request.jwt.claim.sub','',false)");
- const migration=await readFile(new URL('../supabase/migrations/20260924175937_direct_media_review.sql',import.meta.url),'utf8');await f.db.exec(migration);
+ const migration=await readFile(new URL('../supabase/migrations/20260924183335_direct_media_review.sql',import.meta.url),'utf8');await f.db.exec(migration);
  assert.equal((await f.get(ids.none,'asset')).mediaReview.status,'in_review');assert.equal((await f.get(ids.wrong,'asset')).mediaReview.status,'in_review');assert.equal((await f.get(ids.partial,'asset')).mediaReview.status,'approved');
  const approved=await f.get(ids.approved,'asset');assert.equal(approved.mediaReview.approval.at,at);assert.equal(approved.mediaReview.approval.by,'brody');assert.equal(approved.mediaReview.approval.note,'Preserved review note');assert.equal(approved.note,'Preserved upload note');
  assert.equal((await f.get(ids.completed,'asset')).mediaReview.status,'completed');
