@@ -1,4 +1,5 @@
 import {preparePasswordReset} from './password-recovery.ts';
+import {legacyDestinations,legacyDestination} from './hq-navigation.ts';
 
 type RecoveryAuth = Parameters<typeof preparePasswordReset>[0];
 
@@ -17,5 +18,11 @@ export async function authLandingDestination(href: string, clearLocation: () => 
     }
   }
   clearLocation();
+  if(Object.hasOwn(legacyDestinations,url.hash.slice(1))) {
+    const destination=new URL(legacyDestination(url.hash),url.origin);
+    const query=new URLSearchParams(url.search);
+    for(const [key,value] of destination.searchParams)query.set(key,value);
+    return destination.pathname+(query.size?'?'+query.toString():'')+url.hash;
+  }
   return '/today';
 }
