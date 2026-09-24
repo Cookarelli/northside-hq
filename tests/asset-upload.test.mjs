@@ -24,3 +24,15 @@ test('unsupported and oversized files fail before network access; public brand a
  await assert.rejects(uploadAsset(new File(['unsafe'],'script.html',{type:'text/html'}),undefined,()=>{}),/JPG/);
  assert.match(assetProblem({type:'image/png',size:40*1024*1024+1}),/40 MB/);assert.deepEqual(publicBrandAssets,['/favicon.svg']);
 });
+test('direct upload destination survives a failed transfer and successful retry without duplicate files',async()=>{
+ let ticket,created=0,transfers=0,stored=false,finalized=false;
+ const details={uploadProjectId:'weekly',uploadDeliverableId:'reminder'};
+ globalThis.fetch=async(url,options)=>{
+  if(url==='/api/assets'){created++;assert.deepEqual(JSON.parse(options.body),{name:file.name,type:file.type,size:file.size,...details});return reply({id:'asset',signedUrl:'https://storage.example.test/direct'});}
+  if(url==='/api/assets/finalize'){if(!stored)return reply({error:'Incomplete upload'},400);finalized=true;return reply({asset:{...result,assignedProjectId:'weekly',assignedDeliverableId:'reminder',uploadedBy:'jon',mediaReview:{status:'in_review',version:0}}});}
+  assert.equal(url,ticket.signedUrl);transfers++;if(transfers===1)return reply({},503);stored=true;return reply({});
+ };
+ await assert.rejects(uploadAsset(file,undefined,t=>{ticket=t;},details),/transfer failed/);
+ const saved=await uploadAsset(file,ticket,()=>assert.fail('Duplicate ticket'),details);
+ assert.equal(created,1);assert.equal(transfers,2);assert.equal(finalized,true);assert.equal(saved.assignedDeliverableId,'reminder');assert.equal(saved.mediaReview.status,'in_review');
+});

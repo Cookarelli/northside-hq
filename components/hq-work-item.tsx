@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import {DirectMediaUpload} from '@/components/direct-media-upload';
 import {useEffect,useRef} from 'react';
 import {AssignedContent,type Asset} from '@/components/hq-materials';
 import {auctionCalendarTitle,deliverableHref} from '@/lib/auction-campaigns';
@@ -28,6 +29,7 @@ export function HqWorkItem({record,project,context,act,busy=false,onEdit,statusC
       {taskAssignees(d).some(id=>id!==d.owner)&&<p className="hq-meta">Also assigned: {taskAssignees(d).filter(id=>id!==d.owner).map(name).join(', ')}</p>}
       {notice&&<p className="hq-meta hq-urgency">{notice}</p>}
       {d.blocked&&<p className="hq-meta">Blocked · {d.blockedReason}</p>}
+      {focused&&<DirectMediaUpload projectId={d.projectId} deliverableId={record.id}/>}
       {focused&&<AssignedContent available={assets} kind="deliverable" id={record.id} attached={d.assets}/>}
     </div>
     <div className="hq-work-actions"><div className="hq-work-tags">{!(canUpdate&&statusControl)&&<HqStatus>{workStatus(d)}</HqStatus>}{d.priority&&d.priority!=='normal'&&<span className="hq-meta">{taskPriorities[d.priority]} priority</span>}</div>

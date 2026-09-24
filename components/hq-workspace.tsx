@@ -1,4 +1,6 @@
 'use client';
+import {DirectMediaUpload} from '@/components/direct-media-upload';
+import {MediaWorkspace} from '@/components/media-workflow';
 import {numberedAuctionName} from '@/lib/auction-campaigns';
 
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
@@ -87,7 +89,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
   if(project?.data.migratedToProjectId) {
     const archivedTabs=[{id:'overview',label:'Original campaign'},{id:'notes',label:'Notes / Activity'}],archivedTab=selectedTab(archivedTabs,searchParams.get('tab'),'overview');
     const destination=projects.find(p=>p.id===project.data.migratedToProjectId);
-    return <div className="hq-records"><Link href="/projects">← All projects and work</Link>
+    return <MediaWorkspace workspace={workspace} onSaved={asset=>setWorkspace(old=>old?{...old,records:old.records.map(r=>r.kind==='asset'&&r.id===asset.id?{...r,data:asset.data}:r)}:old)}><div className="hq-records"><Link href="/projects">← All projects and work</Link>
       {error&&<p role="alert" className="notice error">{error}</p>}{notice&&<p role="status">{notice}</p>}
       <h1>{project.data.title}</h1><HqSubnavigation tabs={archivedTabs} active={archivedTab} label="Archived project sections"/>
       {archivedTab==='overview'&&<><section className="panel"><p className="tag">Migrated · Archived</p>
@@ -97,9 +99,9 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       </section>
       <section className="panel"><h2>Original campaign information</h2><p className="hq-preserve-text">{project.data.brief}</p><p>Original owner: {name(project.data.owner)} · Assigned staff: {project.data.members.map(name).join(', ')}</p><ResourceLinks {...project.data} available={assets}/></section></>}
       {archivedTab==='notes'&&<Discussion key={'discussion:'+project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>}
-    </div>;
+    </div></MediaWorkspace>;
   }
-  return <div className="hq-records">
+  return <MediaWorkspace workspace={workspace} onSaved={asset=>setWorkspace(old=>old?{...old,records:old.records.map(r=>r.kind==='asset'&&r.id===asset.id?{...r,data:asset.data}:r)}:old)}><div className="hq-records">
     {view!=='list'&&((project?.data.storeOpenChecklist||deliverable?.data.storeOpenChecklist||parent?.data.storeOpenChecklist)?<nav aria-label="Breadcrumb" className="hq-breadcrumb"><Link href="/projects?tab=projects">Projects</Link><span aria-hidden="true">›</span><Link href={STORE_OPEN_CHECKLIST_HREF}>Store Open Checklist</Link><span aria-hidden="true">›</span><span aria-current="page">{deliverable?.data.title||project?.data.title}</span></nav>:<Link href="/projects">← All projects and work</Link>)}
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
     {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
@@ -117,7 +119,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
 
     {view==='project' &&(project?<>
       <section className="hq-project-header"><p className="hq-meta">{projectTypes[project.data.type]}</p><h1>{weeklyHome?'Collect Weekly Auctions':project.data.title}</h1><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><HqStatus>{projectStatuses[project.data.status]}</HqStatus>{!weeklyHome&&<span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span>}</div></section>
-      <HqSubnavigation tabs={tabs} active={projectTab} label="Project sections"/>
+      <DirectMediaUpload key={project.id} projectId={project.id} onSaved={reload}/><HqSubnavigation tabs={tabs} active={projectTab} label="Project sections"/>
       {weeklyHome&&['current-auction','auction-history','budget'].includes(projectTab)&&!(projectTab==='budget'&&searchParams.get('scope')==='project')&&<AuctionViews key={projectTab} area={projectTab as 'current-auction'|'auction-history'|'budget'} current={auctions.current} history={auctions.history} campaigns={projectCampaigns} selected={searchParams.get('auction')||''} records={deliverables} project={project} context={c} assets={assets} act={act} busy={busy}/>}
       {projectTab==='overview'&&<>
       {(c.admin||project.data.owner===c.staffId||(!project.data.owner&&project.data.createdBy===c.staffId))&&<details className="panel hq-details"><summary>Edit project</summary><ProjectForm key={project.data.version} record={project} initial={projectDraft(project.data)} context={c} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/></details>}
@@ -148,7 +150,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
     </>:<p className="panel">This project was not found in your workspace.</p>)}
     {view==='deliverable'&&(deliverable?deliverable.data.deletedAt?<><h1>{deliverable.data.title}</h1><DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/><DeliverableTimestamps deliverable={deliverable.data}/></>:<>
       <div className="section-title hq-record-heading"><h1>{deliverable.data.title}</h1>{parent&&<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>← {parent.data.title} · Deliverables</Link>}</div>
-      <HqSubnavigation tabs={workTabs} active={workTab} label="Deliverable sections"/>
+      <DirectMediaUpload key={deliverable.id} projectId={deliverable.data.projectId} deliverableId={deliverable.id} onSaved={reload}/><HqSubnavigation tabs={workTabs} active={workTab} label="Deliverable sections"/>
       {workTab==='work'&&<>
       <SourceRequests records={records} kind="deliverable" id={deliverable.id}/>
       {deliverable.data.workflow==='task'?<>
@@ -183,7 +185,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       <DeliverableTimestamps deliverable={deliverable.data}/>
       </>}
     </>:<p className="panel">This deliverable was not found in your workspace.</p>)}
-  </div>;
+  </div></MediaWorkspace>;
 }
 
 function ProjectList({projects,deliverables,name}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string}) {

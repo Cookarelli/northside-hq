@@ -1,7 +1,7 @@
 import {identity,bucket,saveRecord,apiError} from '@/lib/storage';
 import {z} from 'zod';
 import {supportedAssetTypes,assetSizeLimit} from '@/lib/asset-policy';
-const schema=z.object({name:z.string().min(1).max(250),type:z.enum(supportedAssetTypes),size:z.number().int().positive().max(assetSizeLimit),collection:z.literal('jons-content').optional(),title:z.string().trim().max(250).optional(),note:z.string().trim().max(500).optional()}).strict();
+const schema=z.object({name:z.string().min(1).max(250),type:z.enum(supportedAssetTypes),size:z.number().int().positive().max(assetSizeLimit),collection:z.literal('jons-content').optional(),title:z.string().trim().max(250).optional(),note:z.string().trim().max(500).optional(),uploadProjectId:z.string().max(180).optional(),uploadDeliverableId:z.string().max(180).optional()}).strict();
 export async function POST(request:Request){
  try {
   const workspace=await identity(request);
