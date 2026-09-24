@@ -21,9 +21,9 @@ The former Library & editing studio no longer renders or accepts editing jobs. C
 
 The migration replaces only the existing checked `private.save_record` function. It rejects clip-job writes and records the authenticated staff ID in new upload metadata, preserving the existing organization/NDA checks and RPC privileges. Upload metadata cannot be overwritten under the same ID. All other record handling stays the same; no new tables or columns. Reapplying the migration is safe.
 
-Jon’s Content is a derived view of Jon’s uploads and assets attached to projects, auction campaigns, deliverables or calendar records assigned to Jon. It does not copy media or infer ownership from filenames. Legacy files with unknown uploader remain in All Assets unless an assigned record explicitly references them.
+Jon’s Content now uses a stable upload collection plus known historical Jon uploads. Its visible upload control, latest-upload strip, searchable history and project/deliverable assignment flow are documented in [Jon’s Content](jons-content.md). Assignment links reference the same private asset, and changes synchronize across Project Assets and deliverable contexts. Files do not enter or leave this upload history merely because Jon is assigned to the surrounding work. Legacy files with unknown uploader remain in All Assets.
 
-## Verification
+## Initial navigation verification
 
 - 151 automated tests pass, including migration replay, read-only job history, forged uploader prevention, private upload finalization/retry and organization boundaries, plus all existing weekly-auction permission/budget/reconciliation checks.
 - Production build and type checks pass. Lint has no errors and three unchanged auth-navigation advisories.
