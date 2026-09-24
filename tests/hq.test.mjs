@@ -4,7 +4,7 @@ import {legacyDestination, sectionForPath} from '../lib/hq-navigation.ts';
 import {todayWork} from '../lib/hq-today.ts';
 
 test('bookmarked Hub tabs resolve to the reused tools; unknown fragments stay internal', () => {
-  for (const [hash, path] of Object.entries({launch:'/projects?tab=launch',studio:'/assets',calendar:'/calendar',tracking:'/projects?tab=tracking',performance:'/projects?tab=performance',roadmap:'/projects'})) {
+  for (const [hash, path] of Object.entries({launch:'/projects?tab=store-open-checklist',studio:'/assets',calendar:'/calendar',tracking:'/projects?tab=tracking',performance:'/projects?tab=performance',roadmap:'/projects'})) {
     assert.equal(legacyDestination('#' + hash), path);
   }
   assert.equal(legacyDestination('#https://example.test'), '/today');

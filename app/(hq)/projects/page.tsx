@@ -1,4 +1,8 @@
 import {redirect} from 'next/navigation';
 import Hub from '@/app/hub';
-export const metadata = {title: 'Projects | Northside HQ'};
+import {STORE_OPEN_CHECKLIST,STORE_OPEN_CHECKLIST_TAB} from '@/lib/store-opening';
+export async function generateMetadata({searchParams}:{searchParams:Promise<{tab?:string}>}) {
+ const {tab}=await searchParams;
+ return {title:(tab===STORE_OPEN_CHECKLIST_TAB||tab==='launch'?STORE_OPEN_CHECKLIST:'Projects')+' | Northside HQ'};
+}
 export default async function Page({searchParams}:{searchParams:Promise<{tab?:string}>}) {if((await searchParams).tab==='permissions')redirect('/operations?tab=permissions');return <Hub section="projects"/>;}

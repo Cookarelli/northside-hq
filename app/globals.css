@@ -826,3 +826,8 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .jon-content .section-title .button-row { margin: 0; flex-wrap: nowrap; }
 
 .hq-auction-index{list-style:none;padding:0;display:grid;gap:12px;margin:20px 0}.hq-auction-index li{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--border)}.hq-auction-index a{font-weight:650;overflow-wrap:anywhere}.hq-auction-index a[aria-current=true]{text-decoration:underline;text-underline-offset:5px}.hq-auction-shared{overflow-wrap:anywhere}.hq-auction-detail[id]{scroll-margin-top:24px}
+.store-opening-hub{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.65fr);gap:24px;align-items:center}
+.store-opening-deadline{border-left:3px solid var(--primary);padding-left:20px}
+.store-opening-deadline time{display:grid;gap:4px;font-size:1.1rem}
+.store-opening-deadline time strong{font-size:1.5rem}
+@media(max-width:700px){.store-opening-hub{grid-template-columns:minmax(0,1fr)}.store-opening-deadline{grid-row:1}.store-opening-hub .button-row{gap:12px 20px}}

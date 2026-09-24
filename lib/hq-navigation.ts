@@ -11,7 +11,7 @@ export const hqSections = [
 export type HqSection = typeof hqSections[number]['id'];
 export const legacyDestinations: Record<string, string> = {
   today: '/today', projects: '/projects', requests: '/requests', assets: '/assets',
-  launch: '/projects?tab=launch', studio: '/assets', 'video-cutting':'/assets', cutting:'/assets', calendar: '/calendar',
+  launch: '/projects?tab=store-open-checklist', 'store-open-checklist':'/projects?tab=store-open-checklist', studio: '/assets', 'video-cutting':'/assets', cutting:'/assets', calendar: '/calendar',
   tracking: '/projects?tab=tracking', performance: '/projects?tab=performance', roadmap: '/projects',
   operations:'/operations', staff:'/operations?tab=staff', permissions:'/operations?tab=permissions',
 };
