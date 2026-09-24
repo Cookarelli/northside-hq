@@ -852,3 +852,8 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-breadcrumb a{font-weight:600}
 .hq-calendar-item.is-milestone{border:1px solid var(--primary);border-left-width:4px;background:var(--accent)}
 .hq-calendar-item .hq-deadline-indicator{margin-left:0}
+.store-open-summary dl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;margin:18px 0 0}
+.store-open-summary dt{font-size:.85rem;color:var(--muted-foreground)}
+.store-open-summary dd{font-size:1.6rem;font-weight:700;margin:6px 0 0}
+.store-open-archive-link h3{margin-top:12px}
+@media(max-width:640px){.store-open-summary dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.store-open-summary dl>div:last-child{grid-column:1/-1}}
