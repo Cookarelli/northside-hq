@@ -1,14 +1,14 @@
 import {z} from 'zod';
 import {chicagoInstant,chicagoWall} from './consignment.ts';
 import {addDays,actionable,instant} from './hq-operations.ts';
-import {canWork,productionStatuses,type Deliverable,type HqContext,type HqRecord,type Project,type Staff} from './hq-model.ts';
+import {canWork,materials,checklistFields,productionStatuses,type Deliverable,type HqContext,type HqRecord,type Project,type Staff} from './hq-model.ts';
 
 export const taskStatuses={not_started:'Not Started',in_progress:'In Progress',waiting:'Waiting',complete:'Complete'} as const;
 export const taskPriorities={low:'Low',normal:'Normal',high:'High',urgent:'Urgent'} as const;
 export type TaskStatus=keyof typeof taskStatuses;
 export type TaskPriority=keyof typeof taskPriorities;
 const wall=z.string().refine(value=>{if(!value)return true;try{chicagoInstant(value);return true;}catch{return false;}},'Choose a valid, unambiguous Chicago time.');
-export const taskInput=z.object({title:z.string().trim().min(1).max(300),instructions:z.string().max(12000),projectId:z.string().min(1).max(180),assignees:z.array(z.string().min(1).max(180)).min(1).max(50).refine(v=>new Set(v).size===v.length),productionDue:wall,endAt:wall,priority:z.enum(['low','normal','high','urgent']),notes:z.string().max(12000)}).strict().refine(d=>!d.endAt||(!!d.productionDue&&d.endAt>d.productionDue),'The end must follow the due/start time.');
+export const taskInput=z.object({title:z.string().trim().min(1).max(300),instructions:z.string().max(12000),projectId:z.string().max(180),assignees:z.array(z.string().min(1).max(180)).min(1).max(50).refine(v=>new Set(v).size===v.length),productionDue:wall,endAt:wall,priority:z.enum(['low','normal','high','urgent']),notes:z.string().max(12000),storeOpenChecklist:checklistFields.storeOpenChecklist,department:checklistFields.department,assets:materials.assets.optional(),references:materials.references.optional(),assetRoles:materials.assetRoles.optional(),linkRoles:materials.linkRoles.optional(),initialStatus:z.enum(['not_started','in_progress','waiting','complete']).optional()}).strict().refine(d=>!!d.projectId||d.storeOpenChecklist===true,'Choose a project or Store Open Checklist.').refine(d=>!d.endAt||(!!d.productionDue&&d.endAt>d.productionDue),'The end must follow the due/start time.');
 export type TaskInput=z.infer<typeof taskInput>;
 export function taskStatus(d:Deliverable):TaskStatus {return d.status==='done'?'complete':d.waiting||d.status==='needs_review'||d.status==='ready'?'waiting':d.status==='to_do'?'not_started':'in_progress';}
 export function workStatus(d:Deliverable){return d.workflow==='task'?taskStatuses[taskStatus(d)]:productionStatuses[d.status];}

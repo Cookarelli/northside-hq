@@ -831,3 +831,17 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .store-opening-deadline time{display:grid;gap:4px;font-size:1.1rem}
 .store-opening-deadline time strong{font-size:1.5rem}
 @media(max-width:700px){.store-opening-hub{grid-template-columns:minmax(0,1fr)}.store-opening-deadline{grid-row:1}.store-opening-hub .button-row{gap:12px 20px}}
+
+/* Store opening uses the same project and work rows, with compact view filters. */
+.store-open-work{display:grid;gap:20px}
+.store-open-progress{display:grid;grid-template-columns:2fr 1fr 1fr;gap:24px}
+.store-open-progress>div{display:flex;flex-direction:column;gap:8px}
+.store-open-progress strong{font-size:28px;line-height:1.1}
+.store-open-progress small{color:var(--muted-foreground)}
+.store-open-progress progress{width:100%;height:8px;accent-color:var(--primary)}
+.store-open-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.store-open-view{padding:9px 15px;border-radius:6px;border:1px solid var(--border);font-size:14px;font-weight:600}
+.store-open-view.is-active{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.store-open-group h3{margin-bottom:14px}.store-open-group .hq-work-list{margin-bottom:0}
+.store-open-form{max-width:900px;scroll-margin-top:24px}
+@media(max-width:640px){.store-open-progress{grid-template-columns:1fr 1fr;gap:16px}.store-open-progress>div:first-child{grid-column:1/-1}.store-open-toolbar .button-row{width:100%;gap:6px}.store-open-view{flex:1;text-align:center;padding:9px 10px}.store-open-group{padding:14px}}
