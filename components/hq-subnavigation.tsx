@@ -23,7 +23,13 @@ export function useHqTab(tabs:readonly HqTab[],fallback:string,legacyHashes?:Rec
 // open-in-new-tab, bookmarking and browser history all remain available.
 export function useActiveNavigation(active:string){
  const ref=useRef<HTMLElement>(null);
- useEffect(()=>{const nav=ref.current,link=nav?.querySelector<HTMLElement>('[aria-current="page"]');if(!nav||!link||nav.scrollWidth<=nav.clientWidth)return;const bounds=nav.getBoundingClientRect(),item=link.getBoundingClientRect();if(item.left<bounds.left||item.right>bounds.right)nav.scrollLeft+=item.left-bounds.left-8;},[active]);
+ useEffect(()=>{
+  const nav=ref.current;if(!nav)return;
+  const revealActive=()=>{const link=nav.querySelector<HTMLElement>('[aria-current="page"]');if(!link||nav.scrollWidth<=nav.clientWidth)return;const bounds=nav.getBoundingClientRect(),item=link.getBoundingClientRect();if(item.left<bounds.left||item.right>bounds.right)nav.scrollLeft+=item.left-bounds.left-8;};
+  revealActive();
+  const observer=new ResizeObserver(revealActive);observer.observe(nav);
+  return()=>observer.disconnect();
+ },[active]);
  return ref;
 }
 export function HqSubnavigation({tabs,active,label}:{tabs:readonly HqTab[];active:string;label:string}){

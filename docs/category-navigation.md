@@ -60,3 +60,7 @@ Jon’s Content now uses a stable upload collection plus known historical Jon up
 - No visual brand, owner colors, authentication, media access rules or external publishing behavior changed.
 
 Migration `20260924030947_assets_retire_clip_workflow.sql` was applied to the existing Supabase project. All 32 production records, including their update timestamps, have the exact same combined checksum before and after (`34853059cf58a8604b4cd75397731c53`). There were no live clip jobs to archive. Security advisors are unchanged: eight informational private-table RLS notices and the existing leaked-password-protection warning. See [Supabase password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+## Final QA follow-up
+
+See [Navigation and Assets final QA](navigation-assets-final-qa.md) for the video upload, second-staff assignment, file identity, cross-tab synchronization, desktop/mobile routing checks and fixes. Hosted acceptance remains pending as described there.

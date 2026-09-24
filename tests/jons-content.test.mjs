@@ -39,6 +39,28 @@ async function createAsset(f,{actor='jon',type='application/pdf',name='brief.pdf
 }
 async function assign(f,id,version,project='',deliverable=''){return (await f.db.query('select hub_assign_asset($1,$2,$3,$4) result',[id,version,project,deliverable])).rows[0].result;}
 
+test('staff assignment of Jon’s video preserves one asset, one storage object and the original upload metadata',async()=>{
+ const f=await auctionDb({numbered:true});try{
+  const {id,pending}=await createAsset(f,{type:'video/mp4',name:'reminder.mp4'});
+  const original=await f.get(id,'asset');
+  await f.db.exec('reset role');
+  const beforeFiles=(await f.db.query('select * from storage.objects order by id')).rows;
+  const beforeIds=(await f.db.query("select id from marketing_records where kind='asset' order by id")).rows;
+  await f.actor('outsider');
+  const saved=await assign(f,id,0,'weekly','mj-24');
+  assert.equal(saved.id,id);assert.equal(saved.data.assignedBy,'outsider');assert.ok(saved.data.assignedAt);
+  assert.equal(saved.data.assignedProjectId,'weekly');assert.equal(saved.data.assignedDeliverableId,'mj-24');
+  for(const field of Object.keys(original))if(!field.startsWith('assign'))assert.deepEqual(saved.data[field],original[field],field);
+  await assign(f,id,0,'weekly','mj-24');
+  await f.db.query('select hub_save_record($1,$2,$3::jsonb)',['asset',id,JSON.stringify(pending)]);
+  assert.deepEqual(await f.get(id,'asset'),saved.data);
+  await f.db.exec('reset role');
+  assert.deepEqual((await f.db.query('select * from storage.objects order by id')).rows,beforeFiles);
+  assert.deepEqual((await f.db.query("select id from marketing_records where kind='asset' order by id")).rows,beforeIds);
+  assert.equal(beforeFiles.filter(file=>file.name===pending.key).length,1);assert.equal(beforeIds.filter(asset=>asset.id===id).length,1);
+ }finally{await f.db.close();}
+});
+
 test('upload → assign → change → clear is staff-authorized, scoped, audited and retry safe',async()=>{
  const f=await auctionDb();try{
   const beforeProject=await f.get('weekly','project'),beforeDeliverable=await f.get('mj-48');

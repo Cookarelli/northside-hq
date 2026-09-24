@@ -28,6 +28,9 @@ test('calendar rows respect actual confirmations and source edits without changi
  const rows=scheduleRows([record],[project],'publication');assert.equal(rows.find(r=>r.platform==='facebook').date,'2026-03-10T10:00');assert.equal(rows.find(r=>r.platform==='instagram').status,'published');
  assert.equal(scheduleRows([record],[project],'production')[0].date,record.data.productionDue);assert.deepEqual(record,saved);
  const edited=make('dates',{publishAt:'2026-03-09T15:00'});assert.ok(scheduleRows([edited],[project],'publication').every(r=>r.date===edited.data.publishAt));assert.equal(todayDashboard([edited],[project],'maker',chicagoInstant('2026-03-08T12:00')).publishing[0].date,edited.data.publishAt);
+ const auction=make('mj-24',{title:'Michael Jordan Auction — 24 Hour Reminder',auction_number:245});
+ for(const mode of ['production','publication'])assert.ok(scheduleRows([auction],[project],mode).every(row=>row.title==='#245 Michael Jordan — 24 Hour Reminder'));
+ assert.equal(auction.data.title,'Michael Jordan Auction — 24 Hour Reminder');
 });
 
 test('all calendar filters, missing dates and recurring legacy records retain honest status labels',()=>{

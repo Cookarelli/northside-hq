@@ -748,7 +748,8 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-subnavigation a:hover{background:var(--secondary);color:var(--foreground);text-decoration:none}
 .hq-subnavigation a[aria-current=page]{background:var(--secondary);color:var(--foreground);box-shadow:inset 0 -3px var(--primary)}
 .hq-subnavigation a:focus-visible,.hq-shell .hq-navigation a:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
-.hq-tab-panel{min-width:0;display:grid;gap:24px}
+.hq-tab-panel{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+.hq-tab-panel>*{min-width:0}
 .hq-asset-actions{display:grid;grid-template-columns:minmax(200px,1fr) minmax(200px,1fr);gap:24px;align-items:start}
 .hq-asset-actions>details{padding-top:4px}
 .hq-asset-library{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:20px}

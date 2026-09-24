@@ -5,6 +5,7 @@ import {Input} from '@/components/ui/input';
 import {materialRoles,type MaterialRole,type Project,type Deliverable,type HqRecord} from '@/lib/hq-model';
 import {assignedAssetIds} from '@/lib/hq-assets';
 import {assetAccept} from '@/lib/asset-policy';
+import {auctionCalendarTitle} from '@/lib/auction-campaigns';
 import {uploadAsset,type UploadTicket} from '@/lib/asset-upload';
 export type Asset={id:string;data:{name:string;type?:string;assignedProjectId?:string;assignedDeliverableId?:string}};
 export type Materials={assets:string[];references:string[];assetRoles?:Record<string,MaterialRole>;linkRoles?:Record<string,MaterialRole>};
@@ -46,5 +47,5 @@ export function AssignedContent({available,kind,id,attached=[]}:{available:Asset
 export function ProjectAssetList({project,deliverables,available}:{project:HqRecord<Project>;deliverables:HqRecord<Deliverable>[];available:Asset[]}){
  const files=[...new Set([...project.data.assets,...assignedAssetIds(available,'project',project.id)])];
  const children=deliverables.filter(d=>d.data.projectId===project.id&&!d.data.deletedAt).map(record=>({record,files:[...new Set([...record.data.assets,...assignedAssetIds(available,'deliverable',record.id)])]})).filter(item=>item.files.length||item.record.data.references.length);
- return <><ResourceLinks {...project.data} assets={files} available={available}/>{!files.length&&!project.data.references.length&&!children.length&&<p className="hq-meta">No files or links yet. Assign content from Jon&apos;s Content or attach files when editing this project.</p>}{children.map(({record,files})=><div key={record.id}><h3>{record.data.title}</h3><ResourceLinks {...record.data} assets={files} available={available}/></div>)}</>;
+ return <><ResourceLinks {...project.data} assets={files} available={available}/>{!files.length&&!project.data.references.length&&!children.length&&<p className="hq-meta">No files or links yet. Assign content from Jon&apos;s Content or attach files when editing this project.</p>}{children.map(({record,files})=><div key={record.id}><h3>{auctionCalendarTitle(record.data)}</h3><ResourceLinks {...record.data} assets={files} available={available}/></div>)}</>;
 }

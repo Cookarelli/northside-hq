@@ -26,3 +26,7 @@ Successful mutations update the local record and broadcast the existing workspac
 - All 157 tests, release build and typecheck pass. Lint has zero errors and the three existing authentication-navigation warnings.
 
 Migration `20260924032636_jons_content_assignments.sql` is additive/reapplicable and has **not** been applied to the hosted database by this change. Apply it before releasing the matching UI/API. Existing earlier migrations should not be replayed. Use the repository's existing protected-preview and Steve approval process for hosted Auth/Storage checks and production release. Local verification does not substitute for hosted Supabase Storage/RLS acceptance or hosted database advisors.
+
+## Final QA follow-up
+
+See [Navigation and Assets final QA](navigation-assets-final-qa.md) for the video upload, second-staff assignment, file identity, cross-tab synchronization, desktop/mobile routing checks and fixes. Hosted acceptance remains pending as described there.

@@ -38,11 +38,11 @@ export function AuctionCampaign({name,records,project,context,assets,act,busy,ca
 function AuctionReminder({record,project,context,assets,act,busy,focused}:{focused:boolean;record:HqRecord<Deliverable>;project:Project;context:HqContext;assets:Asset[];act:Action;busy:boolean}) {
  const d=record.data,[opened,setOpened]=useState(focused),[editing,setEditing]=useState(false),detailsId=useId();
  const rowRef=useRef<HTMLLIElement>(null);
- useEffect(()=>{if(focused)rowRef.current?.scrollIntoView({block:'start'});},[focused]);
+ useEffect(()=>{if(focused){rowRef.current?.scrollIntoView({block:'start'});rowRef.current?.focus({preventScroll:true});}},[focused]);
  const name=(id:string)=>context.staff.find(s=>s.id===id)?.name||id||'Unassigned';
  const card=d.campaignAuction?.cards.map(c=>c.name).join(', ')||d.campaignFeaturedCard||d.campaignReference;
  const editable=canWork(d,project,context)&&!['completed','archived'].includes(project.status);
- return <li ref={rowRef} id={'deliverable-'+record.id} className="hq-auction-reminder">
+ return <li ref={rowRef} id={'deliverable-'+record.id} tabIndex={-1} className="hq-auction-reminder">
   <div className="hq-auction-row-heading"><h4>{reminderLabel(d)}</h4><Button variant="outline" disabled={busy} aria-expanded={opened} aria-controls={detailsId} onClick={()=>{setOpened(!opened);setEditing(false);}}>{opened?'Close deliverable':'Open deliverable'}</Button></div>
   <div className="hq-auction-row-main"><AuctionStatusControl compact showHistory={opened} record={record} project={project} context={context} act={act} busy={busy||editing}/><dl className="hq-auction-row-facts"><div><dt>Owner</dt><dd>{name(d.owner)}</dd></div><div><dt>Due · Chicago</dt><dd>{d.productionDue?<>{calendarDay(d.productionDue)}<br/>{calendarTime(d.productionDue)}</>:'Not set'}</dd></div></dl></div>
   {d.blocked&&<p className="notice">Blocked: {d.blockedReason}</p>}
