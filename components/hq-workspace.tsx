@@ -15,7 +15,7 @@ import {MaterialsEditor,ResourceLinks,AssignedContent,ProjectAssetList,type Asse
 import {ownerColor,projectColor} from '@/lib/owner-colors';
 import {StaffPicker} from '@/components/staff-picker';
 import {StoreOpeningWarning} from '@/components/store-open-deadline';
-import {STORE_OPEN_CHECKLIST_HREF} from '@/lib/store-opening';
+import {STORE_OPEN_CHECKLIST_HREF,STORE_OPEN_ARCHIVE_HREF,STORE_OPENED_LABEL,storeHasOpened} from '@/lib/store-opening';
 import {ProjectTaskForm,TaskActions,DeliverableDetails} from '@/components/project-task';
 import {canManageTask,primaryOwnerLabel,projectOwnerOptions,taskAssignees,urgencySort} from '@/lib/project-tasks';
 import {useHqClock} from '@/components/use-hq-clock';
@@ -98,7 +98,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
     </div>;
   }
   return <div className="hq-records">
-    {view!=='list'&&((project?.data.storeOpenChecklist||deliverable?.data.storeOpenChecklist||parent?.data.storeOpenChecklist)?<nav aria-label="Breadcrumb" className="hq-breadcrumb"><Link href="/projects?tab=projects">Projects</Link><span aria-hidden="true">›</span><Link href={STORE_OPEN_CHECKLIST_HREF}>Store Open Checklist</Link><span aria-hidden="true">›</span><span aria-current="page">{deliverable?.data.title||project?.data.title}</span></nav>:<Link href="/projects">← All projects and work</Link>)}
+    {view!=='list'&&((project?.data.storeOpenChecklist||deliverable?.data.storeOpenChecklist||parent?.data.storeOpenChecklist)?<nav aria-label="Breadcrumb" className="hq-breadcrumb"><Link href="/projects?tab=projects">Projects</Link><span aria-hidden="true">›</span>{storeHasOpened(now)&&<><Link href={STORE_OPEN_ARCHIVE_HREF}>Archived / Completed</Link><span aria-hidden="true">›</span></>}<Link href={STORE_OPEN_CHECKLIST_HREF}>Store Open Checklist</Link><span aria-hidden="true">›</span><span aria-current="page">{deliverable?.data.title||project?.data.title}</span></nav>:<Link href="/projects">← All projects and work</Link>)}
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
     {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
     {view==='list'&&<>
@@ -106,7 +106,8 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       {create==='project'&&<ProjectForm initial={{...blankProject,owner:Object.hasOwn(projectOwnerOptions(c.staff),c.staffId)?c.staffId:''}} context={c} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
       {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
       </>}
-      {area==='projects'&&<ProjectList projects={projects} deliverables={deliverables} name={name}/>}
+      {area==='projects'&&<ProjectList key="projects" projects={projects} deliverables={deliverables} name={name}/>}
+      {area==='archive'&&<><div className="section-title"><div><h2>Archived / Completed</h2><p className="muted">Past projects and preserved launch work.</p></div></div>{storeHasOpened(now)&&<section className="panel store-open-archive-link"><span className="tag">Launch archive</span><h3><Link href={STORE_OPEN_CHECKLIST_HREF}>Store Open Checklist</Link></h3><p>{STORE_OPENED_LABEL}</p><p className="muted">Summary, remaining work and launch history.</p></section>}<ProjectList key="archive" archiveOnly projects={projects} deliverables={deliverables} name={name}/></>}
       {area==='deliverables'&&<section className="panel"><DeliverableList records={deliverables} projects={projects} context={c} act={act} busy={busy}/></section>}
       {area==='handoffs'&&<><LegacyAdoption records={records} context={c} act={act} busy={busy}/><EditorialHandoff records={records} context={c} act={act} busy={busy}/></>}
       {area==='permissions'&&(c.admin?<section className="panel"><h2>Workspace permissions</h2><h3>Budget approval</h3><p>Grant this separately from project ownership. Only these people can establish or change approved budgets.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={s.budgetApprover} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,enabled:e.target.checked})}/>{s.name}</label>)}</div><h3>Request coordinators</h3><p>These people can accept or decline requests and link them to production work.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={!!s.requestCoordinator} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,capability:'coordinate_requests',enabled:e.target.checked})}/>{s.name}</label>)}</div></section>:<p className="panel">Only administrators can manage workspace permissions.</p>)}
@@ -184,10 +185,10 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
   </div>;
 }
 
-function ProjectList({projects,deliverables,name}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string}) {
-  const now=useHqClock(),[filter,setFilter]=useState('all'),[search,setSearch]=useState('');
-  const shown=projects.filter(p=>(!p.data.migratedToProjectId||filter==='archived')&&(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
-  return <section><div className="two-fields"><Field label="Find a project"><Input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Project status" value={filter} onChange={setFilter} options={{all:'All projects',...projectStatuses}}/></div><div className="hq-project-grid">{shown.map(p=><HqProjectCard key={p.id} project={p} deliverables={deliverables} name={name} now={now}/>)}</div>{!shown.length&&<p className="notice">{projects.length?'No projects match your search. Try a different name or status.':'No projects yet. Choose Add project above to get started.'}</p>}</section>;
+function ProjectList({projects,deliverables,name,archiveOnly=false}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string;archiveOnly?:boolean}) {
+  const now=useHqClock(),[filter,setFilter]=useState(archiveOnly?'closed':'all'),[search,setSearch]=useState('');
+  const shown=projects.filter(p=>(!archiveOnly||['completed','archived'].includes(p.data.status))&&(!p.data.migratedToProjectId||archiveOnly||filter==='archived')&&(filter==='all'||filter==='closed'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
+  return <section><div className="two-fields"><Field label="Find a project"><Input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Project status" value={filter} onChange={setFilter} options={archiveOnly?{closed:'All archived / completed',completed:'Completed',archived:'Archived'}:{all:'All projects',...projectStatuses}}/></div><div className="hq-project-grid">{shown.map(p=><HqProjectCard key={p.id} project={p} deliverables={deliverables} name={name} now={now}/>)}</div>{!shown.length&&<p className="notice">{archiveOnly?'No archived or completed projects match these filters.':projects.length?'No projects match your search. Try a different name or status.':'No projects yet. Choose Add project above to get started.'}</p>}</section>;
 }
 function DeliverableList({records,projects,context,act,busy}:{records:HqRecord<Deliverable>[];projects:HqRecord<Project>[];context:HqContext;act:Action;busy:boolean}) {
   const now=useHqClock();

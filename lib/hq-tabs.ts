@@ -1,5 +1,7 @@
 export type HqTab = {id:string; label:string};
-export const projectAreaTabs = [{id:'projects',label:'Projects'},{id:'deliverables',label:'Deliverables'},{id:'handoffs',label:'Handoffs'},{id:'store-open-checklist',label:'Store Open Checklist'},{id:'tracking',label:'Tracked links'},{id:'performance',label:'Results'}] as const;
+export const projectAreaTabs = [{id:'projects',label:'Projects'},{id:'deliverables',label:'Deliverables'},{id:'handoffs',label:'Handoffs'},{id:'store-open-checklist',label:'Store Open Checklist'},{id:'archive',label:'Archived / Completed'},{id:'tracking',label:'Tracked links'},{id:'performance',label:'Results'}] as const;
+// Keep the checklist in the route catalog so old bookmarks continue to resolve.
+export function projectAreaNavigation(opened:boolean,active:string){return {tabs:projectAreaTabs.filter(tab=>!opened||tab.id!=='store-open-checklist'),active:opened&&active==='store-open-checklist'?'archive':active};}
 export const projectAreaAliases = {launch:'store-open-checklist'};
 export const projectTabs = [{id:'overview',label:'Overview'},{id:'deliverables',label:'Deliverables'},{id:'assets',label:'Assets'},{id:'budget',label:'Budget'},{id:'notes',label:'Notes / Activity'}] as const;
 export const auctionTabs = [{id:'current-auction',label:'Current Auction'},{id:'deliverables',label:'Deliverables'},{id:'assets',label:'Assets'},{id:'budget',label:'Budget & Reconciliation'},{id:'auction-history',label:'Auction History'},{id:'overview',label:'Project information'},{id:'notes',label:'Notes / Activity'}] as const;

@@ -45,7 +45,7 @@ test('quiet countdown has days or days/hours only, including the final hour and 
  assert.equal(storeOpeningCountdown(null),'');assert.equal(remaining(57*86400000+3*3600000),'57 days until opening');
  assert.equal(remaining(3*86400000+4*3600000+123456),'3 days, 4 hours until opening');
  assert.equal(remaining(86400000+3600000),'1 day, 1 hour until opening');assert.equal(remaining(3600000),'1 hour until opening');
- assert.equal(remaining(30*60000),'Opening within the hour');assert.equal(remaining(0),'Store is open');assert.equal(remaining(-60000),'Store is open');
+ assert.equal(remaining(30*60000),'Opening within the hour');assert.equal(remaining(0),'Store Opened');assert.equal(remaining(-60000),'Store Opened');
  const a=storeOpeningCountdown(chicagoInstant('2026-10-31T15:00')),b=storeOpeningCountdown(Date.parse('2026-10-31T20:00:00Z'));assert.equal(a,b);
 });
 
