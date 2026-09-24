@@ -35,7 +35,7 @@ Submit changes as a draft PR against `main`, verify a protected preview using is
 ## Retained tools
 
 - **Calendar → Existing calendar entries and recurring series** retains the legacy editor. A Tuesday template creates one dated occurrence per Tuesday, safely reused on retry.
-- **Projects** retains Store Open Checklist planning, campaign adoption, tracked links and manual reporting. Approved editorial sources can be handed off once to canonical HQ production with an explicit owner/approver.
+- **Projects → Store Open Checklist** is the temporary cross-department work hub with normal projects, direct or project deliverables, department/owner grouping and completion counts. Opening has one derived calendar milestone and a quiet countdown; work deadlines use the existing calendar, simple due indicators and an after-opening warning. Its previous strategy and budget plan remain available. See [the work hub guide](docs/store-open-work.md). Projects also retains campaign adoption, tracked links and manual reporting. Approved editorial sources can be handed off once to canonical HQ production with an explicit owner/approver.
 - **Requests → Editorial queue** retains specialized content evidence and source approval. Source changes require renewed pending HQ approval.
 - **Assets → All Assets / Jon’s Content** provides the private media library. Research & sources remains a linked subpage. The cutting/editing workflow is retired; historical jobs remain read-only in workspace exports.
 
