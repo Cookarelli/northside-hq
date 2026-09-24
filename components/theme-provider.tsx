@@ -29,7 +29,7 @@ function AppearanceBar() {
 }
 
 export function ThemeProvider({children}: {children: React.ReactNode}) {
-  return <NextThemeProvider attribute="class" defaultTheme="system" enableSystem
+  return <NextThemeProvider attribute="class" defaultTheme="light" enableSystem
     storageKey="northside-color-theme" disableTransitionOnChange>
     <AppearanceBar/>{children}
   </NextThemeProvider>;

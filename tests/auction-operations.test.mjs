@@ -27,7 +27,7 @@ test('backfill attaches #245 to the same three IDs without a project/calendar co
 });
 test('calendar derives exactly three numbered reminders with Central dates, staff owner colors and project deep links',async()=>{
  const saved=await rows(),p=await project();const events=calendarEntries(saved,[p],[],[],'2026-09-24','2026-09-28').filter(e=>e.key.endsWith(':reminder'));
- assert.equal(events.length,3);assert.deepEqual(events.map(e=>e.title),['#245 Michael Jordan — 48 Hour Reminder','#245 Michael Jordan — 24 Hour Reminder','#245 Michael Jordan — 2 Hour Reminder']);
+ assert.equal(events.length,3);assert.deepEqual(events.map(e=>e.title),['Collect Weekly Auction #245 — 48 Hour Reminder','Collect Weekly Auction #245 — 24 Hour Reminder','Collect Weekly Auction #245 — 2 Hour Reminder']);
  assert.deepEqual(events.map(e=>e.date),['2026-09-25T21:00','2026-09-26T21:00','2026-09-27T19:00']);
  assert.ok(events.every(e=>e.owner==='jon'&&e.deliverableOwnerColor&&e.campaign==='Michael Jordan Consignment'&&e.status==='Not Started'));
  assert.equal(events[0].href,'/projects/weekly?tab=deliverables&deliverable=mj-48#deliverable-mj-48');

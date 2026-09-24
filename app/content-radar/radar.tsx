@@ -4,9 +4,10 @@ import Link from 'next/link';
 import {SourcePanel} from './sources';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import {HqSubnavigation,HqTabPanel,useHqTab} from '@/components/hq-subnavigation';
+import {HqPageActions} from '@/components/hq-page-actions';
 import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 import {tabHref} from '@/lib/hq-tabs';
-const researchTabs=[{id:'feed',label:'Feed'},{id:'releases',label:'Release verification'},{id:'chase',label:'Chase Cards'},{id:'drafts',label:'Drafts'},{id:'sources',label:'Sources'}];
+const researchTabs=[{id:'feed',label:'Feed'},{id:'releases',label:'Release verification'},{id:'chase',label:'Chase Cards',secondary:true},{id:'drafts',label:'Drafts'},{id:'sources',label:'Sources',secondary:true}];
 import { Button } from '@/components/ui/button';
 import { Collapsible,CollapsibleTrigger,CollapsibleContent } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
@@ -62,8 +63,8 @@ export default function Radar({organization}:{organization:string}) {
  </article>;}
  return <section className="radar-workspace" aria-label="Research and sources">
   <p><Link href="/assets">← All Assets</Link></p>
-  <div className="intro"><div><h2>Saved research &amp; ideas</h2><p>Collect hobby news and prepare your next post.</p><div className="button-row radar-shortcuts"><Button asChild><Link href="/requests?tab=editorial">Review stories &amp; drafts</Link></Button><Button variant="outline" asChild><Link href={tab==='releases'?'/calendar?tab=releases':'/calendar?tab=schedule'}>{tab==='releases'?'Release Calendar':'Open calendar'}</Link></Button></div></div>
-  <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button disabled={offline}><Plus size={18}/>Add a link</Button></DialogTrigger><DialogContent className="radar-dialog"><DialogHeader><DialogTitle>Add a hobby story</DialogTitle><DialogDescription>Keep the original link and add the details you know. New links start unverified.</DialogDescription></DialogHeader>
+  <div className="button-row radar-shortcuts"><Button variant="outline" asChild><Link href="/requests?tab=editorial">Review stories &amp; drafts</Link></Button><Button variant="outline" asChild><Link href="/calendar">Open calendar</Link></Button></div>
+  <Dialog open={open} onOpenChange={setOpen}><HqPageActions><DialogTrigger asChild><Button disabled={offline}><Plus size={18}/>Add a link</Button></DialogTrigger></HqPageActions><DialogContent className="radar-dialog"><DialogHeader><DialogTitle>Add a hobby story</DialogTitle><DialogDescription>Keep the original link and add the details you know. New links start unverified.</DialogDescription></DialogHeader>
   <form onSubmit={async e=>{e.preventDefault();const saved=await mutate({action:'add-item',data:{...link,sourceId:link.sourceId==='manual'?null:link.sourceId,category:link.category as Item['category'],kind:link.kind as Item['kind'],priority:link.priority as Item['priority'],publishedAt:link.publishedAt||null,eventDate:link.eventDate||null,tags:[...new Set(link.tags.split(',').map(t=>t.trim()).filter(Boolean))]}});if(saved){setLink(initialLink);setOpen(false);}}}>
    <label className="field"><span>Title</span><Input required maxLength={300} value={link.title} onChange={e=>setLink({...link,title:e.target.value})}/></label>
    <label className="field"><span>Original URL</span><Input type="url" required maxLength={2048} placeholder="https://…" value={link.url} onChange={e=>setLink({...link,url:e.target.value})}/></label>
@@ -71,7 +72,7 @@ export default function Radar({organization}:{organization:string}) {
    <div className="form-grid"><Choice label="Category" value={link.category} options={CATEGORIES} onChange={category=>setLink({...link,category})}/><Choice label="Type" value={link.kind} options={KINDS} onChange={kind=>setLink({...link,kind})}/><Choice label="Source" value={link.sourceId} options={sources.filter(s=>s.value!=='all')} onChange={sourceId=>setLink({...link,sourceId})}/><Choice label="Priority" value={link.priority} options={PRIORITIES} onChange={priority=>setLink({...link,priority})}/><label className="field"><span>Publication date (optional)</span><Input type="date" value={link.publishedAt} onChange={e=>setLink({...link,publishedAt:e.target.value})}/></label><label className="field"><span>Release / event date (optional)</span><Input type="date" value={link.eventDate} onChange={e=>setLink({...link,eventDate:e.target.value})}/></label></div>
    <label className="field"><span>Summary / Northside angle</span><Textarea maxLength={4000} value={link.summary} onChange={e=>setLink({...link,summary:e.target.value})}/></label><label className="field"><span>Tags (comma separated, up to 12)</span><Input value={link.tags} onChange={e=>setLink({...link,tags:e.target.value})}/></label>
    {error&&<p role="alert" className="radar-error">{error}</p>}<Button type="submit" disabled={disabled}>{busy?'Saving…':'Save story'}</Button>
-  </form></DialogContent></Dialog></div>
+  </form></DialogContent></Dialog>
   {offline&&<div className="callout" role="status">You’re offline. Reconnect to load or save content. Unsaved input stays on this screen.</div>}
   {error&&<div className="radar-error" role="alert">{error} <Button variant="outline" onClick={()=>setReload(n=>n+1)}>Retry</Button></div>}
   {notice&&<p role="status" className="muted">{notice}</p>}

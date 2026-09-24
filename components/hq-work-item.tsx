@@ -4,6 +4,8 @@ import {useEffect,useRef} from 'react';
 import {AssignedContent,type Asset} from '@/components/hq-materials';
 import {auctionCalendarTitle,deliverableHref} from '@/lib/auction-campaigns';
 import {ChecklistDeadline} from '@/components/store-open-deadline';
+import {HqStatus} from '@/components/hq-status';
+import {compactUsd} from '@/lib/auction-finance';
 import {Button} from '@/components/ui/button';
 import {calendarDay,calendarTime} from '@/lib/content-calendar';
 import type {Deliverable,HqRecord,HqContext,Project} from '@/lib/hq-model';
@@ -19,17 +21,16 @@ export function HqWorkItem({record,project,context,act,busy=false,onEdit,statusC
   useEffect(()=>{if(focused){row.current?.scrollIntoView({block:'start'});row.current?.focus({preventScroll:true});}},[focused]);
   const checklist=!!(d.storeOpenChecklist||project?.data.storeOpenChecklist);
   const canUpdate=!!act&&quickTaskAllowed(d,project?.data,context);
-  return <li ref={row} id={'deliverable-'+record.id} tabIndex={-1} className="hq-work-item" style={{borderLeftColor:color.accent}}>
+  return <li ref={row} id={'deliverable-'+record.id} tabIndex={-1} className="hq-work-item">
     <div className="hq-work-copy"><Link className="hq-work-title" href={statusControl?'/projects/work/'+encodeURIComponent(record.id)+'?tab=work':deliverableHref(record.id,d)}>{auctionCalendarTitle(d)}</Link>
-      {d.campaignReference&&<p className="hq-meta">Campaign: {d.campaignReference}</p>}
-      <p className="hq-meta">{project?<Link href={'/projects/'+project.id}>{project.data.title}</Link>:'Standalone'} · Deliverable owner: {name(d.owner)}</p>
+      <p className="hq-meta hq-work-owner"><span className="hq-owner-dot" style={{background:color.accent}} aria-hidden="true"/>{name(d.owner)}{project&&<> · <Link href={'/projects/'+project.id}>{project.data.title}</Link></>}{d.plannedBudgetCents!=null&&<> · {compactUsd(d.plannedBudgetCents)} budget</>}</p>
       <p className="hq-work-date"><span className="hq-urgency">{!checklist&&dueState(d.productionDue,finished(d),now)==='Overdue'?'Overdue · ':''}</span>{d.productionDue?<time dateTime={d.productionDue}>{calendarDay(d.productionDue)} · {calendarTime(d.productionDue)}</time>:'Unscheduled'}{d.endAt?' – '+calendarDay(d.endAt)+' '+calendarTime(d.endAt):''}{checklist&&<ChecklistDeadline date={d.productionDue} complete={finished(d)} now={now}/>}</p>
-      <p className="hq-meta">Assigned: {taskAssignees(d).map(name).join(', ')||'Unassigned'}</p>
+      {taskAssignees(d).some(id=>id!==d.owner)&&<p className="hq-meta">Also assigned: {taskAssignees(d).filter(id=>id!==d.owner).map(name).join(', ')}</p>}
       {notice&&<p className="hq-meta hq-urgency">{notice}</p>}
       {d.blocked&&<p className="hq-meta">Blocked · {d.blockedReason}</p>}
-      <AssignedContent available={assets} kind="deliverable" id={record.id} attached={d.assets}/>
+      {focused&&<AssignedContent available={assets} kind="deliverable" id={record.id} attached={d.assets}/>}
     </div>
-    <div className="hq-work-actions"><div className="hq-work-tags"><span className="tag">{workStatus(d)}</span><span className="hq-meta">{taskPriorities[d.priority||'normal']} priority</span></div>
+    <div className="hq-work-actions"><div className="hq-work-tags">{!(canUpdate&&statusControl)&&<HqStatus>{workStatus(d)}</HqStatus>}{d.priority&&d.priority!=='normal'&&<span className="hq-meta">{taskPriorities[d.priority]} priority</span>}</div>
       <div className="button-row">{canUpdate&&statusControl&&<label className="field"><span className="sr-only">Status for {d.title}</span><select aria-label={'Status for '+d.title} disabled={busy} value={taskStatus(d)} onChange={e=>void act!({action:'task-status',id:record.id,version:d.version,status:e.target.value})}>{Object.entries(taskStatuses).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>}
       {canUpdate&&d.status!=='done'&&<Button variant="outline" disabled={busy} aria-label={'Mark complete: '+d.title} onClick={()=>void act!({action:'task-status',id:record.id,version:d.version,status:'complete'})}>Mark complete</Button>}
       {onEdit&&<Button variant="outline" disabled={busy} onClick={onEdit} aria-label={'Edit schedule and staff: '+d.title}>Edit</Button>}</div>

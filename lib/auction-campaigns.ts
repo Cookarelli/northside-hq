@@ -22,5 +22,14 @@ export function reminderDue(d:Deliverable){
  if(!d.auctionClosesAt||![48,24,2].includes(d.reminderHours||0))return '';
  try {const close=/T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(d.auctionClosesAt)?Date.parse(d.auctionClosesAt):chicagoInstant(d.auctionClosesAt);return chicagoWall(close-d.reminderHours!*3600000);}catch{return '';}
 }
-export function auctionCalendarTitle(d:Deliverable){return (d.auction_number?'#'+d.auction_number+' ':'')+(/^#\d+\s+/.test(d.title)?d.title.replace(/^#\d+\s+/,''):d.title.replace(/^Michael Jordan Auction(?= — )/,'Michael Jordan'));}
+// Existing URLs and audit snapshots keep their IDs; visible #245 labels use its current name.
+export function auctionRecordText(value:string,recordId='',number?:number){
+ if(number!==245&&!recordId.startsWith('mj-consignment-video-'))return value;
+ return value.replace(/Michael Jordan(?:\s+(?:Consignment Video Campaign|Consignment Video|Consignment|Auction))?/gi,'Collect Weekly Auction #245');
+}
+export function numberedAuctionName(name:string,number?:number,separator=' — '){
+ return !number||new RegExp('#'+number+'(?!\\d)').test(name)?name:'#'+number+separator+name;
+}
+export function auctionCalendarTitle(d:Deliverable){return numberedAuctionName(auctionRecordText(d.title,d.sourceProjectId,d.auction_number),d.auction_number,' ');}
+
 export function deliverableHref(id:string,d:Pick<Deliverable,'projectId'>){return d.projectId?'/projects/'+encodeURIComponent(d.projectId)+'?tab=deliverables&deliverable='+encodeURIComponent(id)+'#deliverable-'+encodeURIComponent(id):'/projects/work/'+encodeURIComponent(id);}

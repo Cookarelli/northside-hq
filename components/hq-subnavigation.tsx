@@ -27,8 +27,8 @@ export function useHqTab(tabs:readonly HqTab[],fallback:string,legacyHashes?:Rec
 
 // These are page links, not in-memory ARIA tabs: native link keyboard behavior,
 // open-in-new-tab, bookmarking and browser history all remain available.
-export function useActiveNavigation(active:string){
- const ref=useRef<HTMLElement>(null);
+export function useActiveNavigation<T extends HTMLElement=HTMLElement>(active:string){
+ const ref=useRef<T>(null);
  useEffect(()=>{
   const nav=ref.current;if(!nav)return;
   const revealActive=()=>{const link=nav.querySelector<HTMLElement>('[aria-current="page"]');if(!link||nav.scrollWidth<=nav.clientWidth)return;const bounds=nav.getBoundingClientRect(),item=link.getBoundingClientRect();if(item.left<bounds.left||item.right>bounds.right)nav.scrollLeft+=item.left-bounds.left-8;};
@@ -39,7 +39,18 @@ export function useActiveNavigation(active:string){
  return ref;
 }
 export function HqSubnavigation({tabs,active,label}:{tabs:readonly HqTab[];active:string;label:string}){
- const pathname=usePathname(),params=useSearchParams(),ref=useActiveNavigation(active);
- return <nav ref={ref} className="hq-subnavigation" aria-label={label}>{tabs.map(tab=><Link key={tab.id} href={tabHref(pathname,params.toString(),tab.id)} scroll={false} aria-current={active===tab.id?'page':undefined}>{tab.label}</Link>)}</nav>;
+ const pathname=usePathname(),params=useSearchParams(),ref=useActiveNavigation<HTMLDivElement>(active),more=useRef<HTMLDetailsElement>(null);
+ const secondary=tabs.length>4?tabs.filter(tab=>tab.secondary):[];
+ const primary=tabs.filter(tab=>!secondary.includes(tab));
+ const selected=secondary.find(tab=>tab.id===active),hasSecondary=secondary.length>0;
+ useEffect(()=>{
+  if(!hasSecondary)return;
+  const close=(event:PointerEvent)=>{if(!more.current?.contains(event.target as Node)&&more.current)more.current.open=false;};
+  const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&more.current?.open){more.current.open=false;more.current.querySelector('summary')?.focus();}};
+  document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);
+  return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
+ },[hasSecondary]);
+ const link=(tab:HqTab)=><Link key={tab.id} href={tabHref(pathname,params.toString(),tab.id)} scroll={false} aria-current={active===tab.id?'page':undefined} onClick={event=>{if(more.current?.contains(event.currentTarget)){more.current.open=false;more.current.querySelector('summary')?.focus();}}}>{tab.label}</Link>;
+ return <nav className="hq-subnavigation-bar" aria-label={label}><div ref={ref} className="hq-subnavigation">{primary.map(link)}</div>{secondary.length>0&&<details ref={more} className="hq-more-tabs"><summary aria-current={selected?'page':undefined} aria-label={'More '+label.toLowerCase()+(selected?': '+selected.label:'')}>{selected?.label||'More'} <span aria-hidden="true">⌄</span></summary><div className="hq-more-tab-links">{secondary.map(link)}</div></details>}</nav>;
 }
 export function HqTabPanel({value,active,children}:{value:string;active:string;children:ReactNode}){return value===active?<div className="hq-tab-panel">{children}</div>:null;}

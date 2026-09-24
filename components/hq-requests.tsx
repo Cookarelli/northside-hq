@@ -5,6 +5,7 @@ import {useSearchParams,useRouter} from 'next/navigation';
 import {HqSubnavigation} from '@/components/hq-subnavigation';
 import {requestDetailTabs,selectedTab} from '@/lib/hq-tabs';
 import {deliverableHref} from '@/lib/auction-campaigns';
+import {HqPageActions} from '@/components/hq-page-actions';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
@@ -25,17 +26,17 @@ export function HqRequests({id}:{id?:string}) {
  const c=workspace.context,assets=workspace.records.filter(r=>r.kind==='asset') as Asset[],requests=workspace.records.filter(r=>r.kind==='request') as HqRecord<HqRequest>[],record=requests.find(r=>r.id===id);
  const name=(id:string)=>c.staff.find(s=>s.id===id)?.name||id;
  const save=async(command:Record<string,unknown>)=>{const result=await act(command);if(result?.id){setCreating(false);router.push('/requests/'+result.id);}};
- return <div className="hq-workspace">{errorPanel}{message&&<p role="status">{message}</p>}{id?<><Link href="/requests">← All requests</Link>{record?<>
- <h2>{record.data.title}</h2><HqSubnavigation tabs={requestDetailTabs} active={tab} label="Request sections"/>
+ return <div className="hq-records hq-request-content">{errorPanel}{message&&<p role="status">{message}</p>}{id?<><Link href="/requests">← All requests</Link>{record?<>
+ <h1>{record.data.title}</h1><HqSubnavigation tabs={requestDetailTabs} active={tab} label="Request sections"/>
  {tab==='request'&&<><section className="panel"><span className="tag">{requestStatuses[record.data.status]}</span><h3>Request details</h3><p>Requested by {name(record.data.requester)} · {recordedTime(record.data.createdAt)}</p><p className="hq-preserve-text">{record.data.purpose}</p><p>Requested deadline: {dateLabel(record.data.requestedDeadline)}</p><p className="muted">This is the requester’s preference. Production commitments are recorded on the linked deliverable.</p><ResourceLinks {...record.data} available={assets}/>
  {record.data.decision&&<p>{requestStatuses[record.data.status]} by {name(record.data.decision.by)} · {recordedTime(record.data.decision.at)}{record.data.decision.reason?' · '+record.data.decision.reason:''}</p>}
  {record.data.conversion&&<Link href={record.data.conversion.kind==='project'?'/projects/'+record.data.conversion.id+'?tab=overview':deliverableHref(record.data.conversion.id,(workspace.records.find(r=>r.kind==='deliverable'&&r.id===record.data.conversion?.id)?.data||{projectId:''}) as Deliverable)}>Open accepted work →</Link>}</section>
  {record.data.status==='new'&&<>{(record.data.requester===c.staffId||c.canCoordinate)&&<details className="panel hq-details"><summary>Edit request</summary><RequestForm key={record.data.version} record={record} assets={assets} busy={busy} onSave={save}/></details>}{c.canCoordinate?<DecisionForm key={record.data.version} record={record} records={workspace.records} context={c} busy={busy} act={act}/>:<p className="notice">A request coordinator will accept this into production or record a decision reason.</p>}</>}
  </>}{tab==='notes'&&<Discussion key={record.data.version} id={id} kind="request" context={c} act={act} busy={busy}/>}</>:<p className="panel">This request was not found in your workspace.</p>}</>:<>
- <div className="button-row"><Button onClick={()=>setCreating(true)}>New request</Button></div>
+ <HqPageActions><Button onClick={()=>setCreating(true)}>New Request</Button></HqPageActions>
  {creating&&<section className="panel"><RequestForm assets={assets} busy={busy} onSave={save} onCancel={()=>setCreating(false)}/></section>}
  <Choice label="Request status" value={filter} onChange={setFilter} options={{all:'All requests',...requestStatuses}}/>
- <ul className="hq-deliverables">{requests.filter(r=>filter==='all'||r.data.status===filter).map(r=><li key={r.id}><div><Link href={'/requests/'+r.id}>{r.data.title}</Link><p className="muted">{name(r.data.requester)} · Requested: {dateLabel(r.data.requestedDeadline)}</p></div><span className="tag">{requestStatuses[r.data.status]}</span></li>)}</ul>{!requests.filter(r=>filter==='all'||r.data.status===filter).length&&<p className="notice">{requests.length?'No requests match this status. Choose All requests to see the others.':'No general requests yet. Start with what you need and what it is for.'}</p>}
+ <ul className="hq-deliverables">{requests.filter(r=>filter==='all'||r.data.status===filter).map(r=><li key={r.id}><div><Link className="hq-request-link" href={'/requests/'+r.id}>{r.data.title}</Link><p className="muted">{name(r.data.requester)} · Requested: {dateLabel(r.data.requestedDeadline)}</p></div><span className="tag">{requestStatuses[r.data.status]}</span></li>)}</ul>{!requests.filter(r=>filter==='all'||r.data.status===filter).length&&<p className="notice">{requests.length?'No requests match this status. Choose All requests to see the others.':'No general requests yet. Start with what you need and what it is for.'}</p>}
  </>}</div>;
 }
 function RequestForm({record,assets,busy,onSave,onCancel}:{record?:HqRecord<HqRequest>;assets:Asset[];busy:boolean;onSave:(command:Record<string,unknown>)=>Promise<void>;onCancel?:()=>void}) {
