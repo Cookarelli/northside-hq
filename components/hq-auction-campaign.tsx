@@ -1,4 +1,5 @@
 'use client';
+import {DirectMediaUpload} from '@/components/direct-media-upload';
 import {numberedAuctionName} from '@/lib/auction-campaigns';
 import {useEffect,useId,useRef,useState} from 'react';
 import Link from 'next/link';
@@ -52,7 +53,7 @@ function AuctionReminder({record,project,context,assets,act,busy,focused}:{focus
    {editing?<AuctionDeliverableEditor record={record} project={project} context={context} assets={assets} busy={busy} act={act} onClose={()=>setEditing(false)}/>:<>
     <p className="hq-preserve-text">{d.instructions||'No description yet.'}</p>
     {d.destinationUrl&&<p><a href={d.destinationUrl} target="_blank" rel="noreferrer">Open auction / lot</a></p>}
-    <ResourceLinks {...d} available={assets}/><AssignedContent available={assets} kind="deliverable" id={record.id} attached={d.assets}/><h5>Internal notes</h5><p className="hq-preserve-text">{d.notes||'No internal notes yet.'}</p>
+    <DirectMediaUpload projectId={d.projectId} deliverableId={record.id}/><ResourceLinks {...d} available={assets}/><AssignedContent available={assets} kind="deliverable" id={record.id} attached={d.assets}/><h5>Internal notes</h5><p className="hq-preserve-text">{d.notes||'No internal notes yet.'}</p>
     {editable&&<Button variant="outline" disabled={busy} onClick={()=>setEditing(true)}>Edit deliverable</Button>}
    </>}
    <p><Link href={projectTabHref(d.projectId,'budget',{auction:d.auctionCampaignId})+'#spend-'+encodeURIComponent(record.id)}>Budget and spending →</Link></p>

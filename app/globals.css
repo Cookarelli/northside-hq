@@ -852,3 +852,16 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-breadcrumb a{font-weight:600}
 .hq-calendar-item.is-milestone{border:1px solid var(--primary);border-left-width:4px;background:var(--accent)}
 .hq-calendar-item .hq-deadline-indicator{margin-left:0}
+
+/* Media review uses one neutral status and the existing workspace surfaces. */
+.hq-direct-upload { display: grid; justify-items: start; gap: 8px; margin: 12px 0; }
+.hq-media-workflow { display: grid; align-content: start; justify-items: start; gap: 10px; min-width: 0; }
+.hq-media-destination { display: grid; gap: 4px; overflow-wrap: anywhere; font-size: 13px; }
+.hq-media-workflow .hq-details { width: 100%; margin: 0; }
+.hq-media .hq-media-workflow { margin-top: 12px; }
+.jon-history > li { grid-template-columns: 64px minmax(0,1fr) minmax(160px,240px) auto; }
+@media(max-width: 700px) {
+ .jon-history > li { grid-template-columns: 48px minmax(0,1fr); }
+ .jon-history > li > .hq-media-workflow { grid-column: 2; }
+ .hq-media-workflow button, .hq-direct-upload button { min-height: 44px; }
+}

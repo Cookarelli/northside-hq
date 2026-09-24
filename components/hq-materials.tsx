@@ -1,5 +1,7 @@
 'use client';
 import {useRef,useState} from 'react';
+import {MediaWorkflow} from '@/components/media-workflow';
+import type {AssetData} from '@/lib/asset-upload';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {materialRoles,type MaterialRole,type Project,type Deliverable,type HqRecord} from '@/lib/hq-model';
@@ -7,7 +9,7 @@ import {assignedAssetIds} from '@/lib/hq-assets';
 import {assetAccept} from '@/lib/asset-policy';
 import {auctionCalendarTitle} from '@/lib/auction-campaigns';
 import {uploadAsset,type UploadTicket} from '@/lib/asset-upload';
-export type Asset={id:string;data:{name:string;type?:string;assignedProjectId?:string;assignedDeliverableId?:string}};
+export type Asset={id:string;data:Partial<AssetData>&{name:string}};
 export type Materials={assets:string[];references:string[];assetRoles?:Record<string,MaterialRole>;linkRoles?:Record<string,MaterialRole>};
 const path=(id:string)=>'/api/assets/'+encodeURIComponent(id);
 function Media({asset}:{asset:Asset}) {
@@ -18,7 +20,7 @@ function Media({asset}:{asset:Asset}) {
  // Private signed redirects must be fetched in the user's authenticated browser.
  // eslint-disable-next-line @next/next/no-img-element
  <img src={path(asset.id)} alt={asset.data.name} onError={()=>setError(true)}/>:<video src={path(asset.id)} controls preload="metadata" onError={()=>setError(true)}/>)}
- </div>;
+ <MediaWorkflow asset={asset}/></div>;
 }
 export function ResourceLinks({assets,references,assetRoles={},linkRoles={},available}:{available:Asset[]}&Materials){return <div className="hq-material-list">{assets.map(id=><article key={id}><p className="tag">{materialRoles[assetRoles[id]||'reference']}</p><Media asset={available.find(a=>a.id===id)||{id,data:{name:'Saved asset'}}}/></article>)}{references.filter(url=>/^https:\/\//.test(url)).map(url=><article key={url}><span className="tag">{materialRoles[linkRoles[url]||'reference']}</span><a href={url} target="_blank" rel="noreferrer">{url}</a></article>)}</div>;}
 export function MaterialsEditor({value,onChange,available,onPendingChange,referenceOnly=false}:{value:Materials;onChange:(patch:Materials)=>void;available:Asset[];onPendingChange:(pending:boolean)=>void;referenceOnly?:boolean}) {
