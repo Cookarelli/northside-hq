@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import {ownerColor} from '@/lib/owner-colors';
 
 import {ConsignmentReview, OutstandingTasks} from '@/components/consignment-review';
@@ -18,7 +19,7 @@ import {clientId} from '@/lib/client-id';
 import {PLATFORMS} from '@/lib/marketing';
 import {calendarDay, calendarTime, isDateOnlyRelease, nextTuesday, type CalendarPost, type CalendarPostData} from '@/lib/content-calendar';
 
-type Props = {onSaveTemplate:(payload:TemplateSave)=>Promise<{id:string;existing:boolean}|null>; campaigns: CampaignRecord[]; onSaveCampaign: (payload: CampaignSave) => Promise<boolean>; posts: CalendarPost[]; busy: boolean; loading: boolean; onSave: (id: string, data: CalendarPostData) => Promise<boolean>};
+type Props = {area?:'entries'|'releases';onSaveTemplate:(payload:TemplateSave)=>Promise<{id:string;existing:boolean}|null>; campaigns: CampaignRecord[]; onSaveCampaign: (payload: CampaignSave) => Promise<boolean>; posts: CalendarPost[]; busy: boolean; loading: boolean; onSave: (id: string, data: CalendarPostData) => Promise<boolean>};
 const emptyDraft: CalendarPostData = {title: '', date: '', timezone: 'America/Chicago', source: 'tbd', caption: '', status: 'draft', category: 'Topical'};
 const categories = ['Topical', 'Release', 'Brand / educational', 'Consignment'] as const;
 
@@ -34,7 +35,9 @@ function exportCalendar(posts: CalendarPost[], campaigns: CampaignRecord[]) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSaveCampaign, onSaveTemplate}: Props) {
+export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSaveCampaign, onSaveTemplate,area='entries'}: Props) {
+  const router=useRouter();
+  useEffect(()=>{const target=window.location.hash.slice(1);const post=posts.find(p=>target==='legacy-entry-'+encodeURIComponent(p.id));if(post&&area==='entries'&&post.data.category==='Release'&&post.data.source==='topps')router.replace('/calendar?tab=releases#'+target);},[area,posts,router]);
   const [draft, setDraft] = useState<CalendarPostData>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [template,setTemplate]=useState<CalendarPost|null>(null);
@@ -90,7 +93,7 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
         {p.references?.length ? <ul className="calendar-references">{p.references.map((url, i) => <li key={url}><a href={url} target="_blank" rel="noreferrer">Source {i + 1}<span className="sr-only"> for {p.title}</span></a></li>)}</ul> : null}
       </details> : null}
       {p.consignment && <OutstandingTasks data={p} campaign={campaign}/>}
-      <div className="calendar-card-actions">{radar ? <Button variant="outline" asChild><Link href="/requests?view=editorial">Open editorial review</Link></Button> : <>
+      <div className="calendar-card-actions">{radar ? <Button variant="outline" asChild><Link href="/requests?tab=editorial">Open editorial review</Link></Button> : <>
         <Button variant="outline" disabled={busy} onClick={() => openDraft(post)}><Pencil size={18}/>{p.recurrence ? 'Edit series' : 'Edit draft'}</Button>
         {p.recurrence ? <Button variant="outline" disabled={busy} onClick={() => openDraft(post, true)}><Plus size={18}/>Create next draft</Button> :
           <label className="calendar-status"><span className="sr-only">Status for {p.title}</span><select value={p.status} disabled={busy} onChange={e => void onSave(post.id, {...p, status: e.target.value})}>
@@ -101,18 +104,19 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
   }
 
   return <>
-    <div className="section-title"><div><p className="eyebrow">THE CONTENT CALENDAR</p><h2>Existing entries and weekly series</h2><p className="muted">All times are Central (America/Chicago). These legacy status labels are planning history. Use HQ deliverables to record each platform’s actual publication.</p></div>
+    {area==='entries'&&<><div className="section-title"><div><p className="eyebrow">THE CONTENT CALENDAR</p><h2>Existing entries and weekly series</h2><p className="muted">All times are Central (America/Chicago). These legacy status labels are planning history. Use HQ deliverables to record each platform’s actual publication.</p></div>
       <div className="button-row"><Button variant="outline" disabled={loading || !posts.length} onClick={() => exportCalendar([...dated, ...recurring], campaigns)}><Download size={18}/>Export calendar</Button><Button onClick={() => openDraft()}><Plus size={18}/>New draft</Button></div>
     </div>
-    <ConsignmentCampaign posts={posts} campaigns={campaigns} disabled={busy || loading} onSave={onSaveCampaign}/>
-    <section className="calendar-recurring" aria-labelledby="release-calendar">
-      <div className="section-title"><div><p className="eyebrow">RELEASE CALENDAR</p><h2 id="release-calendar">Upcoming Topps releases</h2><p className="muted">Official Topps release-calendar dates. Topps notes that dates are subject to change, so use the source link to confirm before publishing release-day content.</p></div>{releases.length ? <span className="tag">{releases.length} upcoming</span> : null}</div>
+    <ConsignmentCampaign posts={posts} campaigns={campaigns} disabled={busy || loading} onSave={onSaveCampaign}/></>}
+    {area==='releases'&&<section className="calendar-recurring" aria-labelledby="release-calendar">
+      <div className="section-title"><div><p className="eyebrow">RELEASE CALENDAR</p><h2 id="release-calendar">Upcoming Topps releases</h2><Link href="/assets/research?tab=releases">Release verification →</Link><p className="muted">Official Topps release-calendar dates. Topps notes that dates are subject to change, so use the source link to confirm before publishing release-day content.</p></div>{releases.length ? <span className="tag">{releases.length} upcoming</span> : null}</div>
       {!releases.length ? <p className="panel">No Topps releases are currently loaded.</p> :
         <div className="calendar-days">{[...new Set(releases.map(p=>p.data.date.slice(0,10)))].map(day=><section key={day} aria-label={calendarDay(day)}>
           <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{releases.filter(p=>p.data.date.startsWith(day)).length} releases</span></div>
           <div className="calendar-post-grid">{releases.filter(p=>p.data.date.startsWith(day)).map(releaseCard)}</div>
         </section>)}</div>}
-    </section>
+    </section>}
+    {area==='entries'&&<>
     {loading ? <p role="status" className="notice">Loading the calendar…</p> : null}
     {!loading && !datedContent.length ? <p className="panel">No dated content drafts yet. Add your first post below.</p> : null}
     <div className="calendar-days">{days.map(day => <section key={day} aria-label={calendarDay(day)}>
@@ -140,6 +144,6 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
       {draft.consignment && <><ConsignmentReview data={draft} campaign={campaigns.find(c=>c.id===draft.consignment?.campaignId)?.data} onChange={setDraft}/><label className="field"><span>Post status</span><select value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value})}>{['draft','review','approved','published'].map(status=><option key={status} disabled={['approved','published'].includes(status) && approvalIssues(draft,campaigns.find(c=>c.id===draft.consignment?.campaignId)?.data).length>0}>{status}</option>)}</select></label></>}
       {draft.category === 'Consignment' && <ProductionFields data={draft} onChange={data => setDraft({...data, source: data.platforms?.[0] || data.source})}/>}
       <div className="button-row"><Button disabled={busy} type="submit">{busy ? 'Saving…' : editingId ? 'Save changes' : 'Save draft'}</Button>{editingId ? <Button type="button" variant="outline" onClick={() => {setEditingId(null);setTemplate(null);draftId.current=clientId();setDraft({...emptyDraft});}}>Cancel edit</Button> : null}</div>
-    </form>
+    </form></>}
   </>;
 }

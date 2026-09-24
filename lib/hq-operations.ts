@@ -1,6 +1,7 @@
 import {chicagoInstant,chicagoWall,scheduleWall} from './consignment.ts';
 import {approvalCurrent,deliverableMissing,projectMissing,productionStatuses,type Deliverable,type HqRecord,type Project,type Staff} from './hq-model.ts';
 import {isDateOnlyRelease,type CalendarPost} from './content-calendar.ts';
+import {auctionCalendarTitle} from './auction-campaigns.ts';
 export function addDays(day:string,days:number){const d=new Date(day+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
 export function instant(wall:string){try{if(/T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(wall)){const value=Date.parse(wall);return Number.isFinite(value)?value:null;}return chicagoInstant(wall);}catch{return null;}}
 export function finished(d:Deliverable){return d.status==='done'||(d.publishing&&Object.keys(d.publications).length>0&&Object.values(d.publications).every(p=>p.status==='published'));}
@@ -10,7 +11,7 @@ export function personName(id:string,staff:Staff[]){return staff.find(p=>p.id===
 export type ScheduleRow={key:string;id:string;kind:'deliverable'|'legacy';title:string;date:string;dateOnly?:boolean;projectId:string;owner:string;publisher:string;contributors:string[];format:string;platform:string;status:string;productionStatus:string;stateLabel:string;ready:boolean;action:string;recurring?:boolean};
 export function scheduleRows(records:HqRecord<Deliverable>[],projects:HqRecord<Project>[],mode:'publication'|'production',legacy:CalendarPost[]=[],from='',to=''):ScheduleRow[]{
  const rows:ScheduleRow[]=[];
- for(const {id,data:d} of records){if(d.deletedAt)continue;const p=projects.find(p=>p.id===d.projectId)?.data,base={id,kind:'deliverable' as const,title:d.title,projectId:d.projectId,owner:d.owner,publisher:d.publisher||'',contributors:d.contributors,format:d.format,productionStatus:d.status,ready:d.status==='ready'&&approvalCurrent(d,p)&&!d.blocked,action:nextAction(d,p)};
+ for(const {id,data:d} of records){if(d.deletedAt)continue;const p=projects.find(p=>p.id===d.projectId)?.data,base={id,kind:'deliverable' as const,title:auctionCalendarTitle(d),projectId:d.projectId,owner:d.owner,publisher:d.publisher||'',contributors:d.contributors,format:d.format,productionStatus:d.status,ready:d.status==='ready'&&approvalCurrent(d,p)&&!d.blocked,action:nextAction(d,p)};
   if(mode==='production'){rows.push({...base,key:id+':production',date:d.productionDue,platform:'',status:d.status,stateLabel:d.workflow==='task'?(d.status==='done'?'Complete':d.waiting?'Waiting':d.status==='to_do'?'Not Started':'In Progress'):productionStatuses[d.status]});continue;}
   if(!d.publishing)continue;
   for(const platform of d.platforms){const publication=d.publications[platform]||{status:'planned'};rows.push({...base,key:id+':'+platform,date:publication.status==='published'?publication.publishedAt||'':publication.status==='scheduled'?publication.scheduledFor||'':d.publishAt,platform,status:publication.status,stateLabel:{planned:'Planned',scheduled:'Scheduled',published:'Published'}[publication.status]});}

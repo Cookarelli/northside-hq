@@ -1,0 +1,143 @@
+# Michael Jordan consignment reminders
+
+The existing Michael Jordan campaign now belongs to the existing **Collect Weekly Auctions** project. The migration reuses all three deliverable IDs and preserves their production and publishing workflows. It does not create another project, calendar record, or asset copy.
+
+| Deliverable | Existing ID | Due and target publication, America/Chicago |
+| --- | --- | --- |
+| Michael Jordan Auction — 48 Hour Reminder | `mj-consignment-video-48h` | Friday, September 25, 2026, 9:00 PM |
+| Michael Jordan Auction — 24 Hour Reminder | `mj-consignment-video-24h` | Saturday, September 26, 2026, 9:00 PM |
+| Michael Jordan Auction — 2 Hour Reminder | `mj-consignment-video-2h` | Sunday, September 27, 2026, 7:00 PM |
+
+All three retain Jon as accountable owner, Steve and Brody as contributors, and Steve as publisher. Status remains To do; previously unspecified priority is Normal. The campaign/batch reference is **Michael Jordan Consignment**. Original creation timestamps, individual briefs, captions, assets, references, assignment metadata, and publication plans are preserved. No MJ asset or lot link existed in production at migration time, so none is invented or copied from the unrelated LeBron lot.
+
+## Architecture and preservation
+
+Continue using the existing `marketing_records` project and deliverable kinds. Deliverables use `projectId`, `owner`, `contributors`, `productionDue`, `publishAt`, `priority`, `notes`, `assets`, `references`, `destinationUrl`, `createdAt`, and `updatedAt`. Add campaign context fields (`campaignReference`, `campaignBrief`, `campaignAuction`, `auctionClosesAt`, `reminderHours`, `sourceProjectId`) without replacing the normal forms or permission checks. Save operations merge historical JSON fields, preserving the new context.
+
+The original project remains at `/projects/mj-consignment-video-2026-09-23`, with status Archived and a `migratedToProjectId` reference. Its original JSON is retained in `migrationSnapshot`, and each deliverable retains its before-migration record and source-project snapshot in `campaignMigration`. Existing comments, activity and uploaded assets remain at their original IDs. Deliverables link to the original campaign's notes/history. The app displays the migrated state and links to the parent and the three work items, hides the migrated project from the default project list and removes its obsolete project-level calendar entry. The archive remains accessible through the Archived filter or its original URL.
+
+The parent is resolved by its existing name, accepting the original singular spelling **Collect Weekly Auction**, which is renamed to the requested plural spelling. Its current brief, owner, members, budget, allocations, links, unrelated deliverables, and auction dates remain unchanged. Its separately entered auction close was Saturday, September 26 at 9:30 PM; the MJ campaign's own exact Sunday timestamp is used for these reminders.
+
+## Scheduling and migration safety
+
+`20260923204847_mj_consignment_deliverables.sql` was applied to the existing Supabase project on September 23, 2026. Its filename matches the migration version recorded by Supabase. Do not reset or reseed production, replay baseline migrations, or repair older migration history as part of this change.
+
+The transaction locks the workspace with the same advisory lock used by existing mutations, then reads current data. An exact campaign close takes priority, followed by the saved parent close. Offset timestamps are parsed as instants; timezone-free timestamps are interpreted in America/Chicago. Exact timestamps use elapsed 48, 24, and 2 hours, including daylight-saving transitions. If neither close exists, the campaign's creation week selects Sunday and the Friday/Saturday 9 PM and Sunday 7 PM wall-clock schedule. A non-Sunday saved close stops the migration for review.
+
+The migration refuses missing/ambiguous parents, unrelated ID collisions, deleted/task-workflow reminders, and already scheduled/published reminders. It preserves original approval information in the before-migration snapshot and clears the current approval/submission after moving a deliverable to a different project owner. Existing Ready work returns to Needs review. Production's three reminders were all To do with planned publications.
+
+The source migration marker makes reapplication a no-op, including versions, update timestamps, activity and notifications. Stable IDs also ensure missing reminders are created only once. A private invoker trigger prevents old clients or seed logic from reactivating the archived project or attaching deliverables back to it. Existing RLS, authentication, NDA gates, staff permissions and storage policies are unchanged.
+
+## Verification
+
+- 124 tests pass, including six database migration tests covering preservation, exact timing, DST, fallback timing, missing reminders, full replay, stale seed protection, atomic rollback, and anonymous access.
+- Typecheck and production build pass. Lint has zero errors and four pre-existing warnings in unrelated files.
+- Isolated local browser checks confirm the parent project lists the three reminders, work details display the correct Central due/publish/close times and original timestamps, and the old route displays Migrated / Archived with links and no project-editing controls. Mobile archive view has no horizontal overflow or error overlay.
+- Live verification: record count remains 29; unrelated-record and comment checksums match the pre-migration baseline. Parent fields other than title/version/update timestamp are preserved. All three original deliverable IDs now reference the existing parent.
+- Security advisor output is unchanged: private tables intentionally lack direct client policies; the pre-existing [leaked-password protection warning](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) remains outside this migration's scope.
+
+The data migration is live. The interface changes in this branch still require review and application deployment. Roll back the app if necessary while retaining the additive migration and migrated data; do not delete the archived source or reminder records.
+
+## Campaign operations on the project page
+
+The Deliverables section groups the three reminders beneath **Michael Jordan Consignment**, ordered by due time. Each row shows the reminder, full title, due date and time, owner, additional assignees, priority, status, auction close and campaign/card name. Dates use America/Chicago. Separate auction weeks stay in separate groups; published campaign work remains visible. Other project deliverables retain the existing list. Project staffing follows the operational work in a collapsed section for weekly auctions; navigation is unchanged.
+
+**Open & edit** expands an editor within the row. Staff can update content, Chicago dates/times, auction and asset links. Existing permissions still govern assignments, priority and internal notes. Publishing settings retain access to copy, format, platforms and publisher, so staff can prepare the work for approval from this page. Matching due/publish times move together when the due time changes. Failed saves preserve the draft.
+
+The six status labels are **Not Started**, **In Progress**, **Ready for Review**, **Approved**, **Scheduled**, and **Published**. Available transitions follow the existing production and review rules. Any active staff member assigned to the parent project or the individual deliverable can approve the submitted content version and record explicit confirmations for each destination; administrators retain access. Selecting Scheduled or Published opens the confirmation form without changing the displayed saved status. A row becomes Scheduled only when every destination is scheduled or published, and Published only when every destination is published. Partial progress remains visible. Existing approvals, cancellation controls and immutable publication evidence are retained; these controls do not publish to external platforms.
+
+`20260923214155_auction_deliverable_editor.sql` adds the `hub_auction_deliverable` invoker function and is applied to the connected Supabase project. It wraps the existing checked content-save and task-metadata commands in one transaction, using the same workspace lock, staff/agreement gate and optimistic version check. A metadata failure rolls back the content change and its activity/notifications. Priority/notes-only edits preserve approval and confirmed publications, including imported offset timestamps. The migration has no record writes, new tables, RLS changes or anonymous function access; replay preserves records and history.
+
+UI follow-up verification, September 23, 2026:
+
+- 128 automated tests pass, including full-stack database checks for every editor field, atomic rollback, stale versions, no-op saves, approval preservation, six status states, per-platform progress, cross-workspace denial, staff permissions, agreement gating and migration replay.
+- Typecheck and production build pass; lint has zero errors and the same four pre-existing warnings.
+- The actual Next.js UI was checked against an isolated local database running the full migration stack and real checked commands. Editing/saving and the review → approval → scheduling → publication flow persisted and rendered correctly after refresh. No fixture routes or auth bypasses are shipped.
+- Desktop (1440 px), phone (390 px), and narrow phone (320 px) layouts were checked in light/dark themes. The narrow editor and campaign rows have no horizontal overflow. No application browser errors were observed.
+- Hosted inspection confirms the new function is invoker-only with an empty search path, executable by authenticated staff but not anonymous users. Security advisor findings are unchanged from the baseline above. The three real reminder IDs, due times, versions and migration timestamps are unchanged by the UI follow-up; all remain To do. Hosted staff login/upload acceptance and application deployment remain separate rollout checks.
+
+
+## Auction #245, calendar and deliverable budgets
+
+`20260923222641_auction_campaign_permissions_budgets.sql` is applied to the connected Supabase project. It adds one `auction_campaign` metadata record beneath the existing project; it does not create a project, deliverable, calendar post, asset or staff assignment. The three existing reminders retain their IDs and content. Their `auctionCampaignId` references the campaign, and `auction_number` is the integer **245**. The parent currently has the staff-edited title **Collect Weekly Auctions #245**; that title and every other parent field remain untouched.
+
+Project members or administrators can edit the campaign name, auction number and Sunday close together from **Edit auction details**. The checked transaction mirrors these facts into the linked deliverables and recalculates elapsed 48/24/2-hour dates in America/Chicago when the close changes, including DST. A schedule change clears the affected content approval and requires renewed review. Confirmed schedules must be cancelled first; published history cannot be shifted. Name/number-only edits and bookkeeping edits preserve content approval. Existing direct due-date edits remain authoritative until the close changes. Auction reminders cannot be moved away from their campaign or parent.
+
+The existing calendar derives exactly one entry per reminder, using the numbered deliverable title, current campaign name, owner color, due time and six-state publishing status. There are no independent calendar copies or duplicate per-platform reminder entries. Links open the exact reminder inside the parent project. Changes refresh in the same tab, across tabs, on window focus and every 30 seconds while the calendar is visible.
+
+Database authorization allows any active project member, project owner, individual deliverable assignee (owner, contributor or publisher), standalone approver, or administrator to perform the applicable status transitions. Current assignments, organization membership, agreement acceptance, content versions, review prerequisites and platform evidence are checked by the database. Unrelated, inactive, unsigned and foreign-workspace staff cannot bypass the UI. Publication still records explicit platform confirmations; it does not publish externally.
+
+Every deliverable supports nullable `plannedBudgetCents` and `actualSpendCents`, bounded to 999,999,999,999 integer cents. Blank actual spend stays unknown and never blocks publication. Parsing, formatting, subtraction and aggregation use exact integers/BigInt; no floating-point financial calculations are introduced. The row editor and full deliverable view expose budget/spend entry with USD display and neutral under/over-budget wording. Bookkeeping can be updated after publication without changing approvals or publishing evidence.
+
+Project totals group deliverables by auction number within the current project. Each campaign remains visually distinct beneath its auction totals. Planned/actual totals sum recorded amounts, exclude deleted work and disclose missing amounts; individual variance remains unavailable until both values exist. Existing approved project budgets, channel allocations, promotion commitments and the spending ledger are preserved and are not double-counted in this deliverable rollup. Example spending was used only in isolated tests; all three live budgets remain blank.
+
+Verification for this follow-up:
+
+- 135 tests pass, including exact cents and large sums; nullable actual spend at publication; project-only, individual-only and admin status flows; unrelated/foreign/inactive/unsigned rejection; anonymous RPC denial; version conflicts; parent protection; atomic rollback; confirmed-schedule protection; and full migration replay preserving financial/publication history.
+- Migration tests explicitly clear the staff JWT before the backfill. System writes use the existing `migration` audit actor. The first connected attempt exposed this distinction and rolled back; a later connection lock conflict also rolled back before a successful application. No partial records survived either failure.
+- Typecheck and production build pass. Lint has no errors and the same four existing warnings.
+- Browser verification used the actual UI against isolated PostgreSQL workflow functions. Saving $150.00/$142.37 showed $7.63 under budget in the reminder and auction rollup. Changing the close to 9:30 PM updated reminders to 9:30 PM Friday/Saturday and 7:30 PM Sunday. Number/name edits, direct calendar links and mobile layouts persisted correctly, with no browser errors or horizontal overflow.
+- Connected verification: project count remains 4, deliverable count 7 and legacy calendar-post count 19. Exactly one auction metadata record was added. The parent record is byte-for-byte unchanged. Each MJ record changed only its auction association/number and version/update timestamp; dates, owner, content, history and other metadata were preserved. New public functions are invoker-only, empty-search-path, authenticated-only. Security advisor results match the baseline already documented above.
+
+Application changes remain in the existing draft PR and require the repository's production merge/deployment approval. No fixture API, auth bypass, example budget or test staff data is included in the shipped changes.
+
+## Reusable weekly auction campaigns
+
+**Collect Weekly Auctions** remains the permanent parent. Its Deliverables section now provides **Add Auction Campaign** to active project members, the project owner and administrators. The form suggests the largest saved integer auction number plus one, allows an unused number to be entered, and collects the campaign name, featured card description, platform, auction and lot URLs, actual Chicago closing date/time, primary owner, additional assignees, asset links, internal notes and optional campaign budget. A new campaign defaults to 9 PM but requires its actual Sunday closing date. The next suggestion is currently **#246**. Creating future campaigns does not create or rename a project.
+
+One checked database transaction creates the campaign and its 48-, 24- and 2-hour reminders. Titles start with the auction number and campaign name. Dates are calculated from the actual close using elapsed hours, then displayed in America/Chicago; this includes daylight-saving transitions. Owner, contributors, card information, links, assets and notes are inherited initially. Each reminder retains independent assignments, due dates, status, notes, budget and actual spend. Shared campaign edits refresh campaign context without replacing independent content. Untouched generated titles follow campaign name/number changes, while custom reminder titles are retained. Changing the closing timestamp recalculates reminder dates under the existing approval and publication-history safeguards.
+
+Campaigns appear newest auction number first. The existing calendar continues to derive exactly one item per deliverable and opens that item within the parent project. There is no new navigation, calendar-copy table or weekly project generator.
+
+Campaign budget is a separate optional planning target. Staff may allocate any amount across the three reminder budgets while creating the auction and edit individual amounts later. The page shows the campaign target, allocated total and unallocated or overallocated difference, plus planned, actual and variance totals. Actual spend starts blank and never blocks publication. All monetary values use bounded integer cents and exact BigInt arithmetic; no project budget approval, channel allocation or spending-ledger entry is inferred from these planning amounts.
+
+Campaign owner and additional assignees now qualify for work/status permissions alongside parent-project members, individual deliverable assignees and administrators. Database authorization reads current canonical campaign membership, verifies the matching parent and workspace, and retains active-staff, agreement, content-review and publishing-confirmation checks. Removing campaign membership removes that source of access immediately; separate project or deliverable assignments continue to apply. Shared campaign editing is available to project members, the campaign owner and administrators. Existing assignment and metadata management permissions remain in effect.
+
+`20260923230031_reusable_weekly_auctions.sql` is applied to the connected Supabase project. It adds unique indexes for auction number within a workspace and reminder type within a campaign, including deleted reminders so their identities cannot be replaced by duplicates. The creation command uses the existing workspace transaction lock, deterministic reminder IDs and a saved creation request. Repeating the same request returns the existing campaign without modifying later edits. Reusing its ID with changed input, duplicate numbers and reminder collisions are rejected atomically. The public creation function is invoker-only and unavailable to anonymous users; all writes go through the existing checked transaction architecture. No RLS access was widened.
+
+The migration initializes existing campaign membership from preserved reminder assignments. For #245, this is Jon with Steve and Brody as additional assignees. Existing individual owners, contributors, dates, content, budgets, publications, notes, source snapshots and parent data remain untouched. Missing card, lot, asset and budget values remain blank; no fictional auction or spending was added.
+
+Verification for the reusable workflow:
+
+- **142 tests pass**, including atomic creation, MAX+1 suggestions, unique numbers/reminders, repeated and competing submissions, partial/over-allocation, independent edits and removal of inherited links/assignees, campaign-only review through publication with blank actual spend, membership revocation, malformed input, authorization denial, rollback, DST and full migration replay with unchanged records/history.
+- Typecheck and production build pass. Lint has zero errors and the same four existing warnings.
+- The actual browser UI against isolated PostgreSQL functions created a sample #246 with three reminders and suggested #247 next. A $450 campaign target and $400 allocation showed $50 unallocated; editing the two-hour budget brought allocations to $450 and the balance to $0. Calendar reminders had the correct number, dates, times and owner, and opened the matching deliverable inside the project. Desktop and 390 px phone views had no overflow or application errors. These sample records exist only in the isolated preview.
+- Connected verification preserved all **32** existing record IDs and protected-field checksums: 4 projects, 7 deliverables, 19 legacy calendar posts, 1 request and the single #245 campaign. The only record changes initialize campaign metadata/mirrors and their version/update timestamps. Both new unique indexes are valid. Anonymous creation is denied. Security advisor findings are unchanged from the linked baseline above.
+
+The additive database migration is live. The reusable UI remains in the existing draft PR pending Steve's merge/deployment approval, as required by the repository README. Hosted staff-login acceptance is still a rollout check; the isolated verification does not claim to authenticate as a real staff member.
+
+## Weekly usability, channel spending and reconciliation
+
+The permanent project page now presents **Collect Weekly Auctions → #number — campaign → reminder** without repeating the campaign, close, priority and assignment details on every closed row. The stored staff-edited project title and historical project dates remain preserved; the weekly operational heading uses the permanent project name and each campaign's actual close. Newest auction numbers still appear first. Add Auction Campaign is the main creation action; existing manual work controls remain below campaign work.
+
+Closed reminder rows show the status dropdown, owner, Chicago due date/time and compact amounts such as **Budget $175 · Actual $160 · $15 under**. Staff change status directly in the row. Scheduling/publication still use explicit inline platform confirmations; no edit modal or external publishing is introduced. Extra assignment, card, link, note and spending details are available after opening the deliverable. Completed platform history stays accessible there without cluttering the closed row.
+
+The campaign header shows its Sunday close, budget, actual, variance and reconciliation state in an aligned layout. The optional campaign budget is the comparison target; otherwise recorded deliverable plans provide the total. A wholly unset budget displays **Not set**, and incomplete actual spending does not appear as zero or a final variance. Allocation differences remain visible only when a campaign target differs from its deliverable plans.
+
+### Spend by channel
+
+Opened auction deliverables, including their full detail pages, provide **Spend by channel** with a channel/cost type, exact USD amount, Chicago spending date and optional note. New entries update the deliverable actual, campaign totals and existing project ledger in one database transaction. Actual amount fields in auction budget editors are read-only; channel entries are the source of the total. **Confirm no spend** explicitly records zero while leaving unknown spend blank until confirmed.
+
+This reuses `hq_spend`, with optional `deliverable_id` and `auction_campaign_id` links. Existing unassigned project spending remains untouched and is not guessed into campaigns. A prior manually entered deliverable actual is preserved once as a visible “Previously recorded” opening entry when channel tracking starts. Subsequent entries add to it. Corrections create a matching negative entry and retain the original amount, channel, note and actor. Duplicate requests and repeated corrections are protected. The existing project correction screen routes linked entries through the same checked path, so it cannot leave reminder totals stale or bypass deliverable authorization. Once channel entries exist, the database rejects an aggregate actual that disagrees with their sum.
+
+### Reconciliation
+
+- **Open:** work remains unpublished, a required reminder is missing, or actual spend is unknown.
+- **Ready:** all three reminder types exist, every active campaign deliverable is published on all its platforms, and actual spending is recorded or explicitly zero.
+- **Reconciled:** an authorized project member, campaign owner or administrator selects **Reconcile Auction**. The database checks the campaign and every deliverable version again, then records the actor, timestamp and financial snapshot. Retries do not duplicate reconciliation history.
+
+Reconciled auctions show a clear **RECONCILED** badge and remain fully inspectable. Financial, publication or campaign target changes clear the current reconciliation and require another review; prior snapshots remain in activity history. Corrections never erase source entries. Reconciliation does not change publishing permissions, purchase advertising, move money or require a balanced allocation plan.
+
+The project view refreshes on record notifications, other-tab changes, window focus and a visible-page interval. Open editors retain their drafts, and in-flight reads cannot replace a newer completed save. The calendar retains one derived reminder per deliverable, its owner color and deep link. A naming fix preserves “Auction” when it is part of a new campaign name, while keeping the legacy Michael Jordan calendar title concise.
+
+### Final verification
+
+`20260924023553_auction_spending_reconciliation.sql` is applied to the connected Supabase project. It adds ledger links, checked finance/reconciliation commands and synchronization guards, without rewriting existing records or spending. All **32 existing records** matched their exact JSON checksums after application; all **7 existing spending entries** retained their original fields and remain unassigned. No live future auction, test spending or reconciliation was created. RLS and the staff/agreement gates remain enforced. The public finance function is invoker-only, uses an empty search path and is not executable by anonymous users. Security advisor findings match the previously documented baseline.
+
+- **148 tests pass**, including channel totals, no-spend confirmation, preserved manual actuals, corrections through both screens, immutable history, stale reconciliation rejection, permission denial, exact cents, rollback, safe retries and full migration replay.
+- Typecheck and production build pass. Lint has zero errors and the same four pre-existing warnings.
+- The actual browser UI against isolated PostgreSQL functions completed **create #246 → automatically generate three reminders → assign Jon/Steve → allocate $175/$150/$125 → update row statuses as Brody (parent member only) → record $160/$140/$120 by channel → view calendar and follow its reminder link → approve and confirm publication → reconcile**. The page showed **$450 budget, $420 actual, $30 under, RECONCILED**.
+- A further $0.37 entry reopened reconciliation. Correcting it retained both entries, restored the original total, and allowed reconciliation again. All source deliverables and spend history remained inspectable.
+- Desktop, 390 px phone and 320 px narrow-phone layouts were visually checked, including light/dark themes. No horizontal overflow or application browser errors were observed. Protected hosted staff-login/upload acceptance remains a separate rollout check.
+
+The application changes remain in draft PR #13 pending the README's production merge/deployment approval. Local preview routes, staff fixtures and authentication bypasses are outside the repository and are not shipped.

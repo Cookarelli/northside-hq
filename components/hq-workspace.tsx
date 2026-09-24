@@ -4,18 +4,26 @@ import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
 import Link from 'next/link';
 import {activityLabel} from '@/lib/hq-presentation';
 import {useRouter,useSearchParams} from 'next/navigation';
+import {HqSubnavigation} from '@/components/hq-subnavigation';
+import {selectedTab} from '@/lib/hq-tabs';
+import {auctionNavigation,projectSections,projectTabHref} from '@/lib/hq-project-navigation';
+import {AuctionViews} from '@/components/hq-auction-views';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
-import {MaterialsEditor,ResourceLinks,type Asset} from '@/components/hq-materials';
+import {MaterialsEditor,ResourceLinks,AssignedContent,ProjectAssetList,type Asset} from '@/components/hq-materials';
 import {ownerColor,projectColor} from '@/lib/owner-colors';
 import {StaffPicker} from '@/components/staff-picker';
 import {ProjectTaskForm,TaskActions,DeliverableDetails} from '@/components/project-task';
 import {canManageTask,primaryOwnerLabel,projectOwnerOptions,taskAssignees,urgencySort} from '@/lib/project-tasks';
 import {useHqClock} from '@/components/use-hq-clock';
 import {HqWorkItem} from '@/components/hq-work-item';
+import {AuctionSpending} from '@/components/auction-spending';
+import {DeliverableBudget} from '@/components/deliverable-budget';
+import {isWeeklyAuctionHome,type AuctionCampaignData} from '@/lib/auction-campaigns';
 import {HqProjectDeliverables} from '@/components/hq-project-deliverables';
 import {HqProjectCard} from '@/components/hq-project-card';
+import {HqCampaignContext,DeliverableTimestamps} from '@/components/hq-campaign-context';
 import {HqSpending} from '@/components/hq-spending';
 import {PublishingPackagePanel} from '@/components/hq-publishing-package';
 import {ConsignmentReview} from '@/components/consignment-review';
@@ -24,7 +32,7 @@ import {clientId} from '@/lib/client-id';
 import {approvalCurrent,auctionFor,blankDeliverable,blankProject,canWork,deliverableDraft,deliverableMissing,destinations,effortLevels,evidencePost,productionStatuses,projectDraft,projectMissing,projectStatuses,projectTypes,recordedTime,type Deliverable,type DeliverableInput,type HqContext,type HqRecord,type Project,type ProjectInput,type Staff,type WorkspaceRecord} from '@/lib/hq-model';
 
 export type Action=(command:Record<string,unknown>)=>Promise<{id?:string}|null>;
-import {json,loadWorkspace,type Workspace} from '@/lib/hq-client';
+import {json,loadWorkspace,notifyWorkspaceChanged,type Workspace} from '@/lib/hq-client';
 export {json,loadWorkspace,type Workspace} from '@/lib/hq-client';
 
 export const money=(cents:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
@@ -34,15 +42,24 @@ export function Choice({label,value,onChange,options,disabled=false}:{label:stri
 export function Person({label,value,onChange,staff,disabled=false}:{label:string;value:string;onChange:(v:string)=>void;staff:Staff[];disabled?:boolean}) {return <Choice label={label} value={value} onChange={onChange} disabled={disabled} options={{'':'Choose a person',...Object.fromEntries(staff.map(s=>[s.id,s.name])),...(value&&!staff.some(s=>s.id===value)?{[value]:value+' (inactive; reassign)'}:{})}}/>;}
 export function Missing({items}:{items:string[]}) {return items.length?<div className="notice"><strong>Needs attention</strong><ul>{items.map(x=><li key={x}>{x}</li>)}</ul></div>:<p className="muted">Required information is complete.</p>;}
 
-export function HqWorkspace({view='list',id}:{view?:'list'|'project'|'deliverable';id?:string}) {
-  const searchParams=useSearchParams();
+export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'project'|'deliverable';id?:string;area?:string}) {
+  const searchParams=useSearchParams(),now=useHqClock();
   const [workspace,setWorkspace]=useState<Workspace|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[retry,setRetry]=useState(0),[create,setCreate]=useState<'project'|'deliverable'|'task'|null>(()=>searchParams.get('create')==='project'?'project':null);
-  const lock=useRef(false),errorRef=useRef<HTMLDivElement>(null),router=useRouter();
+  const generation=useRef(0),lock=useRef(false),errorRef=useRef<HTMLDivElement>(null),router=useRouter();
   useEffect(()=>{if(error)errorRef.current?.focus();},[error]);
   useEffect(()=>{const controller=new AbortController();loadWorkspace(controller.signal).then(setWorkspace).catch(e=>{if(!controller.signal.aborted)setError(e.message);});return()=>controller.abort();},[retry]);
+  useEffect(()=>{
+    if(view==='list')return;
+    let active=true,loading=false;
+    const editing=()=>!!document.querySelector('.hq-auction-editor,.hq-auction-settings,details[open]>form,form:focus-within');
+    const refresh=async()=>{if(loading||lock.current||document.visibilityState!=='visible'||editing())return;loading=true;const start=generation.current;try{const next=await loadWorkspace();if(active&&!lock.current&&start===generation.current&&!editing())setWorkspace(next);}catch(e){if(active)setError((e as Error).message);}finally{loading=false;}};
+    const channel=typeof BroadcastChannel==='undefined'?null:new BroadcastChannel('northside-hq-records');if(channel)channel.onmessage=()=>void refresh();
+    window.addEventListener('hq-records-changed',refresh);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);const timer=setInterval(refresh,30000);
+    return()=>{active=false;clearInterval(timer);channel?.close();window.removeEventListener('hq-records-changed',refresh);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
+  },[view,id]);
   const act:Action=async command=>{
-    if(lock.current)return null;lock.current=true;setBusy(true);setError('');setNotice('');
-    try {const result=await json<{id?:string}>('/api/hq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(command)});setWorkspace(await loadWorkspace());setNotice('Saved.');window.dispatchEvent(new Event('hq-records-changed'));return result;}
+    if(lock.current)return null;generation.current++;lock.current=true;setBusy(true);setError('');setNotice('');
+    try {const result=await json<{id?:string}>('/api/hq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(command)});setWorkspace(await loadWorkspace());setNotice('Saved.');notifyWorkspaceChanged();return result;}
     catch(e){setError((e as Error).message);return null;}finally{lock.current=false;setBusy(false);}
   };
   const reload=()=>{setError('');setRetry(n=>n+1);};
@@ -50,63 +67,124 @@ export function HqWorkspace({view='list',id}:{view?:'list'|'project'|'deliverabl
   const {context:c,records}=workspace;
   const projects=records.filter(r=>r.kind==='project') as HqRecord<Project>[],deliverables=records.filter(r=>r.kind==='deliverable') as HqRecord<Deliverable>[],assets=records.filter(r=>r.kind==='asset') as Asset[];
   const project=view==='project'?projects.find(p=>p.id===id):undefined,deliverable=view==='deliverable'?deliverables.find(d=>d.id===id):undefined;
+  const campaigns=records.filter(r=>r.kind==='auction_campaign') as HqRecord<AuctionCampaignData>[];
+  const weeklyHome=!!project&&isWeeklyAuctionHome(project,campaigns);
+  const projectCampaigns=campaigns.filter(r=>r.data.projectId===project?.id);
+  const auctions=auctionNavigation(projectCampaigns,now??0);
   const parent=deliverable?projects.find(p=>p.id===deliverable.data.projectId):project;
   const eligibleProjects=projects.filter(p=>!['completed','archived'].includes(p.data.status)&&(c.admin||p.data.owner===c.staffId||p.data.members.includes(c.staffId)));
+  const tabs=project?projectSections(project,deliverables,assets,weeklyHome,eligibleProjects.some(p=>p.id===project.id),auctions.history.length>0,projectCampaigns):[];
+  const projectTab=selectedTab(tabs,searchParams.get('tab'),searchParams.has('deliverable')?'deliverables':weeklyHome?'current-auction':deliverables.some(d=>d.data.projectId===project?.id&&!d.data.deletedAt)?'deliverables':'overview');
+  const workTabs=[{id:'work',label:'Work'},...(deliverable&&(deliverable.data.assets.length||deliverable.data.references.length||assets.some(a=>a.data.assignedDeliverableId===deliverable.id))?[{id:'assets',label:'Assets'}]:[]),{id:'budget',label:'Budget'},...(deliverable?.data.publishing&&deliverable.data.workflow!=='task'?[{id:'publishing',label:'Publishing'}]:[]),...(deliverable?.data.editorialSource||deliverable?.data.legacyPost?[{id:'source',label:'Source review'}]:[]),{id:'notes',label:'Notes / Activity'}];
+  const workTab=selectedTab(workTabs,searchParams.get('tab'),'work');
+  const focusedCampaign=searchParams.get('deliverable')?undefined:projectCampaigns.find(c=>c.id===searchParams.get('auction'));
   const name=(staffId:string)=>c.staff.find(s=>s.id===staffId)?.name||staffId||'Unassigned';
   async function createRecord(command:Record<string,unknown>) {const result=await act(command);if(result?.id){setCreate(null);router.push(command.action==='save-project'?'/projects/'+result.id:'/projects/work/'+result.id);}}
+  if(project?.data.migratedToProjectId) {
+    const archivedTabs=[{id:'overview',label:'Original campaign'},{id:'notes',label:'Notes / Activity'}],archivedTab=selectedTab(archivedTabs,searchParams.get('tab'),'overview');
+    const destination=projects.find(p=>p.id===project.data.migratedToProjectId);
+    return <div className="hq-records"><Link href="/projects">← All projects and work</Link>
+      {error&&<p role="alert" className="notice error">{error}</p>}{notice&&<p role="status">{notice}</p>}
+      <HqSubnavigation tabs={archivedTabs} active={archivedTab} label="Archived project sections"/>
+      {archivedTab==='overview'&&<><section className="panel"><p className="tag">Migrated · Archived</p><h2>{project.data.title}</h2>
+        <p>This campaign is now managed as separate deliverables under <Link href={'/projects/'+encodeURIComponent(project.data.migratedToProjectId)+'?tab=deliverables'}>{destination?.data.title||'Collect Weekly Auctions'}</Link>.</p>
+        {project.data.migratedAt&&<p className="hq-meta">Moved {recordedTime(project.data.migratedAt)}</p>}
+        <ul>{deliverables.filter(d=>d.data.sourceProjectId===project.id).map(d=><li key={d.id}><Link href={projectTabHref(d.data.projectId,'deliverables',{deliverable:d.id})}>{d.data.title}</Link></li>)}</ul>
+      </section>
+      <section className="panel"><h2>Original campaign information</h2><p className="hq-preserve-text">{project.data.brief}</p><p>Original owner: {name(project.data.owner)} · Assigned staff: {project.data.members.map(name).join(', ')}</p><ResourceLinks {...project.data} available={assets}/></section></>}
+      {archivedTab==='notes'&&<Discussion key={'discussion:'+project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>}
+    </div>;
+  }
   return <div className="hq-records">
     {view!=='list'&&<Link href="/projects">← All projects and work</Link>}
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
     {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
     {view==='list'&&<>
-      <div className="section-title"><div><h2>Projects</h2><p className="muted">Scope the work, assign production and review each destination.</p></div><div className="button-row"><Button onClick={()=>setCreate('project')}>Add project</Button><Button variant="outline" onClick={()=>setCreate('deliverable')}>New standalone work</Button></div></div>
+      {['projects','deliverables'].includes(area)&&<><div className="section-title"><div><h2>{area==='deliverables'?'All deliverables':'Projects'}</h2><p className="muted">Scope the work, assign production and review each destination.</p></div><div className="button-row">{area==='projects'&&<Button onClick={()=>setCreate('project')}>Add project</Button>}<Button variant="outline" onClick={()=>setCreate('deliverable')}>New standalone work</Button></div></div>
       {create==='project'&&<ProjectForm initial={{...blankProject,owner:Object.hasOwn(projectOwnerOptions(c.staff),c.staffId)?c.staffId:''}} context={c} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
       {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
-      <ProjectList projects={projects} deliverables={deliverables} name={name}/>
-      <section className="panel"><h2>All deliverables</h2><DeliverableList records={deliverables} projects={projects} context={c} act={act} busy={busy}/></section>
-      <LegacyAdoption records={records} context={c} act={act} busy={busy}/><EditorialHandoff records={records} context={c} act={act} busy={busy}/>
-      {c.admin&&<details className="panel hq-details"><summary>Workspace permissions</summary><h3>Budget approval</h3><p>Grant this separately from project ownership. Only these people can establish or change approved budgets.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={s.budgetApprover} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,enabled:e.target.checked})}/>{s.name}</label>)}</div><h3>Request coordinators</h3><p>These people can accept or decline requests and link them to production work.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={!!s.requestCoordinator} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,capability:'coordinate_requests',enabled:e.target.checked})}/>{s.name}</label>)}</div></details>}
+      </>}
+      {area==='projects'&&<ProjectList projects={projects} deliverables={deliverables} name={name}/>}
+      {area==='deliverables'&&<section className="panel"><DeliverableList records={deliverables} projects={projects} context={c} act={act} busy={busy}/></section>}
+      {area==='handoffs'&&<><LegacyAdoption records={records} context={c} act={act} busy={busy}/><EditorialHandoff records={records} context={c} act={act} busy={busy}/></>}
+      {area==='permissions'&&(c.admin?<section className="panel"><h2>Workspace permissions</h2><h3>Budget approval</h3><p>Grant this separately from project ownership. Only these people can establish or change approved budgets.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={s.budgetApprover} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,enabled:e.target.checked})}/>{s.name}</label>)}</div><h3>Request coordinators</h3><p>These people can accept or decline requests and link them to production work.</p><div className="hq-checks">{c.staff.map(s=><label key={s.id}><input type="checkbox" checked={!!s.requestCoordinator} disabled={busy} onChange={e=>void act({action:'permission',staffId:s.id,capability:'coordinate_requests',enabled:e.target.checked})}/>{s.name}</label>)}</div></section>:<p className="panel">Only administrators can manage workspace permissions.</p>)}
     </>}
-    {view!=='list'&&<SourceRequests records={records} kind={view} id={id!}/>}
+
+
     {view==='project' &&(project?<>
-      <section className="panel hq-owner-row hq-project-header" style={{borderLeftColor:projectColor(project.data,name).accent}}><p className="hq-meta">{projectTypes[project.data.type]}</p><h2>{project.data.title}</h2><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><span className="tag">{projectStatuses[project.data.status]}</span><span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span></div></section>
+      <section className="panel hq-owner-row hq-project-header" style={{borderLeftColor:projectColor(project.data,name).accent}}><p className="hq-meta">{projectTypes[project.data.type]}</p><h2>{weeklyHome?'Collect Weekly Auctions':project.data.title}</h2><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><span className="tag">{projectStatuses[project.data.status]}</span>{!weeklyHome&&<span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span>}</div></section>
+      <HqSubnavigation tabs={tabs} active={projectTab} label="Project sections"/>
+      {weeklyHome&&['current-auction','auction-history','budget'].includes(projectTab)&&!(projectTab==='budget'&&searchParams.get('scope')==='project')&&<AuctionViews key={projectTab} area={projectTab as 'current-auction'|'auction-history'|'budget'} current={auctions.current} history={auctions.history} campaigns={projectCampaigns} selected={searchParams.get('auction')||''} records={deliverables} project={project} context={c} assets={assets} act={act} busy={busy}/>}
+      {projectTab==='overview'&&<>
       {(c.admin||project.data.owner===c.staffId||(!project.data.owner&&project.data.createdBy===c.staffId))&&<details className="panel hq-details"><summary>Edit project</summary><ProjectForm key={project.data.version} record={project} initial={projectDraft(project.data)} context={c} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/></details>}
-      <section className="panel hq-project-people"><h2>People</h2><div className="two-fields"><div><p className="hq-meta">Primary owner</p><strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></div><div><p className="hq-meta">Assigned staff</p><p>{project.data.members.map(name).join(', ')||'No staff assigned yet. Use Edit project to add people.'}</p></div></div></section>
-      <section className="panel"><div className="section-title"><h2>Deliverables</h2>{eligibleProjects.some(p=>p.id===project.id)&&<div className="button-row"><Button onClick={()=>setCreate('task')}>Add deliverable</Button><Button variant="outline" onClick={()=>setCreate('deliverable')}>Add publishing work</Button></div>}</div>
+      <section className="panel hq-project-people"><h2>Project owner and staff</h2><div className="two-fields"><div><p className="hq-meta">Primary owner</p><strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></div><div><p className="hq-meta">Assigned staff</p><p>{project.data.members.map(name).join(', ')||'No staff assigned yet. Use Edit project to add people.'}</p></div></div></section>
+      <section className="panel"><h2>Project information</h2><p className="hq-preserve-text">{project.data.brief||'No description yet.'}</p>{project.data.auctionOpensAt&&<p>Starts: {dateLabel(project.data.auctionOpensAt)}</p>}<Missing items={projectMissing(project.data)}/></section>
+      {project.data.legacyCampaignId&&<p className="notice">Adopted campaign: original records are preserved as history. Dates, assignments and approvals are now managed here.</p>}
+      <SourceRequests records={records} kind="project" id={project.id}/>
+      </>}
+      {projectTab==='deliverables'&&<>
+      <section className="panel"><div className="section-title"><h2>Deliverables</h2>{!weeklyHome&&eligibleProjects.some(p=>p.id===project.id)&&<div className="button-row"><Button onClick={()=>setCreate('task')}>Add deliverable</Button><Button variant="outline" onClick={()=>setCreate('deliverable')}>Add publishing work</Button></div>}</div>
         {create==='task'&&<ProjectTaskForm project={project} context={c} busy={busy} onSave={act} onCancel={()=>setCreate(null)}/>}
         {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId,projectId:project.id}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
-        <HqProjectDeliverables records={deliverables.filter(d=>d.data.projectId===project.id)} project={project} context={c} act={act} busy={busy}/>
+        {weeklyHome&&<div className="button-row"><label className="field"><span>Auction</span><select value={focusedCampaign?.id||''} onChange={e=>router.push(projectTabHref(project.id,'deliverables',{auction:e.target.value}))}><option value="">All auctions</option>{[...projectCampaigns].sort((a,b)=>b.data.auction_number-a.data.auction_number).map(c=><option key={c.id} value={c.id}>#{c.data.auction_number} — {c.data.name}</option>)}</select></label><Link href={projectTabHref(project.id,'current-auction')}>Current auction →</Link></div>}
+        <HqProjectDeliverables focused={searchParams.get('deliverable')||''} campaigns={records.filter(r=>r.kind==='auction_campaign') as HqRecord<AuctionCampaignData>[]} assets={assets} records={deliverables.filter(d=>d.data.projectId===project.id&&(!focusedCampaign||d.data.auctionCampaignId===focusedCampaign.id))} project={project} context={c} act={act} busy={busy}/>
+        {weeklyHome&&eligibleProjects.some(p=>p.id===project.id)&&<div className="button-row"><Button variant="outline" onClick={()=>setCreate('task')}>Add other deliverable</Button><Button variant="outline" onClick={()=>setCreate('deliverable')}>Add other publishing work</Button></div>}
       </section>
-      <section className="panel"><h2>Project information</h2><p className="hq-preserve-text">{project.data.brief||'No description yet.'}</p>{project.data.auctionOpensAt&&<p>Starts: {dateLabel(project.data.auctionOpensAt)}</p>}<Missing items={projectMissing(project.data)}/><ResourceLinks {...project.data} available={assets}/></section>
-      <details className="panel hq-details"><summary>Budget and spending</summary><BudgetPanel project={project} context={c} act={act} busy={busy} name={name}/><HqSpending project={project} context={c}/></details>
       {deliverables.some(d=>d.data.projectId===project.id&&d.data.deletedAt)&&<details className="panel hq-details"><summary>Deleted deliverables</summary><ul>{deliverables.filter(d=>d.data.projectId===project.id&&d.data.deletedAt).map(d=><li key={d.id}><Link href={'/projects/work/'+d.id}>{d.data.title}</Link></li>)}</ul></details>}
-      {project.data.legacyCampaignId&&<p className="notice">Adopted campaign: original records are preserved as history. Dates, assignments and approvals are now managed here.</p>}
-      <Discussion key={project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>
+      </>}
+      {projectTab==='assets'&&<section className="panel"><div className="section-title"><h2>Project files and links</h2><Link href="/assets?tab=jons-content">Jon&apos;s Content →</Link></div><ProjectAssetList project={project} deliverables={deliverables} available={assets}/>{projectCampaigns.filter(c=>c.data.assetLinks?.length).map(c=><article key={c.id}><h3>#{c.data.auction_number} — {c.data.name}</h3><ul>{c.data.assetLinks!.map(url=><li key={url}><a href={url} target="_blank" rel="noreferrer">{url}</a></li>)}</ul></article>)}</section>}
+      {projectTab==='budget'&&<>
+
+      {weeklyHome&&<p><Link href={projectTabHref(project.id,'budget')+(searchParams.get('scope')==='project'?'':'&scope=project')}>{searchParams.get('scope')==='project'?'← Auction budgets & reconciliation':'Project-wide budget and spending →'}</Link></p>}
+      {(!weeklyHome||searchParams.get('scope')==='project')&&<div className="hq-tab-panel"><BudgetPanel project={project} context={c} act={act} busy={busy} name={name}/><HqSpending project={project} context={c}/></div>}
+      </>}
+      {projectTab==='notes'&&<>
+      <Discussion key={'discussion:'+project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>
+      </>}
     </>:<p className="panel">This project was not found in your workspace.</p>)}
-    {view==='deliverable'&&(deliverable?deliverable.data.deletedAt?<DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>:deliverable.data.workflow==='task'?<>
-      <section className="panel"><p>{parent&&<Link href={'/projects/'+parent.id}>{parent.data.title}</Link>}</p><h2>{deliverable.data.title}</h2><p>Primary project owner: {primaryOwnerLabel(parent?.data.owner||'',c.staff)}</p><p>Assigned staff: {taskAssignees(deliverable.data).map(name).join(', ')}</p><p className="hq-preserve-text">{deliverable.data.instructions||'No description'}</p><p>Due: {dateLabel(deliverable.data.productionDue)}{deliverable.data.endAt?' → '+dateLabel(deliverable.data.endAt):''}</p></section>
+    {view==='deliverable'&&(deliverable?deliverable.data.deletedAt?<><DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/><DeliverableTimestamps deliverable={deliverable.data}/></>:<>
+      <div className="section-title"><h2>{deliverable.data.title}</h2>{parent&&<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>← {parent.data.title} · Deliverables</Link>}</div>
+      <HqSubnavigation tabs={workTabs} active={workTab} label="Deliverable sections"/>
+      {workTab==='work'&&<>
+      <SourceRequests records={records} kind="deliverable" id={deliverable.id}/>
+      {deliverable.data.workflow==='task'?<>
+      <section className="panel"><h3>Work details</h3><p>Primary project owner: {primaryOwnerLabel(parent?.data.owner||'',c.staff)}</p><p>Assigned staff: {taskAssignees(deliverable.data).map(name).join(', ')}</p><p className="hq-preserve-text">{deliverable.data.instructions||'No description'}</p><p>Due: {dateLabel(deliverable.data.productionDue)}{deliverable.data.endAt?' → '+dateLabel(deliverable.data.endAt):''}</p></section>
       <TaskActions record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
       {parent&&!['completed','archived'].includes(parent.data.status)&&canManageTask(deliverable.data,parent.data,c)&&<><Button variant="outline" onClick={()=>setCreate('task')}>Edit deliverable</Button>{create==='task'&&<ProjectTaskForm key={deliverable.data.version} project={parent} record={deliverable} context={c} busy={busy} onSave={act} onCancel={()=>setCreate(null)}/>}</>}
-      <DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
-      <Discussion key={deliverable.data.version} id={deliverable.id} kind="deliverable" context={c} act={act} busy={busy}/>
-    </>:<>
-      <section className="panel hq-owner-row" style={{borderLeftColor:(parent?projectColor(parent.data,name):ownerColor(deliverable.data.owner,name(deliverable.data.owner))).accent}}><p className="eyebrow">{parent?<Link href={'/projects/'+parent.id}>{parent.data.title}</Link>:'Standalone work'}</p><h2>{deliverable.data.title}</h2><p>Accountable owner: {name(deliverable.data.owner)} · Approver: {name(parent?.data.owner||deliverable.data.approver)}</p><p className="hq-preserve-text">{deliverable.data.instructions||'Instructions not yet recorded.'}</p><p>Effort: {deliverable.data.effort?effortLevels[deliverable.data.effort]:'Unknown'}{deliverable.data.estimatedHours!==null?' · '+deliverable.data.estimatedHours+' estimated hours':''}</p><p>Contributors: {deliverable.data.contributors.map(name).join(', ')||'None'}</p>{deliverable.data.publishing&&<><p>Format: {deliverable.data.format||'Not set'}</p><p className="hq-preserve-text">{deliverable.data.caption}</p>{deliverable.data.destinationUrl&&<a href={deliverable.data.destinationUrl} target="_blank" rel="noreferrer">Destination link →</a>}</>}{deliverable.data.blocked&&<p>Resolve block: {name(deliverable.data.blockedBy)}</p>}<Missing items={deliverableMissing(deliverable.data,parent?.data)}/><ResourceLinks {...deliverable.data} available={assets}/></section>
-      <DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
+      </>:<>
+      <section className="panel hq-owner-row" style={{borderLeftColor:(parent?projectColor(parent.data,name):ownerColor(deliverable.data.owner,name(deliverable.data.owner))).accent}}><p className="eyebrow">{parent?<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>{parent.data.title}</Link>:'Standalone work'}</p><h3>Work details</h3><p>Accountable owner: {name(deliverable.data.owner)} · Approver: {name(parent?.data.owner||deliverable.data.approver)}</p><p className="hq-preserve-text">{deliverable.data.instructions||'Instructions not yet recorded.'}</p><p>Effort: {deliverable.data.effort?effortLevels[deliverable.data.effort]:'Unknown'}{deliverable.data.estimatedHours!==null?' · '+deliverable.data.estimatedHours+' estimated hours':''}</p><p>Contributors: {deliverable.data.contributors.map(name).join(', ')||'None'}</p>{deliverable.data.publishing&&<><p>Format: {deliverable.data.format||'Not set'}</p><p className="hq-preserve-text">{deliverable.data.caption}</p>{deliverable.data.destinationUrl&&<a href={deliverable.data.destinationUrl} target="_blank" rel="noreferrer">Destination link →</a>}</>}{deliverable.data.blocked&&<p>Resolve block: {name(deliverable.data.blockedBy)}</p>}<Missing items={deliverableMissing(deliverable.data,parent?.data)}/></section>
       <ProductionPanel record={deliverable} project={parent?.data} context={c} act={act} busy={busy} name={name}/>
       {canWork(deliverable.data,parent?.data,c)&&<details className="panel hq-details"><summary>Edit deliverable</summary>
         <DeliverableForm key={deliverable.data.version} record={deliverable} initial={deliverableDraft(deliverable.data)} project={parent?.data} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/>
       </details>}
+      </>}
+      <HqCampaignContext deliverable={deliverable.data}/>
+      </>}
+      {workTab==='assets'&&<section className="panel"><h2>Files and links</h2><ResourceLinks {...deliverable.data} available={assets}/><AssignedContent available={assets} kind="deliverable" id={deliverable.id} attached={deliverable.data.assets}/><Link href="/assets?tab=jons-content">Assign content →</Link></section>}
+      {workTab==='budget'&&<>
+      <DeliverableBudget key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
+      {parent&&<Link href={projectTabHref(parent.id,'budget',{auction:deliverable.data.auctionCampaignId})}>Project budget &amp; spending →</Link>}
+      {deliverable.data.auctionCampaignId&&parent&&<section className="panel"><AuctionSpending record={deliverable} project={parent.data} context={c} busy={busy} act={act}/></section>}
+      </>}
+      {workTab==='publishing'&&<>
       {deliverable.data.publishing&&<section className="panel"><h2>Publishing package</h2><PublishingPackagePanel deliverable={deliverable.data} project={parent?.data} assets={assets} name={name}/><h3>Manual publishing confirmations</h3><p>Record each destination after checking the actual platform. An intended date is never a scheduling or publishing confirmation.</p><div className="hq-project-grid">{deliverable.data.platforms.map(platform=><PublicationForm key={platform+deliverable.data.version} record={deliverable} project={parent?.data} platform={platform} context={c} act={act} busy={busy} name={name}/>)}</div></section>}
-      {deliverable.data.editorialSource&&<section className="panel"><h2>Editorial source review</h2><p>{deliverable.data.editorialSource.data.state} · source version {deliverable.data.editorialSource.version}</p><p>Compare the current source with this deliverable before owner approval. Source edits require renewed approval and never overwrite this production copy.</p><p className="hq-preserve-text">{deliverable.data.editorialSource.data.facebook}</p><p className="hq-preserve-text">{deliverable.data.editorialSource.data.instagram}</p><p>{deliverable.data.editorialSource.data.cta}</p><p>Media permission: {deliverable.data.editorialSource.data.permission} · {deliverable.data.editorialSource.data.attribution}</p><p>{deliverable.data.editorialSource.data.permissionEvidence}</p><Link href="/requests?view=editorial">Open source review →</Link></section>}
+      </>}
+      {workTab==='source'&&<>
+      {deliverable.data.editorialSource&&<section className="panel"><h2>Editorial source review</h2><p>{deliverable.data.editorialSource.data.state} · source version {deliverable.data.editorialSource.version}</p><p>Compare the current source with this deliverable before owner approval. Source edits require renewed approval and never overwrite this production copy.</p><p className="hq-preserve-text">{deliverable.data.editorialSource.data.facebook}</p><p className="hq-preserve-text">{deliverable.data.editorialSource.data.instagram}</p><p>{deliverable.data.editorialSource.data.cta}</p><p>Media permission: {deliverable.data.editorialSource.data.permission} · {deliverable.data.editorialSource.data.attribution}</p><p>{deliverable.data.editorialSource.data.permissionEvidence}</p><Link href="/requests?tab=editorial">Open source review →</Link></section>}
       {deliverable.data.legacyPost&&<details className="panel hq-details"><summary>Preserved calendar history</summary><p>Historical status: <strong>{deliverable.data.legacyPost.status}</strong>. This is not an HQ approval or confirmation that any destination was published.</p><p>Original date: {dateLabel(deliverable.data.legacyPost.date)} · Historical owner: {deliverable.data.legacyPost.owner||'Unknown'}</p><p className="hq-preserve-text">{deliverable.data.legacyPost.caption}</p><p>Historical asset references: {deliverable.data.legacyPost.assets?.join(', ')||'None recorded'}</p></details>}
-      <Discussion key={deliverable.data.version} id={deliverable.id} kind="deliverable" context={c} act={act} busy={busy}/>
+      </>}
+      {workTab==='notes'&&<>
+      <DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
+      <Discussion key={'discussion:'+deliverable.data.version} id={deliverable.id} kind="deliverable" context={c} act={act} busy={busy}/>
+      <DeliverableTimestamps deliverable={deliverable.data}/>
+      </>}
     </>:<p className="panel">This deliverable was not found in your workspace.</p>)}
   </div>;
 }
 
 function ProjectList({projects,deliverables,name}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string}) {
   const now=useHqClock(),[filter,setFilter]=useState('all'),[search,setSearch]=useState('');
-  const shown=projects.filter(p=>(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
+  const shown=projects.filter(p=>(!p.data.migratedToProjectId||filter==='archived')&&(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
   return <section><div className="two-fields"><Field label="Find a project"><Input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Project status" value={filter} onChange={setFilter} options={{all:'All projects',...projectStatuses}}/></div><div className="hq-project-grid">{shown.map(p=><HqProjectCard key={p.id} project={p} deliverables={deliverables} name={name} now={now}/>)}</div>{!shown.length&&<p className="notice">{projects.length?'No projects match your search. Try a different name or status.':'No projects yet. Choose Add project above to get started.'}</p>}</section>;
 }
 function DeliverableList({records,projects,context,act,busy}:{records:HqRecord<Deliverable>[];projects:HqRecord<Project>[];context:HqContext;act:Action;busy:boolean}) {
@@ -182,7 +260,7 @@ function BudgetPanel({project,context:c,act,busy,name}:{project:HqRecord<Project
 }
 function ProductionPanel({record,project,context:c,act,busy,name}:{record:HqRecord<Deliverable>;project?:Project;context:HqContext;act:Action;busy:boolean;name:(id:string)=>string}) {
   const [comment,setComment]=useState('');
-  const d=record.data,approver=project?.owner||d.approver,canApprove=approver===c.staffId;
+  const d=record.data,approver=project?.owner||d.approver,canApprove=canWork(d,project,c);
   const next:Record<Deliverable['status'],Deliverable['status'][]>= {to_do:['in_progress'],in_progress:['to_do','needs_review'],needs_review:['in_progress'],ready:['needs_review',...(d.publishing?[]:['done' as const])],done:['in_progress']};
   return <section className="panel"><h2>Production · {productionStatuses[d.status]}</h2><p>Deadline: {dateLabel(d.productionDue)}</p>{d.publishing&&<p>Intended publication: {dateLabel(d.publishAt)}</p>}
     {d.submission&&<p>Submitted by {name(d.submission.by)} to {name(d.submission.to)} · {recordedTime(d.submission.at)} · content version {d.submission.contentVersion}</p>}
@@ -195,7 +273,7 @@ function ProductionPanel({record,project,context:c,act,busy,name}:{record:HqReco
 function PublicationForm({record,project,platform,context:c,act,busy,name}:{record:HqRecord<Deliverable>;project?:Project;platform:string;context:HqContext;act:Action;busy:boolean;name:(id:string)=>string}) {
   const d=record.data,p=d.publications[platform];
   const [status,setStatus]=useState<'scheduled'|'published'|'planned'>('scheduled'),[time,setTime]=useState(''),[url,setUrl]=useState(''),[reason,setReason]=useState(''),[confirmed,setConfirmed]=useState(false);
-  const eligible=d.publisher===c.staffId||(project?.owner||d.approver)===c.staffId;
+  const eligible=canWork(d,project,c);
   return <article className="hq-publication"><h3>{platform}</h3><p className="tag">{p.status}</p>{p.scheduledFor&&<p>Scheduled for {dateLabel(p.scheduledFor)}<br/><span className="muted">Confirmed by {name(p.scheduledBy||'')}</span></p>}
     {p.status==='published'?<><p>Published {dateLabel(p.publishedAt||'')}<br/><span className="muted">Recorded by {name(p.recordedBy||'')}</span></p>{p.liveUrl?<a href={p.liveUrl} target="_blank" rel="noreferrer">Open live publication →</a>:<p>No live URL: {p.unavailableReason}</p>}</>:eligible?<form className="hq-form" onSubmit={e=>{e.preventDefault();void act({action:'publication',id:record.id,version:d.version,platform,status,time,url,unavailableReason:reason,confirmed});}}>
       <fieldset disabled={busy} className="campaign-fields"><Choice label={'Record '+platform+' action'} value={status} onChange={v=>{setStatus(v as typeof status);setConfirmed(false);setTime('');}} options={{scheduled:'Scheduled on the platform',published:'Published on the platform',...(p.status==='scheduled'?{planned:'Cancelled platform scheduling'}:{})}}/>
@@ -203,8 +281,8 @@ function PublicationForm({record,project,platform,context:c,act,busy,name}:{reco
       {status==='published'&&<><Field label="Live publication URL"><Input type="url" value={url} onChange={e=>setUrl(e.target.value)}/></Field>{!url&&<Field label="Why is no live URL available?"><Textarea required minLength={5} value={reason} onChange={e=>setReason(e.target.value)}/></Field>}</>}
       <label className="check-field"><input required type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/><span>{status==='scheduled'?'I confirmed this was scheduled on '+platform+'.':status==='published'?'I checked that this is live on '+platform+'.':'I cancelled the scheduled post on '+platform+'.'}</span></label>
       <Button type="submit" disabled={!confirmed||(status!=='planned'&&(d.status!=='ready'||d.blocked||!approvalCurrent(d,project)))}>Record {platform} confirmation</Button>
-      {(d.status!=='ready'||!approvalCurrent(d,project))&&<p className="muted">Current owner approval is required to record scheduling or publication.</p>}
-      </fieldset></form>:<p className="muted">The assigned publisher or current approver records publishing confirmations.</p>}
+      {(d.status!=='ready'||!approvalCurrent(d,project))&&<p className="muted">Current approval is required to record scheduling or publication.</p>}
+      </fieldset></form>:<p className="muted">Assigned deliverable staff, project members, or an administrator records publishing confirmations.</p>}
   </article>;
 }
 
@@ -219,7 +297,7 @@ function LegacyAdoption({records,context:c,act,busy}:{records:WorkspaceRecord[];
 function EditorialHandoff({records,context:c,act,busy}:{records:WorkspaceRecord[];context:HqContext;act:Action;busy:boolean}){
  const [owner,setOwner]=useState(''),[approver,setApprover]=useState(''),[effort,setEffort]=useState('standard');const router=useRouter();
  const adopted=new Set(records.filter(r=>r.kind==='deliverable').map(r=>(r.data as Deliverable).legacyPostId));const posts=records.filter(r=>r.kind==='post'&&(r.data as {radarId?:string}).radarId&&!adopted.has(r.id)) as HqRecord<{title:string;status:string}>[];
- return <details className="panel hq-details"><summary>Hand off approved editorial work</summary><p>Approved editorial sources can become one standalone HQ deliverable. Choose its accountable owner, approver and effort. The original remains available; instructions, committed deadlines, final files and publishing confirmation need explicit review in HQ.</p>{c.canCoordinate||c.admin?<><Person label="Editorial work owner" value={owner} onChange={setOwner} staff={c.staff}/><Person label="Editorial work approver" value={approver} onChange={setApprover} staff={c.staff}/><Choice label="Editorial work effort" value={effort} onChange={setEffort} options={effortLevels}/><ul className="hq-deliverables">{posts.map(p=><li key={p.id}><span>{p.data.title} · {p.data.status}</span><Button disabled={busy||!owner||!approver||p.data.status!=='approved'} onClick={async()=>{const result=await act({action:'adopt-editorial',id:p.id,owner,approver,effort});if(result?.id)router.push('/projects/work/'+result.id);}}>Hand off {p.data.title}</Button></li>)}</ul>{!posts.length&&<p>No editorial calendar copies await handoff. Approve the source and add it to the calendar in the editorial queue first.</p>}</>:<p>A request coordinator can hand off an approved editorial source.</p>}<Link href="/requests?view=editorial">Open editorial queue →</Link></details>;
+ return <details className="panel hq-details"><summary>Hand off approved editorial work</summary><p>Approved editorial sources can become one standalone HQ deliverable. Choose its accountable owner, approver and effort. The original remains available; instructions, committed deadlines, final files and publishing confirmation need explicit review in HQ.</p>{c.canCoordinate||c.admin?<><Person label="Editorial work owner" value={owner} onChange={setOwner} staff={c.staff}/><Person label="Editorial work approver" value={approver} onChange={setApprover} staff={c.staff}/><Choice label="Editorial work effort" value={effort} onChange={setEffort} options={effortLevels}/><ul className="hq-deliverables">{posts.map(p=><li key={p.id}><span>{p.data.title} · {p.data.status}</span><Button disabled={busy||!owner||!approver||p.data.status!=='approved'} onClick={async()=>{const result=await act({action:'adopt-editorial',id:p.id,owner,approver,effort});if(result?.id)router.push('/projects/work/'+result.id);}}>Hand off {p.data.title}</Button></li>)}</ul>{!posts.length&&<p>No editorial calendar copies await handoff. Approve the source and add it to the calendar in the editorial queue first.</p>}</>:<p>A request coordinator can hand off an approved editorial source.</p>}<Link href="/requests?tab=editorial">Open editorial queue →</Link></details>;
 }
 
 type Comment={id:string;actor:string;body:string;created_at:string;mentions?:string[]};

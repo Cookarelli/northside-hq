@@ -4,14 +4,16 @@ export const hqSections = [
   {id: 'projects', label: 'Projects', href: '/projects', description: 'Plan campaigns, prepare deliverables and follow the work.'},
   {id: 'assignments', label: 'My Assignments', href: '/assignments', description: 'Your priorities, deadlines and recently completed work.'},
   {id: 'requests', label: 'Requests', href: '/requests', description: 'Ask for work, track decisions and open editorial review.'},
-  {id: 'assets', label: 'Assets', href: '/assets', description: 'Shared media, editing jobs and source material.'},
+  {id: 'assets', label: 'Assets', href: '/assets', description: 'Shared photos, videos and source material.'},
+  {id: 'operations', label: 'Operations', href: '/operations', description: 'Staff access and workspace permissions.'},
 ] as const;
 
 export type HqSection = typeof hqSections[number]['id'];
 export const legacyDestinations: Record<string, string> = {
   today: '/today', projects: '/projects', requests: '/requests', assets: '/assets',
-  launch: '/projects#launch', studio: '/assets', calendar: '/calendar',
-  tracking: '/projects#tracking', performance: '/projects#performance', roadmap: '/projects',
+  launch: '/projects?tab=launch', studio: '/assets', 'video-cutting':'/assets', cutting:'/assets', calendar: '/calendar',
+  tracking: '/projects?tab=tracking', performance: '/projects?tab=performance', roadmap: '/projects',
+  operations:'/operations', staff:'/operations?tab=staff', permissions:'/operations?tab=permissions',
 };
 
 export function legacyDestination(hash: string) {

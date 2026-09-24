@@ -3,17 +3,19 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import {usePathname} from 'next/navigation';
-import {CalendarDays, FolderKanban, Images, Inbox, Sun, ListChecks} from 'lucide-react';
+import {CalendarDays, FolderKanban, Images, Inbox, Sun, ListChecks, Settings} from 'lucide-react';
 import {hqSections, sectionForPath} from '@/lib/hq-navigation';
+import {useActiveNavigation} from '@/components/hq-subnavigation';
 import {HqNotifications} from '@/components/hq-notifications';
 import {SignOut} from '@/components/sign-out';
 import {ThemeToggle} from '@/components/theme-provider';
 
-const icons = {today: Sun, projects: FolderKanban, calendar: CalendarDays, assignments: ListChecks, requests: Inbox, assets: Images};
+const icons = {today: Sun, projects: FolderKanban, calendar: CalendarDays, assignments: ListChecks, requests: Inbox, assets: Images, operations: Settings};
 
 export function HqShell({children}: {children: React.ReactNode}) {
   const pathname = usePathname();
   const active = sectionForPath(pathname);
+  const navigation=useActiveNavigation(active);
   const section = hqSections.find(item => item.id === active)!;
   const research = pathname === '/assets/research';
   return <div className="hub hq-shell">
@@ -25,10 +27,7 @@ export function HqShell({children}: {children: React.ReactNode}) {
       <div className="header-meta"><ThemeToggle/><HqNotifications/><SignOut/></div>
     </header>
     <div className="hq-frame">
-      <nav className="hq-navigation" aria-label="Main navigation"><div className="hq-primary-nav">{hqSections.slice(0,4).map(item => {
-        const Icon = icons[item.id];
-        return <Link key={item.id} href={item.href} aria-current={active === item.id ? 'page' : undefined}><Icon size={22} aria-hidden="true"/><span>{item.label}</span></Link>;
-      })}</div><details className="hq-tools" open={['requests','assets'].includes(active)}><summary>More tools</summary>{hqSections.slice(4).map(item=>{const Icon=icons[item.id];return <Link key={item.id} href={item.href} aria-current={active===item.id?'page':undefined}><Icon size={20} aria-hidden="true"/>{item.label}</Link>;})}</details></nav>
+      <nav ref={navigation} className="hq-navigation" aria-label="Main navigation">{hqSections.map(item=>{const Icon=icons[item.id];return <Link key={item.id} href={item.href} aria-current={active===item.id?'page':undefined}><Icon size={21} aria-hidden="true"/><span>{item.label}</span></Link>;})}</nav>
       <main className="workspace hq-workspace" id="hq-main" tabIndex={-1}>
         <div className="hq-page-heading"><div><p className="eyebrow">NORTHSIDE HQ{research ? ' / ASSETS' : ''}</p><h1>{research ? 'Research & sources' : section.label}</h1><p className="muted">{research ? 'Collect stories, save ideas and keep the original sources close.' : section.description}</p></div><span className="hq-timezone">Central time<br/><strong>America/Chicago</strong></span></div>
         {children}

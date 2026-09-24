@@ -6,7 +6,7 @@ Use this checklist for the first staff pilot. Start with two or three real proje
 
 1. Use the existing [Northside HQ testing site](https://marketinghub-7vl1-git-codex-nor-9ffb74-steves-projects-e37a4ef4.vercel.app/). It uses the separate testing database. Keep its bookmark distinct from the production site.
 2. Give each person an individual, verified account and an active staff roster entry. Steve's account is active with administrator, budget-approval and request-coordination access. Provision other staff through the existing account/roster process before assigning them work.
-3. In **Projects → Workspace permissions**, an administrator selects budget approvers and request coordinators. Confirm Joey's account and capabilities before depending on him for approvals. Give these permissions only to the people who need them.
+3. In **Operations → Permissions**, an administrator selects budget approvers and request coordinators. Confirm Joey's account and capabilities before depending on him for approvals. Give these permissions only to the people who need them.
 4. Agree on who owns each project, who creates the deliverables and who publishes. The project owner approves creative work; budget approval is a separate permission. Standalone deliverables need a named approver.
 5. Use the header **Light mode / Dark mode** switch for your preferred appearance. It remembers your choice in that browser. Clicking the Northside logo returns to Today.
 
@@ -48,7 +48,7 @@ For a safe budget check, use an explicit QA amount in the testing project. Actua
 - With test accounts, verify an unrelated organization and an inactive roster member cannot access internal work. Do not change real staff permissions just to simulate failure.
 - Check existing calendar entries, recurring series and saved assets remain available. Use the existing editors rather than copying them into duplicate records.
 - Check a blocked deliverable names the person who can resolve it and appears in that person's Today view.
-- On an actual phone, test upload, preview, download and caption copying. Check both themes, refresh, the five navigation tabs, sign-in/recovery and a failed-upload retry. Desktop mobile emulation is not a substitute for this device check.
+- On an actual phone, test upload, preview, download and caption copying. Check both themes, refresh, the category and subpage navigation, sign-in/recovery and a failed-upload retry. Desktop mobile emulation is not a substitute for this device check.
 - Test Chicago date edits around daylight saving with a QA record. The app asks for a different time when a local time does not exist in spring or occurs twice in fall. Avoid those ambiguous times for actual work.
 - Confirm a failed save has a clear error and preserves your input. Refresh after saving to distinguish persisted work from unsaved form text.
 
