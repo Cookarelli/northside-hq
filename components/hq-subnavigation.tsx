@@ -38,7 +38,7 @@ export function useActiveNavigation<T extends HTMLElement=HTMLElement>(active:st
  },[active]);
  return ref;
 }
-export function HqSubnavigation({tabs,active,label}:{tabs:readonly HqTab[];active:string;label:string}){
+export function HqSubnavigation({tabs,active,label,queryKey='tab'}:{tabs:readonly HqTab[];active:string;label:string;queryKey?:string}){
  const pathname=usePathname(),params=useSearchParams(),ref=useActiveNavigation<HTMLDivElement>(active),more=useRef<HTMLDetailsElement>(null);
  const secondary=tabs.length>4?tabs.filter(tab=>tab.secondary):[];
  const primary=tabs.filter(tab=>!secondary.includes(tab));
@@ -50,7 +50,7 @@ export function HqSubnavigation({tabs,active,label}:{tabs:readonly HqTab[];activ
   document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);
   return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
  },[hasSecondary]);
- const link=(tab:HqTab)=><Link key={tab.id} href={tabHref(pathname,params.toString(),tab.id)} scroll={false} aria-current={active===tab.id?'page':undefined} onClick={event=>{if(more.current?.contains(event.currentTarget)){more.current.open=false;more.current.querySelector('summary')?.focus();}}}>{tab.label}</Link>;
+ const link=(tab:HqTab)=><Link key={tab.id} href={tabHref(pathname,params.toString(),tab.id,queryKey)} scroll={false} aria-current={active===tab.id?'page':undefined} onClick={event=>{if(more.current?.contains(event.currentTarget)){more.current.open=false;more.current.querySelector('summary')?.focus();}}}>{tab.label}</Link>;
  return <nav className="hq-subnavigation-bar" aria-label={label}><div ref={ref} className="hq-subnavigation">{primary.map(link)}</div>{secondary.length>0&&<details ref={more} className="hq-more-tabs"><summary aria-current={selected?'page':undefined} aria-label={'More '+label.toLowerCase()+(selected?': '+selected.label:'')}>{selected?.label||'More'} <span aria-hidden="true">⌄</span></summary><div className="hq-more-tab-links">{secondary.map(link)}</div></details>}</nav>;
 }
 export function HqTabPanel({value,active,children}:{value:string;active:string;children:ReactNode}){return value===active?<div className="hq-tab-panel">{children}</div>:null;}

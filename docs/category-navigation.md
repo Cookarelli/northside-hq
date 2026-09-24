@@ -1,24 +1,24 @@
 # Category navigation and Assets
 
-The top-level categories remain Home, Calendar, Projects, My Assignments, Requests, Assets and Operations. All are visible in a horizontal main navigation; mobile users can scroll it horizontally. Shared `HqSubnavigation` links use Next.js navigation and `?tab=`. Only the selected major area mounts. Native link keyboard support, visible focus, aria-current, open-in-new-tab, browser history and query preservation are retained.
+The primary navigation contains exactly Home, Calendar, Projects and Assets, in that order. All four remain visible on mobile. Settings is a labeled header utility, with the existing Staff access and administrator Permissions views. Requests is linked beside the Home title and keeps its existing routes under the Home navigation context. Shared `HqSubnavigation` links use Next.js navigation and `?tab=`. Only the selected major area mounts. Native link keyboard support, visible focus, aria-current, open-in-new-tab, browser history and query preservation are retained.
 
 | Category / subpage | Major areas | Default |
 | --- | --- | --- |
-| Home | My work, Schedule, Active projects, Recent activity | My work |
+| Home | My Assignments, Schedule, Active projects, Recent activity; Requests link | My Assignments |
 | Projects | Projects, Deliverables, Handoffs, Store Open Checklist, Tracked links, Results | Projects |
 | Normal project | Overview, Deliverables, Assets, Budget, Notes / Activity | Deliverables when work exists; otherwise Overview |
 | Collect Weekly Auctions | Current Auction, Deliverables, Assets, Budget & Reconciliation, Auction History, Project information, Notes / Activity | Current Auction |
 | Deliverable | Work, Assets, Budget, Publishing, Source review, Notes / Activity | Work |
 | Calendar | Calendar, Date planning, Entries & series | Calendar |
-| My Assignments | Active work, Completed, My projects | Active work |
+| Home → My Assignments | Active work, Completed, My projects (`assignment=`) | Active work |
 | Requests | General requests, Editorial queue, Top stories, Stories, Products | General requests |
 | Request detail | Request & decision, Notes / Activity | Request & decision |
 | Assets | All Assets, Jon’s Content | All Assets |
-| Operations | Staff access, Permissions (administrators) | Staff access |
+| Settings (header) | Staff access, Permissions (administrators) | Staff access |
 | Research subpage | Feed, Release verification, Chase Cards, Drafts, Sources | Feed |
 | Migrated campaign | Original campaign, Notes / Activity | Original campaign |
 
-Only the selected area renders. Files/links must exist before an individual project or deliverable shows Assets. Publishing and source-review tabs require their corresponding workflow/data. Deliverables is available when work exists or the user can create it; deleted work remains recoverable. Auction History appears when historical campaigns exist. Budget and Notes provide the existing budgeting/spending and discussion workflows rather than empty placeholder panels. Staff access and permissions move intact from Requests/Projects into Operations, with the same authorization; old URLs redirect to their new home.
+Only the selected area renders. Files/links must exist before an individual project or deliverable shows Assets. Publishing and source-review tabs require their corresponding workflow/data. Deliverables is available when work exists or the user can create it; deleted work remains recoverable. Auction History appears when historical campaigns exist. Budget and Notes provide the existing budgeting/spending and discussion workflows rather than empty placeholder panels. Staff access and permissions live in Settings with unchanged database authorization. Active staff can read the directory; only administrators can manage access or permissions. The full My Assignments view now lives in Home; its filters use `assignment=` independently of Home’s `tab=`.
 
 Current Auction selects the next unreconciled auction by Chicago closing time, falling back to the latest unfinished past auction. Closed/reconciled campaigns outside that current selection appear in Auction History; future auctions remain accessible from Current Auction and the Deliverables filter. Auction numbers stay attached to campaign titles, selection links, reminders and calendar entries. Deliverables contains production actions; Budget & Reconciliation contains campaign totals, reminder budgets, channel spend, corrections and reconciliation. The previous overall project spending ledger remains available through the Project-wide budget and spending subpage within Budget (`scope=project`). Campaign records and reminder records are reused throughout.
 
@@ -33,10 +33,15 @@ The existing employee agreement/NDA flow is one gated document-review-and-sign a
 - Spending and budget activity open Budget; project-wide ledger events include `scope=project`. Publishing events open Publishing. Comment/mention events open Notes / Activity.
 - Numbered auction links preserve the selected auction between Deliverables, Budget and History. Returning to Current Auction clears an old auction selection.
 - Imported release items are retained as historical records and omitted from calendar views. Legacy calendar entries and series retain their existing editor links.
-- `/projects?tab=permissions`, `/requests?tab=staff`, `/requests?view=staff` and `/content-radar/setup` redirect to Operations. Other historical `view` and hash bookmarks remain supported.
+- `/operations`, `/projects?tab=permissions`, `/requests?tab=staff`, `/requests?view=staff` and `/content-radar/setup` resolve to Settings. Their selected view, other query values and fragment are retained.
+- `/assignments?tab=active|completed|projects` resolves to `/today?tab=my-work&assignment=…`, retaining other query values and record fragments.
+- Known root hash bookmarks (including Staff, Permissions, Operations, Requests and Assignments) resolve to their current destinations. Password recovery fragments retain their existing handling.
+- Requests and request-detail URLs remain intact and select Home in primary navigation. Settings does not select a primary tab.
 - URLs retain browser back/forward and refresh behavior. Changing major areas clears transient creation, incompatible record focus and project-wide-budget scope.
 
-## App-wide navigation verification
+## Earlier navigation verification
+
+The following records the previous pass. See [Four primary tabs QA](four-primary-tabs-qa.md) for the current change and validation.
 
 161 automated tests pass, including current/upcoming/history partitioning, meaningful tab availability, direct destinations, migration replay and project-member/individual-assignee status access. Type checking and release build pass. Lint has no errors and the same three pre-existing authentication-navigation warnings.
 

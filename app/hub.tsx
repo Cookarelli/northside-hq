@@ -41,7 +41,7 @@ function Field({label,children}:{label:string;children:React.ReactNode}){return 
 function SectionTitle({eyebrow,title,children}:{eyebrow?:string;title:string;children?:React.ReactNode}){return <div className="section-title"><div>{eyebrow&&<p className="eyebrow">{eyebrow}</p>}<h2>{title}</h2></div>{children}</div>;}
 const oldProjectTabs={launch:STORE_OPEN_CHECKLIST_TAB,'store-open-checklist':STORE_OPEN_CHECKLIST_TAB,tracking:'tracking',performance:'performance'};
 const oldCalendarTabs={'existing-calendar':'entries','legacy-entry-':'entries','release-calendar':'schedule'};
-export default function Hub({section}:{section:Exclude<HqSection,'requests'|'assets'|'operations'>}){
+export default function Hub({section}:{section:Exclude<HqSection,'assets'>}){
  const router=useRouter(),checklistPlan=useSearchParams().get('view')==='plan';
  const tabs=section==='projects'?projectAreaTabs:calendarTabs;
  const tab=useHqTab(tabs,section==='projects'?'projects':'schedule',section==='projects'?oldProjectTabs:section==='calendar'?oldCalendarTabs:undefined,section==='projects'?projectAreaAliases:section==='calendar'?calendarTabAliases:undefined);

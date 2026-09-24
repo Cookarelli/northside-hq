@@ -233,3 +233,17 @@ html.dark {
 .agreement-actions button:disabled { opacity: .5; }
 
 .hq-shell .jon-filters [data-slot=button][aria-pressed=true] { color: var(--foreground); }
+
+/* Four primary destinations; Settings remains a quiet header utility. */
+.hq-settings-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px; color: var(--muted-foreground); font-size: .875rem; }
+.hq-settings-link[aria-current=page] { color: var(--foreground); font-weight: 700; }
+.hq-home-requests { padding: 10px 0; font-size: .9375rem; font-weight: 600; }
+.hq-assignments>.hq-subnavigation-bar { border: 0; margin-bottom: 16px; }
+.hq-assignments .hq-subnavigation { gap: 6px; }
+.hq-assignments .hq-subnavigation a { padding: 8px 12px; min-height: 44px; border-radius: 6px; font-size: .875rem; }
+.hq-assignments .hq-subnavigation a[aria-current=page] { background: var(--secondary); box-shadow: none; }
+@media (max-width: 600px) {
+ .hq-shell .hq-navigation { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 0; padding: 0 12px; }
+ .hq-shell .hq-navigation a { justify-content: center; padding: 14px 3px; font-size: .875rem; }
+ .hq-assignments .hq-subnavigation a { padding: 8px; font-size: .8125rem; }
+}

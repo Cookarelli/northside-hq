@@ -1,3 +1,3 @@
-import {HqOperationsPage} from '@/components/hq-operations-page';
-export const metadata={title:'Operations | Northside HQ'};
-export default function Page(){return <HqOperationsPage/>;}
+import {HqNavigationRedirect} from '@/components/hq-navigation-redirect';
+export const metadata={title:'Settings | Northside HQ'};
+export default function Page(){return <HqNavigationRedirect area="settings"/>;}

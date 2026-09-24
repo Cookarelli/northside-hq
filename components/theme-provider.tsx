@@ -4,7 +4,7 @@ import {useSyncExternalStore} from 'react';
 import {usePathname} from 'next/navigation';
 import {ThemeProvider as NextThemeProvider, useTheme} from 'next-themes';
 import {Moon, Sun} from 'lucide-react';
-import {hqSections} from '@/lib/hq-navigation';
+import {hasWorkspaceHeader} from '@/lib/hq-navigation';
 
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
@@ -24,8 +24,7 @@ export function ThemeToggle() {
 
 function AppearanceBar() {
   const pathname = usePathname();
-  const hasWorkspaceHeader = pathname === '/' || hqSections.some(({href}) => pathname === href || pathname.startsWith(`${href}/`));
-  return hasWorkspaceHeader ? null : <div className="appearance-bar"><ThemeToggle/></div>;
+  return hasWorkspaceHeader(pathname) ? null : <div className="appearance-bar"><ThemeToggle/></div>;
 }
 
 export function ThemeProvider({children}: {children: React.ReactNode}) {
