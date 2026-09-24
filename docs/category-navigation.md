@@ -9,7 +9,7 @@ The top-level categories remain Home, Calendar, Projects, My Assignments, Reques
 | Normal project | Overview, Deliverables, Assets, Budget, Notes / Activity | Deliverables when work exists; otherwise Overview |
 | Collect Weekly Auctions | Current Auction, Deliverables, Assets, Budget & Reconciliation, Auction History, Project information, Notes / Activity | Current Auction |
 | Deliverable | Work, Assets, Budget, Publishing, Source review, Notes / Activity | Work |
-| Calendar | Calendar, Release Calendar, Date planning, Entries & series | Calendar |
+| Calendar | Calendar, Date planning, Entries & series | Calendar |
 | My Assignments | Active work, Completed, My projects | Active work |
 | Requests | General requests, Editorial queue, Top stories, Stories, Products | General requests |
 | Request detail | Request & decision, Notes / Activity | Request & decision |
@@ -24,7 +24,7 @@ Current Auction selects the next unreconciled auction by Chicago closing time, f
 
 Small controls (status, filters, calendar month/week/day, record editors) remain in context. A project member or individual deliverable assignee still uses the existing status controls and checked database commands. No permission or approval rules changed. Notes/activity is isolated from the work editor; full deliverable links reach its Work subpage without looping back to the project list.
 
-The existing employee agreement/NDA flow is one gated document-review-and-sign action at `/agreements/required`, not an administration dashboard. It remains focused, with the private PDF, signature and access gate unchanged; no empty agreement tabs or new agreement-management system were introduced. Release verification is the existing verification workflow under Assets → Research & sources → Release verification; Release Calendar links there directly. Research has its own subpage navigation, never nested tab strips within the two Assets tabs.
+The existing employee agreement/NDA flow is one gated document-review-and-sign action at `/agreements/required`, not an administration dashboard. It remains focused, with the private PDF, signature and access gate unchanged; no empty agreement tabs or new agreement-management system were introduced. Release verification is the existing verification workflow under Assets → Research & sources → Release verification; The retired Release Calendar no longer has a tab or shortcut. Research has its own subpage navigation, never nested tab strips within the two Assets tabs.
 
 ## Direct destinations and compatibility
 
@@ -32,7 +32,7 @@ The existing employee agreement/NDA flow is one gated document-review-and-sign a
 - Project event/date links open Overview. Jon’s assigned project links open Assets; its deliverable links open/focus Deliverables. Full deliverable files and assignments live under its Assets subpage.
 - Spending and budget activity open Budget; project-wide ledger events include `scope=project`. Publishing events open Publishing. Comment/mention events open Notes / Activity.
 - Numbered auction links preserve the selected auction between Deliverables, Budget and History. Returning to Current Auction clears an old auction selection.
-- Release items open Release Calendar; its verification link opens the research Release verification tab. Legacy calendar entries and series retain their existing editor links.
+- Imported release items are retained as historical records and omitted from calendar views. Legacy calendar entries and series retain their existing editor links.
 - `/projects?tab=permissions`, `/requests?tab=staff`, `/requests?view=staff` and `/content-radar/setup` redirect to Operations. Other historical `view` and hash bookmarks remain supported.
 - URLs retain browser back/forward and refresh behavior. Changing major areas clears transient creation, incompatible record focus and project-wide-budget scope.
 
@@ -64,3 +64,5 @@ Migration `20260924030947_assets_retire_clip_workflow.sql` was applied to the ex
 ## Final QA follow-up
 
 See [Navigation and Assets final QA](navigation-assets-final-qa.md) for the video upload, second-staff assignment, file identity, cross-tab synchronization, desktop/mobile routing checks and fixes. Hosted acceptance remains pending as described there.
+
+September 24 update: Release Calendar was removed at the user’s request. Old release-calendar links resolve to the main calendar.

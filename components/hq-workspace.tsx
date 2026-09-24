@@ -1,4 +1,5 @@
 'use client';
+import {numberedAuctionName} from '@/lib/auction-campaigns';
 
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
 import Link from 'next/link';
@@ -12,7 +13,6 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {MaterialsEditor,ResourceLinks,AssignedContent,ProjectAssetList,type Asset} from '@/components/hq-materials';
-import {ownerColor,projectColor} from '@/lib/owner-colors';
 import {StaffPicker} from '@/components/staff-picker';
 import {StoreOpeningWarning} from '@/components/store-open-deadline';
 import {STORE_OPEN_CHECKLIST_HREF} from '@/lib/store-opening';
@@ -22,8 +22,10 @@ import {useHqClock} from '@/components/use-hq-clock';
 import {HqWorkItem} from '@/components/hq-work-item';
 import {AuctionSpending} from '@/components/auction-spending';
 import {DeliverableBudget} from '@/components/deliverable-budget';
-import {isWeeklyAuctionHome,type AuctionCampaignData} from '@/lib/auction-campaigns';
+import {isWeeklyAuctionHome,auctionRecordText,type AuctionCampaignData} from '@/lib/auction-campaigns';
 import {HqProjectDeliverables} from '@/components/hq-project-deliverables';
+import {HqPageActions} from '@/components/hq-page-actions';
+import {HqStatus} from '@/components/hq-status';
 import {HqProjectCard} from '@/components/hq-project-card';
 import {HqCampaignContext,DeliverableTimestamps} from '@/components/hq-campaign-context';
 import {HqSpending} from '@/components/hq-spending';
@@ -87,8 +89,8 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
     const destination=projects.find(p=>p.id===project.data.migratedToProjectId);
     return <div className="hq-records"><Link href="/projects">← All projects and work</Link>
       {error&&<p role="alert" className="notice error">{error}</p>}{notice&&<p role="status">{notice}</p>}
-      <HqSubnavigation tabs={archivedTabs} active={archivedTab} label="Archived project sections"/>
-      {archivedTab==='overview'&&<><section className="panel"><p className="tag">Migrated · Archived</p><h2>{project.data.title}</h2>
+      <h1>{project.data.title}</h1><HqSubnavigation tabs={archivedTabs} active={archivedTab} label="Archived project sections"/>
+      {archivedTab==='overview'&&<><section className="panel"><p className="tag">Migrated · Archived</p>
         <p>This campaign is now managed as separate deliverables under <Link href={'/projects/'+encodeURIComponent(project.data.migratedToProjectId)+'?tab=deliverables'}>{destination?.data.title||'Collect Weekly Auctions'}</Link>.</p>
         {project.data.migratedAt&&<p className="hq-meta">Moved {recordedTime(project.data.migratedAt)}</p>}
         <ul>{deliverables.filter(d=>d.data.sourceProjectId===project.id).map(d=><li key={d.id}><Link href={projectTabHref(d.data.projectId,'deliverables',{deliverable:d.id})}>{d.data.title}</Link></li>)}</ul>
@@ -102,7 +104,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
     {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
     {view==='list'&&<>
-      {['projects','deliverables'].includes(area)&&<><div className="section-title"><div><h2>{area==='deliverables'?'All deliverables':'Projects'}</h2><p className="muted">Scope the work, assign production and review each destination.</p></div><div className="button-row">{area==='projects'&&<Button onClick={()=>setCreate('project')}>Add project</Button>}<Button variant="outline" onClick={()=>setCreate('deliverable')}>New standalone work</Button></div></div>
+      {['projects','deliverables'].includes(area)&&<><HqPageActions><div className="button-row">{area==='projects'&&<Button onClick={()=>setCreate('project')}>New Project</Button>}<Button variant={area==='deliverables'?'default':'ghost'} onClick={()=>setCreate('deliverable')}>New standalone work</Button></div></HqPageActions>
       {create==='project'&&<ProjectForm initial={{...blankProject,owner:Object.hasOwn(projectOwnerOptions(c.staff),c.staffId)?c.staffId:''}} context={c} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
       {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
       </>}
@@ -114,7 +116,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
 
 
     {view==='project' &&(project?<>
-      <section className="panel hq-owner-row hq-project-header" style={{borderLeftColor:projectColor(project.data,name).accent}}><p className="hq-meta">{projectTypes[project.data.type]}</p><h2>{weeklyHome?'Collect Weekly Auctions':project.data.title}</h2><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><span className="tag">{projectStatuses[project.data.status]}</span>{!weeklyHome&&<span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span>}</div></section>
+      <section className="hq-project-header"><p className="hq-meta">{projectTypes[project.data.type]}</p><h1>{weeklyHome?'Collect Weekly Auctions':project.data.title}</h1><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><HqStatus>{projectStatuses[project.data.status]}</HqStatus>{!weeklyHome&&<span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span>}</div></section>
       <HqSubnavigation tabs={tabs} active={projectTab} label="Project sections"/>
       {weeklyHome&&['current-auction','auction-history','budget'].includes(projectTab)&&!(projectTab==='budget'&&searchParams.get('scope')==='project')&&<AuctionViews key={projectTab} area={projectTab as 'current-auction'|'auction-history'|'budget'} current={auctions.current} history={auctions.history} campaigns={projectCampaigns} selected={searchParams.get('auction')||''} records={deliverables} project={project} context={c} assets={assets} act={act} busy={busy}/>}
       {projectTab==='overview'&&<>
@@ -125,16 +127,16 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       <SourceRequests records={records} kind="project" id={project.id}/>
       </>}
       {projectTab==='deliverables'&&<>
-      <section className="panel"><div className="section-title"><h2>Deliverables</h2>{!weeklyHome&&eligibleProjects.some(p=>p.id===project.id)&&<div className="button-row"><Button onClick={()=>setCreate('task')}>Add deliverable</Button><Button variant="outline" onClick={()=>setCreate('deliverable')}>Add publishing work</Button></div>}</div>
+      <section className="panel hq-deliverable-section"><div className="section-title"><h2>Deliverables</h2>{!weeklyHome&&eligibleProjects.some(p=>p.id===project.id)&&<div className="button-row"><Button onClick={()=>setCreate('task')}>Add deliverable</Button><Button variant="outline" onClick={()=>setCreate('deliverable')}>Add publishing work</Button></div>}</div>
         {create==='task'&&<ProjectTaskForm project={project} assets={assets} context={c} busy={busy} onSave={act} onCancel={()=>setCreate(null)}/>}
         {create==='deliverable'&&<DeliverableForm initial={{...blankDeliverable,owner:c.staffId,projectId:project.id}} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
-        {weeklyHome&&<div className="button-row"><label className="field"><span>Auction</span><select value={focusedCampaign?.id||''} onChange={e=>router.push(projectTabHref(project.id,'deliverables',{auction:e.target.value}))}><option value="">All auctions</option>{[...projectCampaigns].sort((a,b)=>b.data.auction_number-a.data.auction_number).map(c=><option key={c.id} value={c.id}>#{c.data.auction_number} — {c.data.name}</option>)}</select></label><Link href={projectTabHref(project.id,'current-auction')}>Current auction →</Link></div>}
+        {weeklyHome&&<div className="button-row"><label className="field"><span>Auction</span><select value={focusedCampaign?.id||''} onChange={e=>router.push(projectTabHref(project.id,'deliverables',{auction:e.target.value}))}><option value="">All auctions</option>{[...projectCampaigns].sort((a,b)=>b.data.auction_number-a.data.auction_number).map(c=><option key={c.id} value={c.id}>{numberedAuctionName(c.data.name,c.data.auction_number)}</option>)}</select></label><Link href={projectTabHref(project.id,'current-auction')}>Current auction →</Link></div>}
         <HqProjectDeliverables focused={searchParams.get('deliverable')||''} campaigns={records.filter(r=>r.kind==='auction_campaign') as HqRecord<AuctionCampaignData>[]} assets={assets} records={deliverables.filter(d=>d.data.projectId===project.id&&(!focusedCampaign||d.data.auctionCampaignId===focusedCampaign.id))} project={project} context={c} act={act} busy={busy}/>
         {weeklyHome&&eligibleProjects.some(p=>p.id===project.id)&&<div className="button-row"><Button variant="outline" onClick={()=>setCreate('task')}>Add other deliverable</Button><Button variant="outline" onClick={()=>setCreate('deliverable')}>Add other publishing work</Button></div>}
       </section>
       {deliverables.some(d=>d.data.projectId===project.id&&d.data.deletedAt)&&<details className="panel hq-details"><summary>Deleted deliverables</summary><ul>{deliverables.filter(d=>d.data.projectId===project.id&&d.data.deletedAt).map(d=><li key={d.id}><Link href={'/projects/work/'+d.id}>{d.data.title}</Link></li>)}</ul></details>}
       </>}
-      {projectTab==='assets'&&<section className="panel"><div className="section-title"><h2>Project files and links</h2><Link href="/assets?tab=jons-content">Jon&apos;s Content →</Link></div><ProjectAssetList project={project} deliverables={deliverables} available={assets}/>{projectCampaigns.filter(c=>c.data.assetLinks?.length).map(c=><article key={c.id}><h3>#{c.data.auction_number} — {c.data.name}</h3><ul>{c.data.assetLinks!.map(url=><li key={url}><a href={url} target="_blank" rel="noreferrer">{url}</a></li>)}</ul></article>)}</section>}
+      {projectTab==='assets'&&<section className="panel"><div className="section-title"><h2>Project files and links</h2><Link href="/assets?tab=jons-content">Jon&apos;s Content →</Link></div><ProjectAssetList project={project} deliverables={deliverables} available={assets}/>{projectCampaigns.filter(c=>c.data.assetLinks?.length).map(c=><article key={c.id}><h3>{numberedAuctionName(c.data.name,c.data.auction_number)}</h3><ul>{c.data.assetLinks!.map(url=><li key={url}><a href={url} target="_blank" rel="noreferrer">{url}</a></li>)}</ul></article>)}</section>}
       {projectTab==='budget'&&<>
 
       {weeklyHome&&<p><Link href={projectTabHref(project.id,'budget')+(searchParams.get('scope')==='project'?'':'&scope=project')}>{searchParams.get('scope')==='project'?'← Auction budgets & reconciliation':'Project-wide budget and spending →'}</Link></p>}
@@ -144,8 +146,8 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       <Discussion key={'discussion:'+project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>
       </>}
     </>:<p className="panel">This project was not found in your workspace.</p>)}
-    {view==='deliverable'&&(deliverable?deliverable.data.deletedAt?<><DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/><DeliverableTimestamps deliverable={deliverable.data}/></>:<>
-      <div className="section-title"><h2>{deliverable.data.title}</h2>{parent&&<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>← {parent.data.title} · Deliverables</Link>}</div>
+    {view==='deliverable'&&(deliverable?deliverable.data.deletedAt?<><h1>{deliverable.data.title}</h1><DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/><DeliverableTimestamps deliverable={deliverable.data}/></>:<>
+      <div className="section-title hq-record-heading"><h1>{deliverable.data.title}</h1>{parent&&<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>← {parent.data.title} · Deliverables</Link>}</div>
       <HqSubnavigation tabs={workTabs} active={workTab} label="Deliverable sections"/>
       {workTab==='work'&&<>
       <SourceRequests records={records} kind="deliverable" id={deliverable.id}/>
@@ -154,7 +156,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       <TaskActions record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>
       {(parent||deliverable.data.storeOpenChecklist)&&!['completed','archived'].includes(parent?.data.status||'')&&canManageTask(deliverable.data,parent?.data,c)&&<><Button variant="outline" onClick={()=>setCreate('task')}>Edit deliverable</Button>{create==='task'&&<ProjectTaskForm key={deliverable.data.version} project={parent} assets={assets} record={deliverable} context={c} busy={busy} onSave={act} onCancel={()=>setCreate(null)}/>}</>}
       </>:<>
-      <section className="panel hq-owner-row" style={{borderLeftColor:(parent?projectColor(parent.data,name):ownerColor(deliverable.data.owner,name(deliverable.data.owner))).accent}}><p className="eyebrow">{parent?<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>{parent.data.title}</Link>:'Standalone work'}</p><h3>Work details</h3><p>Accountable owner: {name(deliverable.data.owner)} · Approver: {name(parent?.data.owner||deliverable.data.approver)}</p><p className="hq-preserve-text">{deliverable.data.instructions||'Instructions not yet recorded.'}</p><p>Effort: {deliverable.data.effort?effortLevels[deliverable.data.effort]:'Unknown'}{deliverable.data.estimatedHours!==null?' · '+deliverable.data.estimatedHours+' estimated hours':''}</p><p>Contributors: {deliverable.data.contributors.map(name).join(', ')||'None'}</p>{deliverable.data.publishing&&<><p>Format: {deliverable.data.format||'Not set'}</p><p className="hq-preserve-text">{deliverable.data.caption}</p>{deliverable.data.destinationUrl&&<a href={deliverable.data.destinationUrl} target="_blank" rel="noreferrer">Destination link →</a>}</>}{deliverable.data.blocked&&<p>Resolve block: {name(deliverable.data.blockedBy)}</p>}<Missing items={deliverableMissing(deliverable.data,parent?.data)}/></section>
+      <section className="panel"><p className="eyebrow">{parent?<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>{parent.data.title}</Link>:'Standalone work'}</p><h3>Work details</h3><p>Accountable owner: {name(deliverable.data.owner)} · Approver: {name(parent?.data.owner||deliverable.data.approver)}</p><p className="hq-preserve-text">{deliverable.data.instructions||'Instructions not yet recorded.'}</p><p>Effort: {deliverable.data.effort?effortLevels[deliverable.data.effort]:'Unknown'}{deliverable.data.estimatedHours!==null?' · '+deliverable.data.estimatedHours+' estimated hours':''}</p><p>Contributors: {deliverable.data.contributors.map(name).join(', ')||'None'}</p>{deliverable.data.publishing&&<><p>Format: {deliverable.data.format||'Not set'}</p><p className="hq-preserve-text">{deliverable.data.caption}</p>{deliverable.data.destinationUrl&&<a href={deliverable.data.destinationUrl} target="_blank" rel="noreferrer">Destination link →</a>}</>}{deliverable.data.blocked&&<p>Resolve block: {name(deliverable.data.blockedBy)}</p>}<Missing items={deliverableMissing(deliverable.data,parent?.data)}/></section>
       <ProductionPanel record={deliverable} project={parent?.data} context={c} act={act} busy={busy} name={name}/>
       {canWork(deliverable.data,parent?.data,c)&&<details className="panel hq-details"><summary>Edit deliverable</summary>
         <DeliverableForm key={deliverable.data.version} record={deliverable} initial={deliverableDraft(deliverable.data)} project={parent?.data} context={c} projects={eligibleProjects} assets={assets} busy={busy} onSave={async cmd=>{await act(cmd);}}/>
@@ -187,7 +189,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
 function ProjectList({projects,deliverables,name}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string}) {
   const now=useHqClock(),[filter,setFilter]=useState('all'),[search,setSearch]=useState('');
   const shown=projects.filter(p=>(!p.data.migratedToProjectId||filter==='archived')&&(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
-  return <section><div className="two-fields"><Field label="Find a project"><Input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Project status" value={filter} onChange={setFilter} options={{all:'All projects',...projectStatuses}}/></div><div className="hq-project-grid">{shown.map(p=><HqProjectCard key={p.id} project={p} deliverables={deliverables} name={name} now={now}/>)}</div>{!shown.length&&<p className="notice">{projects.length?'No projects match your search. Try a different name or status.':'No projects yet. Choose Add project above to get started.'}</p>}</section>;
+  return <section><div className="two-fields"><Field label="Find a project"><Input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Project status" value={filter} onChange={setFilter} options={{all:'All projects',...projectStatuses}}/></div><div className="hq-project-grid">{shown.map(p=><HqProjectCard key={p.id} project={p} deliverables={deliverables} name={name} now={now}/>)}</div>{!shown.length&&<p className="notice">{projects.length?'No projects match your search. Try a different name or status.':'No projects yet. Choose New Project above to get started.'}</p>}</section>;
 }
 function DeliverableList({records,projects,context,act,busy}:{records:HqRecord<Deliverable>[];projects:HqRecord<Project>[];context:HqContext;act:Action;busy:boolean}) {
   const now=useHqClock();
@@ -306,7 +308,7 @@ function EditorialHandoff({records,context:c,act,busy}:{records:WorkspaceRecord[
 }
 
 type Comment={id:string;actor:string;body:string;created_at:string;mentions?:string[]};
-type Activity={id:string;actor:string;action:string;created_at:string;snapshot:{version?:number;title?:string;approval?:{by:string};review?:{decision:'approve'|'changes';reviewedVersion:number};decision?:{reason:string};budget?:{amountCents:number};amount_cents?:number;category?:string;note?:string}};
+type Activity={id:string;record_id?:string;actor:string;action:string;created_at:string;snapshot:{version?:number;title?:string;approval?:{by:string};review?:{decision:'approve'|'changes';reviewedVersion:number};decision?:{reason:string};budget?:{amountCents:number};amount_cents?:number;category?:string;note?:string}};
 export function Discussion({id,kind,context:c,act,busy}:{id:string;kind:'project'|'deliverable'|'request';context:HqContext;act:Action;busy:boolean}) {
   const [comments,setComments]=useState<Comment[]>([]),[activity,setActivity]=useState<Activity[]>([]),[next,setNext]=useState<number|null>(null),[error,setError]=useState(''),[body,setBody]=useState(''),[mentions,setMentions]=useState<string[]>([]),[loading,setLoading]=useState(true),[refresh,setRefresh]=useState(0);
   const commentId=useRef(clientId());
@@ -317,7 +319,7 @@ export function Discussion({id,kind,context:c,act,busy}:{id:string;kind:'project
   return <section className="panel"><h2>Comments and activity</h2>{error&&<p role="alert">{error} <Button variant="outline" onClick={()=>setRefresh(n=>n+1)}>Retry history</Button></p>}
     <details className="hq-details"><summary>Add a comment</summary><form className="hq-form" onSubmit={async e=>{e.preventDefault();if(await act({action:'comment',id,kind,commentId:commentId.current,body,mentions})){setBody('');setMentions([]);commentId.current=clientId();setRefresh(n=>n+1);}}}><Field label="Add an internal comment"><Textarea required maxLength={5000} value={body} onChange={e=>{setBody(e.target.value);commentId.current=clientId();}}/></Field><StaffPicker label="Mention staff (notify in app)" value={mentions} onChange={people=>{setMentions(people);commentId.current=clientId();}} staff={c.staff}/><Button type="submit" disabled={busy}>Post comment</Button></form></details>
     <ul className="hq-discussion">{comments.map(x=><li key={x.id}><strong>{name(x.actor)}</strong><time>{recordedTime(x.created_at)}</time><p className="hq-preserve-text">{x.body}</p>{!!x.mentions?.length&&<p className="muted">Mentioned: {x.mentions.map(name).join(', ')}</p>}</li>)}</ul>
-    <details className="hq-details" open><summary>Activity history</summary><ul className="hq-discussion">{activity.map(x=><li key={x.id}><strong>{name(x.actor)}</strong><time>{recordedTime(x.created_at)}</time><p>{activityLabel(x.action)}{x.snapshot.title?' · '+x.snapshot.title:''}{x.snapshot.version?' · version '+x.snapshot.version:''}{x.action==='review'&&x.snapshot.review?' · '+(x.snapshot.review.decision==='approve'?'Approved':'Changes requested')+' · reviewed version '+x.snapshot.review.reviewedVersion:''}{x.snapshot.amount_cents!==undefined?' · '+money(x.snapshot.amount_cents)+' '+x.snapshot.category+' · '+x.snapshot.note:''}{x.action==='decide-request'&&x.snapshot.decision?.reason?' · '+x.snapshot.decision.reason:''}</p></li>)}</ul></details>
+    <details className="hq-details" open><summary>Activity history</summary><ul className="hq-discussion">{activity.map(x=><li key={x.id}><strong>{name(x.actor)}</strong><time>{recordedTime(x.created_at)}</time><p>{activityLabel(x.action)}{x.snapshot.title?' · '+auctionRecordText(x.snapshot.title,x.record_id||id):''}{x.snapshot.version?' · version '+x.snapshot.version:''}{x.action==='review'&&x.snapshot.review?' · '+(x.snapshot.review.decision==='approve'?'Approved':'Changes requested')+' · reviewed version '+x.snapshot.review.reviewedVersion:''}{x.snapshot.amount_cents!==undefined?' · '+money(x.snapshot.amount_cents)+' '+x.snapshot.category+' · '+x.snapshot.note:''}{x.action==='decide-request'&&x.snapshot.decision?.reason?' · '+x.snapshot.decision.reason:''}</p></li>)}</ul></details>
     {loading&&<p role="status">Loading history…</p>}{next!==null&&<Button variant="outline" disabled={loading} onClick={()=>{setLoading(true);void load(next);}}>Load earlier comments and activity</Button>}
   </section>;
 }

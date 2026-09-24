@@ -3,7 +3,6 @@ import {redirect} from 'next/navigation';
 import {agreementGate,agreementSignedUrl} from '@/lib/agreements';
 import {identity} from '@/lib/storage';
 import {AgreementActions} from '@/components/agreement-actions';
-import {ThemeToggle} from '@/components/theme-provider';
 
 export const dynamic='force-dynamic';
 
@@ -18,7 +17,7 @@ export default async function RequiredAgreement(){
     return <AgreementUnavailable/>;
   }
 
-  return <><div className="appearance-bar"><ThemeToggle/></div><main className="agreement-shell">
+  return <main className="agreement-shell">
     <section className="panel agreement-heading">
       <p className="brand-word">NORTHSIDE HQ</p>
       <p className="eyebrow">EMPLOYMENT AGREEMENT</p>
@@ -37,5 +36,5 @@ export default async function RequiredAgreement(){
       <iframe title={gate.title} src={signedUrl}/>
     </section>
     <AgreementActions agreementId={gate.agreementId} employeeName={gate.employeeName||''}/>
-  </main></>;
+  </main>;
 }

@@ -1,5 +1,6 @@
 'use client';
 import {useId,useState} from 'react';
+import {statusTone} from '@/lib/hq-presentation';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
@@ -21,7 +22,7 @@ export function AuctionStatusControl({record,project,context,act,busy,compact=fa
   if(command&&!(await act(command)))setError('Status was not saved. Review the message above and try again.');
  }
  return <div className="hq-auction-status">
-  <label className="field" htmlFor={id}><span>Status</span><select id={id} aria-label={'Status for '+d.title} value={current} disabled={busy||!options.length} onChange={e=>void change(e.target.value as AuctionStatus)}>
+  <label className="field" htmlFor={id}><span>Status</span><select id={id} data-tone={statusTone(auctionStatuses[current])} aria-label={'Status for '+d.title} value={current} disabled={busy||!options.length} onChange={e=>void change(e.target.value as AuctionStatus)}>
    {Object.entries(auctionStatuses).map(([value,label])=><option key={value} value={value} disabled={value!==current&&!options.includes(value as AuctionStatus)}>{label}</option>)}
   </select></label>
   {(!compact||!['published','scheduled'].includes(current))&&publicationSummary(d)&&<p className="hq-meta">{publicationSummary(d)}</p>}

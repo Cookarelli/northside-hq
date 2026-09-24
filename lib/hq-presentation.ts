@@ -3,6 +3,16 @@ import {finished,instant} from './hq-operations.ts';
 import {myAssignments,canCompleteTask} from './project-tasks.ts';
 import type {Deliverable,HqContext,HqRecord,Project} from './hq-model.ts';
 
+// Presentation only: the underlying workflow states and permissions stay intact.
+export function statusTone(label:string) {
+ const status=label.toLowerCase();
+ if(['overdue','blocked','declined'].includes(status))return 'attention';
+ if(['complete','completed','published','done','accepted','reconciled'].includes(status))return 'complete';
+ if(['ready for review','needs review','ready','due soon'].includes(status))return 'review';
+ if(['in progress','active','scheduled'].includes(status))return 'progress';
+ return 'neutral';
+}
+
 export function assignmentGroups(records:HqRecord<Deliverable>[],projects:HqRecord<Project>[],staffId:string,now:number) {
   const data=myAssignments(records,projects,staffId,now),today=chicagoWall(now).slice(0,10);
   const overdue=data.overdue,ids=new Set(overdue.map(r=>r.id));

@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
 import {ownerColor} from '@/lib/owner-colors';
 
 import {ConsignmentReview, OutstandingTasks} from '@/components/consignment-review';
@@ -8,7 +7,7 @@ import {approvalIssues} from '@/lib/consignment-review';
 import {ConsignmentCampaign, ProductionFields} from '@/components/consignment-campaign';
 import type {CampaignRecord, CampaignSave} from '@/lib/consignment';
 import {useEffect, useRef, useState} from 'react';
-import {CalendarDays, Download, ExternalLink, Pencil, Plus} from 'lucide-react';
+import {CalendarDays, Download, Pencil, Plus} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -19,7 +18,7 @@ import {clientId} from '@/lib/client-id';
 import {PLATFORMS} from '@/lib/marketing';
 import {calendarDay, calendarTime, isDateOnlyRelease, nextTuesday, type CalendarPost, type CalendarPostData} from '@/lib/content-calendar';
 
-type Props = {area?:'entries'|'releases';onSaveTemplate:(payload:TemplateSave)=>Promise<{id:string;existing:boolean}|null>; campaigns: CampaignRecord[]; onSaveCampaign: (payload: CampaignSave) => Promise<boolean>; posts: CalendarPost[]; busy: boolean; loading: boolean; onSave: (id: string, data: CalendarPostData) => Promise<boolean>};
+type Props = {onSaveTemplate:(payload:TemplateSave)=>Promise<{id:string;existing:boolean}|null>; campaigns: CampaignRecord[]; onSaveCampaign: (payload: CampaignSave) => Promise<boolean>; posts: CalendarPost[]; busy: boolean; loading: boolean; onSave: (id: string, data: CalendarPostData) => Promise<boolean>};
 const emptyDraft: CalendarPostData = {title: '', date: '', timezone: 'America/Chicago', source: 'tbd', caption: '', status: 'draft', category: 'Topical'};
 const categories = ['Topical', 'Release', 'Brand / educational', 'Consignment'] as const;
 
@@ -35,9 +34,7 @@ function exportCalendar(posts: CalendarPost[], campaigns: CampaignRecord[]) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSaveCampaign, onSaveTemplate,area='entries'}: Props) {
-  const router=useRouter();
-  useEffect(()=>{const target=window.location.hash.slice(1);const post=posts.find(p=>target==='legacy-entry-'+encodeURIComponent(p.id));if(post&&area==='entries'&&post.data.category==='Release'&&post.data.source==='topps')router.replace('/calendar?tab=releases#'+target);},[area,posts,router]);
+export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSaveCampaign, onSaveTemplate}: Props) {
   const [draft, setDraft] = useState<CalendarPostData>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [template,setTemplate]=useState<CalendarPost|null>(null);
@@ -56,7 +53,6 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
     return()=>{cancelAnimationFrame(frame);window.removeEventListener('hashchange',reveal);};
   },[loading,posts]);
   const dated = posts.filter(p => !p.data.recurrence).sort((a, b) => a.data.date.localeCompare(b.data.date));
-  const releases = dated.filter(p => p.data.category === 'Release' && p.data.source === 'topps');
   const datedContent = dated.filter(p => !(p.data.category === 'Release' && p.data.source === 'topps'));
   const recurring = posts.filter(p => p.data.recurrence).sort((a, b) => a.data.date.slice(11).localeCompare(b.data.date.slice(11)));
   const days = [...new Set(datedContent.map(p => p.data.date.slice(0, 10)))];
@@ -67,18 +63,6 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
     setDraft(post ? {...post.data, ...(occurrence ? {recurrence: undefined, date: nextTuesday(post.data.date.slice(11, 16)), status: 'draft'} : {})} : {...emptyDraft});
     formRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
     titleRef.current?.focus({preventScroll: true});
-  }
-
-  function releaseCard(post: CalendarPost) {
-    const p = post.data;
-    const dateOnly = isDateOnlyRelease(p);
-    return <article className="panel calendar-card release-card" id={'legacy-entry-'+post.id} key={post.id}>
-      <div className="calendar-card-top"><time dateTime={dateOnly?p.date.slice(0,10):p.date}>{dateOnly ? 'Date only' : calendarTime(p.date)}</time><span className="tag">Topps release</span></div>
-      <h3>{p.title}</h3>
-      <p className="muted">{dateOnly ? 'Exact release time not listed by Topps' : 'Official Topps release time · Central'}</p>
-      {p.caption ? <p className="calendar-notes">{p.caption}</p> : null}
-      {p.references?.[0] ? <div className="calendar-card-actions"><Button variant="outline" asChild><a href={p.references[0]} target="_blank" rel="noreferrer"><ExternalLink size={18}/>View Topps calendar</a></Button></div> : null}
-    </article>;
   }
 
   function card(post: CalendarPost) {
@@ -104,19 +88,11 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
   }
 
   return <>
-    {area==='entries'&&<><div className="section-title"><div><p className="eyebrow">THE CONTENT CALENDAR</p><h2>Existing entries and weekly series</h2><p className="muted">All times are Central (America/Chicago). These legacy status labels are planning history. Use HQ deliverables to record each platform’s actual publication.</p></div>
-      <div className="button-row"><Button variant="outline" disabled={loading || !posts.length} onClick={() => exportCalendar([...dated, ...recurring], campaigns)}><Download size={18}/>Export calendar</Button><Button onClick={() => openDraft()}><Plus size={18}/>New draft</Button></div>
+    <><div className="section-title"><div><p className="eyebrow">THE CONTENT CALENDAR</p><h2>Existing entries and weekly series</h2><p className="muted">All times are Central (America/Chicago). These legacy status labels are planning history. Use HQ deliverables to record each platform’s actual publication.</p></div>
+      <div className="button-row"><Button variant="outline" disabled={loading || !posts.length} onClick={() => exportCalendar([...datedContent, ...recurring], campaigns)}><Download size={18}/>Export calendar</Button><Button onClick={() => openDraft()}><Plus size={18}/>New draft</Button></div>
     </div>
-    <ConsignmentCampaign posts={posts} campaigns={campaigns} disabled={busy || loading} onSave={onSaveCampaign}/></>}
-    {area==='releases'&&<section className="calendar-recurring" aria-labelledby="release-calendar">
-      <div className="section-title"><div><p className="eyebrow">RELEASE CALENDAR</p><h2 id="release-calendar">Upcoming Topps releases</h2><Link href="/assets/research?tab=releases">Release verification →</Link><p className="muted">Official Topps release-calendar dates. Topps notes that dates are subject to change, so use the source link to confirm before publishing release-day content.</p></div>{releases.length ? <span className="tag">{releases.length} upcoming</span> : null}</div>
-      {!releases.length ? <p className="panel">No Topps releases are currently loaded.</p> :
-        <div className="calendar-days">{[...new Set(releases.map(p=>p.data.date.slice(0,10)))].map(day=><section key={day} aria-label={calendarDay(day)}>
-          <div className="calendar-day-heading"><CalendarDays aria-hidden="true"/><h3>{calendarDay(day)}</h3><span className="tag">{releases.filter(p=>p.data.date.startsWith(day)).length} releases</span></div>
-          <div className="calendar-post-grid">{releases.filter(p=>p.data.date.startsWith(day)).map(releaseCard)}</div>
-        </section>)}</div>}
-    </section>}
-    {area==='entries'&&<>
+    <ConsignmentCampaign posts={posts} campaigns={campaigns} disabled={busy || loading} onSave={onSaveCampaign}/></>
+    <>
     {loading ? <p role="status" className="notice">Loading the calendar…</p> : null}
     {!loading && !datedContent.length ? <p className="panel">No dated content drafts yet. Add your first post below.</p> : null}
     <div className="calendar-days">{days.map(day => <section key={day} aria-label={calendarDay(day)}>
@@ -144,6 +120,6 @@ export function ContentCalendar({posts, campaigns, busy, loading, onSave, onSave
       {draft.consignment && <><ConsignmentReview data={draft} campaign={campaigns.find(c=>c.id===draft.consignment?.campaignId)?.data} onChange={setDraft}/><label className="field"><span>Post status</span><select value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value})}>{['draft','review','approved','published'].map(status=><option key={status} disabled={['approved','published'].includes(status) && approvalIssues(draft,campaigns.find(c=>c.id===draft.consignment?.campaignId)?.data).length>0}>{status}</option>)}</select></label></>}
       {draft.category === 'Consignment' && <ProductionFields data={draft} onChange={data => setDraft({...data, source: data.platforms?.[0] || data.source})}/>}
       <div className="button-row"><Button disabled={busy} type="submit">{busy ? 'Saving…' : editingId ? 'Save changes' : 'Save draft'}</Button>{editingId ? <Button type="button" variant="outline" onClick={() => {setEditingId(null);setTemplate(null);draftId.current=clientId();setDraft({...emptyDraft});}}>Cancel edit</Button> : null}</div>
-    </form></>}
+    </form></>
   </>;
 }

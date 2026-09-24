@@ -17,6 +17,8 @@ export function scheduleRows(records:HqRecord<Deliverable>[],projects:HqRecord<P
   for(const platform of d.platforms){const publication=d.publications[platform]||{status:'planned'};rows.push({...base,key:id+':'+platform,date:publication.status==='published'?publication.publishedAt||'':publication.status==='scheduled'?publication.scheduledFor||'':d.publishAt,platform,status:publication.status,stateLabel:{planned:'Planned',scheduled:'Scheduled',published:'Published'}[publication.status]});}
  }
  if(mode==='publication')for(const {id,data:p} of legacy){
+  // Retired imported release calendar; keep staff-authored release work and saved records.
+  if(p.category==='Release'&&p.source==='topps')continue;
   const dates:string[]=[];
   if(p.recurrence&&from&&to){for(let day=from,n=0;day<=to&&n<93;day=addDays(day,1),n++)if(new Date(day+'T12:00:00Z').getUTCDay()===2&&day>=p.date.slice(0,10))dates.push(day+'T'+p.date.slice(11,16));}
   else dates.push(p.date);
