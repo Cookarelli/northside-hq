@@ -51,7 +51,7 @@ export function AuctionDeliverableEditor({record,project,context,assets,busy,act
    <label className="field"><span>Priority</span><select value={priority} onChange={e=>setPriority(e.target.value as TaskPriority)}>{Object.entries(taskPriorities).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>
    <label className="field"><span>Internal notes</span><Textarea rows={3} maxLength={12000} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
   </fieldset>
-  <BudgetFields planned={planned} actual={actual} onPlanned={setPlanned} onActual={setActual} disabled={busy}/>
+  <BudgetFields actualFromEntries={!!d.auctionCampaignId||!!d.spendLedger} planned={planned} actual={actual} onPlanned={setPlanned} onActual={setActual} disabled={busy}/>
   {!locked&&<p className="hq-meta">Changes to content need fresh approval. Priority and notes do not change an approved publishing package.</p>}
   {error&&<p role="alert" className="notice error">{error}</p>}
   <div className="button-row"><Button type="submit" disabled={busy||pending}>{busy?'Saving…':'Save deliverable'}</Button><Button type="button" variant="outline" disabled={busy||pending} onClick={onClose}>Cancel</Button></div>

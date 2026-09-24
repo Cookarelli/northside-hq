@@ -28,6 +28,8 @@ Individual Auth logins require verified email plus active membership in `private
 
 **Collect Weekly Auctions** is the permanent home for numbered auction campaigns. **Add Auction Campaign** suggests the next number and creates three reminders, with optional campaign and deliverable budgets. Campaign members can also work on their reminders. See [auction creation, calendar behavior, permissions and migration verification](docs/mj-consignment-deliverables.md#reusable-weekly-auction-campaigns).
 
+Auction rows expose status, owner, due time and compact budget/actual totals. Open a reminder to enter channel spending or inspect its history. When all reminders are published and actuals are confirmed, **Reconcile Auction** records the reviewed totals; later financial changes reopen reconciliation. See [weekly operations and reconciliation](docs/mj-consignment-deliverables.md#weekly-usability-channel-spending-and-reconciliation).
+
 Submit changes as a draft PR against `main`, verify a protected preview using isolated data, and obtain Steve's production approval before merge/deploy. The guide separates completed local checks from hosted rollout gates and the deferred repository rename.
 
 ## Retained tools

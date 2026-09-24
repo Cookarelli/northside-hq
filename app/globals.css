@@ -712,3 +712,28 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .hq-auction-allocation-inputs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
 .hq-auction-shared { margin: 16px 0; overflow-wrap:anywhere; }
 @media (max-width:640px) { .hq-auction-allocation-inputs {grid-template-columns:1fr;} }
+/* Weekly auctions: campaign totals first, compact operational reminder rows. */
+.hq-auction-title-line,.hq-auction-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hq-auction-actions{justify-content:flex-start;margin-top:14px}
+.hq-auction-actions>.hq-auction-settings{flex-basis:100%}
+.hq-auction-close{margin:10px 0 20px;font-size:1.05rem;line-height:1.6}
+.hq-auction-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin:20px 0}
+.hq-auction-overview dt,.hq-auction-row-facts dt{color:var(--muted-foreground);font-size:.9rem;margin-bottom:6px}
+.hq-auction-overview dd{margin:0;font-size:1.4rem;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.hq-reconciled{border:1px solid var(--primary);color:var(--foreground);background:var(--muted);padding:7px 12px;border-radius:6px;font-size:.85rem;font-weight:750;letter-spacing:.06em}
+.hq-auction-row-heading{align-items:center;margin-bottom:18px}
+.hq-auction-row-main{display:grid;grid-template-columns:minmax(180px,1.05fr) minmax(240px,1.5fr) minmax(160px,.9fr);gap:24px;align-items:start}
+.hq-auction-row-main .hq-auction-status>.field{max-width:none}
+.hq-auction-row-facts{display:grid;grid-template-columns:.7fr 1.5fr;gap:20px;margin:0}
+.hq-auction-row-facts dd{margin:0;line-height:1.55;font-size:1.05rem;font-weight:600}
+.hq-auction-row-money{display:grid;gap:5px;font-size:1rem;line-height:1.55}
+.hq-auction-row-main:has(.hq-auction-confirmations)>.hq-auction-status{grid-column:1/-1;grid-row:2}
+.hq-auction-row-main:has(.hq-auction-confirmations)>.hq-auction-row-facts{grid-column:1/3}
+.hq-auction-spending{border-top:1px solid var(--border);margin-top:24px;padding-top:20px}
+.hq-auction-spending h5{font-size:1.1rem;font-weight:700;margin:0}
+.hq-spend-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.hq-spend-entries{list-style:none;margin:20px 0 0;padding:0}
+.hq-spend-entries>li{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 0;border-top:1px solid var(--border)}
+.hq-spend-entries p{margin:5px 0}.hq-spend-entries small{color:var(--muted-foreground)}
+@media(max-width:1100px){.hq-auction-row-main{grid-template-columns:1fr 1.7fr}.hq-auction-row-money{grid-column:1/-1;display:flex;gap:24px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)}}
+@media(max-width:640px){.hq-auction-overview{grid-template-columns:1fr 1fr;gap:20px}.hq-auction-overview dd{font-size:1.2rem}.hq-auction-row-main{display:flex;flex-direction:column;gap:16px}.hq-auction-row-main>.hq-auction-status,.hq-auction-row-facts,.hq-auction-row-money{width:100%}.hq-auction-row-facts{grid-template-columns:.7fr 1.5fr}.hq-auction-row-money{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hq-auction-row-money>strong{grid-column:1/-1}.hq-shell .hq-auction-row-heading h4{font-size:1.1rem}.hq-auction-row-heading{gap:12px}.hq-spend-fields{grid-template-columns:1fr}.hq-spend-entries>li{flex-wrap:wrap}.hq-auction-close .hq-meta{display:block}}

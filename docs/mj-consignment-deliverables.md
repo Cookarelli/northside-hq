@@ -105,3 +105,39 @@ Verification for the reusable workflow:
 - Connected verification preserved all **32** existing record IDs and protected-field checksums: 4 projects, 7 deliverables, 19 legacy calendar posts, 1 request and the single #245 campaign. The only record changes initialize campaign metadata/mirrors and their version/update timestamps. Both new unique indexes are valid. Anonymous creation is denied. Security advisor findings are unchanged from the linked baseline above.
 
 The additive database migration is live. The reusable UI remains in the existing draft PR pending Steve's merge/deployment approval, as required by the repository README. Hosted staff-login acceptance is still a rollout check; the isolated verification does not claim to authenticate as a real staff member.
+
+## Weekly usability, channel spending and reconciliation
+
+The permanent project page now presents **Collect Weekly Auctions → #number — campaign → reminder** without repeating the campaign, close, priority and assignment details on every closed row. The stored staff-edited project title and historical project dates remain preserved; the weekly operational heading uses the permanent project name and each campaign's actual close. Newest auction numbers still appear first. Add Auction Campaign is the main creation action; existing manual work controls remain below campaign work.
+
+Closed reminder rows show the status dropdown, owner, Chicago due date/time and compact amounts such as **Budget $175 · Actual $160 · $15 under**. Staff change status directly in the row. Scheduling/publication still use explicit inline platform confirmations; no edit modal or external publishing is introduced. Extra assignment, card, link, note and spending details are available after opening the deliverable. Completed platform history stays accessible there without cluttering the closed row.
+
+The campaign header shows its Sunday close, budget, actual, variance and reconciliation state in an aligned layout. The optional campaign budget is the comparison target; otherwise recorded deliverable plans provide the total. A wholly unset budget displays **Not set**, and incomplete actual spending does not appear as zero or a final variance. Allocation differences remain visible only when a campaign target differs from its deliverable plans.
+
+### Spend by channel
+
+Opened auction deliverables, including their full detail pages, provide **Spend by channel** with a channel/cost type, exact USD amount, Chicago spending date and optional note. New entries update the deliverable actual, campaign totals and existing project ledger in one database transaction. Actual amount fields in auction budget editors are read-only; channel entries are the source of the total. **Confirm no spend** explicitly records zero while leaving unknown spend blank until confirmed.
+
+This reuses `hq_spend`, with optional `deliverable_id` and `auction_campaign_id` links. Existing unassigned project spending remains untouched and is not guessed into campaigns. A prior manually entered deliverable actual is preserved once as a visible “Previously recorded” opening entry when channel tracking starts. Subsequent entries add to it. Corrections create a matching negative entry and retain the original amount, channel, note and actor. Duplicate requests and repeated corrections are protected. The existing project correction screen routes linked entries through the same checked path, so it cannot leave reminder totals stale or bypass deliverable authorization. Once channel entries exist, the database rejects an aggregate actual that disagrees with their sum.
+
+### Reconciliation
+
+- **Open:** work remains unpublished, a required reminder is missing, or actual spend is unknown.
+- **Ready:** all three reminder types exist, every active campaign deliverable is published on all its platforms, and actual spending is recorded or explicitly zero.
+- **Reconciled:** an authorized project member, campaign owner or administrator selects **Reconcile Auction**. The database checks the campaign and every deliverable version again, then records the actor, timestamp and financial snapshot. Retries do not duplicate reconciliation history.
+
+Reconciled auctions show a clear **RECONCILED** badge and remain fully inspectable. Financial, publication or campaign target changes clear the current reconciliation and require another review; prior snapshots remain in activity history. Corrections never erase source entries. Reconciliation does not change publishing permissions, purchase advertising, move money or require a balanced allocation plan.
+
+The project view refreshes on record notifications, other-tab changes, window focus and a visible-page interval. Open editors retain their drafts, and in-flight reads cannot replace a newer completed save. The calendar retains one derived reminder per deliverable, its owner color and deep link. A naming fix preserves “Auction” when it is part of a new campaign name, while keeping the legacy Michael Jordan calendar title concise.
+
+### Final verification
+
+`20260924023553_auction_spending_reconciliation.sql` is applied to the connected Supabase project. It adds ledger links, checked finance/reconciliation commands and synchronization guards, without rewriting existing records or spending. All **32 existing records** matched their exact JSON checksums after application; all **7 existing spending entries** retained their original fields and remain unassigned. No live future auction, test spending or reconciliation was created. RLS and the staff/agreement gates remain enforced. The public finance function is invoker-only, uses an empty search path and is not executable by anonymous users. Security advisor findings match the previously documented baseline.
+
+- **148 tests pass**, including channel totals, no-spend confirmation, preserved manual actuals, corrections through both screens, immutable history, stale reconciliation rejection, permission denial, exact cents, rollback, safe retries and full migration replay.
+- Typecheck and production build pass. Lint has zero errors and the same four pre-existing warnings.
+- The actual browser UI against isolated PostgreSQL functions completed **create #246 → automatically generate three reminders → assign Jon/Steve → allocate $175/$150/$125 → update row statuses as Brody (parent member only) → record $160/$140/$120 by channel → view calendar and follow its reminder link → approve and confirm publication → reconcile**. The page showed **$450 budget, $420 actual, $30 under, RECONCILED**.
+- A further $0.37 entry reopened reconciliation. Correcting it retained both entries, restored the original total, and allowed reconciliation again. All source deliverables and spend history remained inspectable.
+- Desktop, 390 px phone and 320 px narrow-phone layouts were visually checked, including light/dark themes. No horizontal overflow or application browser errors were observed. Protected hosted staff-login/upload acceptance remains a separate rollout check.
+
+The application changes remain in draft PR #13 pending the README's production merge/deployment approval. Local preview routes, staff fixtures and authentication bypasses are outside the repository and are not shipped.

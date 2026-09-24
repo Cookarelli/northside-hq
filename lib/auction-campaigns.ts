@@ -9,7 +9,7 @@ const fields={featuredCard:z.string().max(4000),auctionPlatform:z.string().max(3
 export const auctionCampaignInput=z.object({name:z.string().trim().min(1).max(240),auction_number:z.number().int().min(1).max(999999999),closesAt:z.string().refine(value=>{try{const wall=chicagoWall(chicagoInstant(value));return new Date(wall.slice(0,10)+'T12:00:00Z').getUTCDay()===0;}catch{return false;}},'Choose a valid Sunday closing time in America/Chicago.')}).extend(z.object(fields).partial().shape).strict();
 export const auctionCampaignCreateInput=auctionCampaignInput.extend(fields).strict();
 export type AuctionCampaignInput=z.infer<typeof auctionCampaignCreateInput>;
-export type AuctionCampaignData=z.infer<typeof auctionCampaignInput>&{projectId:string;sourceProjectId?:string;version:number;createdAt:string;updatedAt:string};
+export type AuctionCampaignData=z.infer<typeof auctionCampaignInput>&{reconciliation?:{at:string;by:string;budgetCents:number|null;actualCents:number;varianceCents:number|null}|null;projectId:string;sourceProjectId?:string;version:number;createdAt:string;updatedAt:string};
 export const auctionCampaignCommand=z.object({action:z.literal('save-auction-campaign'),id:z.string().regex(/^[a-zA-Z0-9_-]{1,180}$/),version:z.number().int().min(1),data:auctionCampaignInput}).strict();
 export const createAuctionCampaignCommand=z.object({action:z.literal('create-auction-campaign'),id:z.string().regex(/^[a-zA-Z0-9_-]{1,150}$/),projectId:z.string().min(1).max(180),data:auctionCampaignCreateInput,plannedBudgets:z.object({'48':cents,'24':cents,'2':cents}).strict()}).strict();
 export function nextAuctionNumber(campaigns:HqRecord<AuctionCampaignData>[]){return campaigns.reduce((max,c)=>Math.max(max,c.data.auction_number),0)+1;}
@@ -22,5 +22,5 @@ export function reminderDue(d:Deliverable){
  if(!d.auctionClosesAt||![48,24,2].includes(d.reminderHours||0))return '';
  try {const close=/T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(d.auctionClosesAt)?Date.parse(d.auctionClosesAt):chicagoInstant(d.auctionClosesAt);return chicagoWall(close-d.reminderHours!*3600000);}catch{return '';}
 }
-export function auctionCalendarTitle(d:Deliverable){return (d.auction_number?'#'+d.auction_number+' ':'')+d.title.replace(/^#\d+\s+/,'').replace(/ Auction(?= — )/,'');}
+export function auctionCalendarTitle(d:Deliverable){return (d.auction_number?'#'+d.auction_number+' ':'')+(/^#\d+\s+/.test(d.title)?d.title.replace(/^#\d+\s+/,''):d.title.replace(/^Michael Jordan Auction(?= — )/,'Michael Jordan'));}
 export function deliverableHref(id:string,d:Deliverable){return d.projectId&&d.campaignReference?'/projects/'+encodeURIComponent(d.projectId)+'?deliverable='+encodeURIComponent(id)+'#deliverable-'+encodeURIComponent(id):'/projects/work/'+encodeURIComponent(id);}
