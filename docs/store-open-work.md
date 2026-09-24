@@ -13,6 +13,13 @@ Projects → Store Open Checklist (`/projects?tab=store-open-checklist`) opens a
 
 The existing opening plan is retained at `?tab=store-open-checklist&view=plan`. Its original `plan/launch` identity, metadata and saved strategy/budget values are preserved.
 
+## Calendar and deadlines
+
+- The existing HQ calendar derives one **Northside Store Opens** milestone from the shared opening constant. It displays November 20, 2026 at 3:00 PM CST, uses `America/Chicago` internally, and opens the checklist. It creates no calendar or project record.
+- Checklist project deadlines and deliverable due dates appear automatically from their canonical records. Rescheduling updates the same calendar item. Project links open the project overview; child deliverables open the project's Deliverables tab and focus the specific item; direct deliverables open their work page. Each destination includes a Projects → Store Open Checklist breadcrumb.
+- The hub's quiet countdown shows days, adding hours during the final week, and never displays seconds. It uses the existing minute clock and reads “Store is open” once the milestone passes.
+- Checklist work uses **Upcoming**, **Due Soon**, **Overdue**, and **Complete**, retaining the existing 48-hour due-soon rule and completion status. Creation and edit forms warn **Due after store opening** for dates later than the opening instant without blocking saving. Unscheduled work stays visible with “No deadline.”
+
 ## Data and permissions
 
 There are no new tables, record kinds, storage buckets, department enums or status systems. Optional `storeOpenChecklist`, `department`, and `priority` fields extend existing records. A project's existing `eventAt` carries its due date; deliverables retain `productionDue`. Normal editors preserve checklist metadata; direct tasks can be edited through their existing deliverable page. Calendar, project Assets, notes/activity and assignments read the same records.
@@ -23,8 +30,9 @@ Apply `20260924061808_store_open_work_hub.sql` before publishing the application
 
 ## Verification
 
-- 173 automated tests pass, including checklist creation, standalone/child tasks, manager and assignee authorization, cross-organization rejection, invalid dates, concurrency/version protection, calendar links, counters, grouping, deleted history and migration replay.
+- 178 automated tests pass, including checklist creation, standalone/child tasks, manager and assignee authorization, cross-organization rejection, invalid dates, concurrency/version protection, calendar links, counters, grouping, deleted history and migration replay. Calendar tests cover the single milestone, date ranges, source rescheduling/deletion/completion, Chicago's fall time change, exact deadline boundaries, countdown formatting and the 48-hour indicators.
 - Type checking and production build pass. Lint has no errors; three existing authentication-navigation warnings remain.
 - Isolated browser/database verification: create a project, create a child deliverable, create a direct deliverable, upload and reuse one supporting document, update status as a project member, check progress and completed view, group by department/owner, search, refresh/back/forward, edit the direct item through the normal deliverable editor, and view its shared asset in both deliverable and project Assets tabs.
 - Desktop and 390px mobile UI checked; no browser console errors observed. Existing plan fixture values remain accessible in the strategy view.
+- Calendar browser checks confirm the opening milestone and project/deliverable deadlines in the mobile date agenda, the focused deliverable deep link, the checklist breadcrumb, and the milestone link back to the hub. An after-opening direct deliverable saved successfully with the warning visible; the isolated database contains one new deliverable and no duplicate calendar record.
 - Browser fixtures were isolated from production. Hosted deployment and production migration require the repository's production approval.

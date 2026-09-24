@@ -14,6 +14,8 @@ import {Textarea} from '@/components/ui/textarea';
 import {MaterialsEditor,ResourceLinks,AssignedContent,ProjectAssetList,type Asset} from '@/components/hq-materials';
 import {ownerColor,projectColor} from '@/lib/owner-colors';
 import {StaffPicker} from '@/components/staff-picker';
+import {StoreOpeningWarning} from '@/components/store-open-deadline';
+import {STORE_OPEN_CHECKLIST_HREF} from '@/lib/store-opening';
 import {ProjectTaskForm,TaskActions,DeliverableDetails} from '@/components/project-task';
 import {canManageTask,primaryOwnerLabel,projectOwnerOptions,taskAssignees,urgencySort} from '@/lib/project-tasks';
 import {useHqClock} from '@/components/use-hq-clock';
@@ -96,7 +98,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
     </div>;
   }
   return <div className="hq-records">
-    {view!=='list'&&<Link href="/projects">← All projects and work</Link>}
+    {view!=='list'&&((project?.data.storeOpenChecklist||deliverable?.data.storeOpenChecklist||parent?.data.storeOpenChecklist)?<nav aria-label="Breadcrumb" className="hq-breadcrumb"><Link href="/projects?tab=projects">Projects</Link><span aria-hidden="true">›</span><Link href={STORE_OPEN_CHECKLIST_HREF}>Store Open Checklist</Link><span aria-hidden="true">›</span><span aria-current="page">{deliverable?.data.title||project?.data.title}</span></nav>:<Link href="/projects">← All projects and work</Link>)}
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
     {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
     {view==='list'&&<>
@@ -112,7 +114,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
 
 
     {view==='project' &&(project?<>
-      <section className="panel hq-owner-row hq-project-header" style={{borderLeftColor:projectColor(project.data,name).accent}}><p className="hq-meta">{projectTypes[project.data.type]}</p>{project.data.storeOpenChecklist&&<Link href="/projects?tab=store-open-checklist">Store Open Checklist →</Link>}<h2>{weeklyHome?'Collect Weekly Auctions':project.data.title}</h2><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><span className="tag">{projectStatuses[project.data.status]}</span>{!weeklyHome&&<span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span>}</div></section>
+      <section className="panel hq-owner-row hq-project-header" style={{borderLeftColor:projectColor(project.data,name).accent}}><p className="hq-meta">{projectTypes[project.data.type]}</p><h2>{weeklyHome?'Collect Weekly Auctions':project.data.title}</h2><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><span className="tag">{projectStatuses[project.data.status]}</span>{!weeklyHome&&<span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span>}</div></section>
       <HqSubnavigation tabs={tabs} active={projectTab} label="Project sections"/>
       {weeklyHome&&['current-auction','auction-history','budget'].includes(projectTab)&&!(projectTab==='budget'&&searchParams.get('scope')==='project')&&<AuctionViews key={projectTab} area={projectTab as 'current-auction'|'auction-history'|'budget'} current={auctions.current} history={auctions.history} campaigns={projectCampaigns} selected={searchParams.get('auction')||''} records={deliverables} project={project} context={c} assets={assets} act={act} busy={busy}/>}
       {projectTab==='overview'&&<>
@@ -143,7 +145,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       </>}
     </>:<p className="panel">This project was not found in your workspace.</p>)}
     {view==='deliverable'&&(deliverable?deliverable.data.deletedAt?<><DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/><DeliverableTimestamps deliverable={deliverable.data}/></>:<>
-      <div className="section-title"><h2>{deliverable.data.title}</h2>{!parent&&deliverable.data.storeOpenChecklist&&<Link href="/projects?tab=store-open-checklist">← Store Open Checklist</Link>}{parent&&<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>← {parent.data.title} · Deliverables</Link>}</div>
+      <div className="section-title"><h2>{deliverable.data.title}</h2>{parent&&<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>← {parent.data.title} · Deliverables</Link>}</div>
       <HqSubnavigation tabs={workTabs} active={workTab} label="Deliverable sections"/>
       {workTab==='work'&&<>
       <SourceRequests records={records} kind="deliverable" id={deliverable.id}/>
@@ -207,6 +209,7 @@ function ProjectForm({initial,record,context:c,assets,busy,onSave,onCancel}:{ini
       <Field label="Description"><Textarea required={data.status!=='draft'} rows={4} value={data.brief} onChange={e=>update({brief:e.target.value})}/></Field>
       <Field label="Primary owner"><select required value={data.owner} onChange={e=>update({owner:e.target.value})}>{Object.entries(data.storeOpenChecklist?Object.fromEntries(c.staff.map(s=>[s.id,s.name])):projectOwnerOptions(c.staff,record?.data.owner)).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></Field><p className="muted">One accountable owner. Assigned staff are selected separately below.</p><StaffPicker label="Assigned staff members" value={data.members} onChange={members=>update({members})} staff={c.staff}/>
       {(data.storeOpenChecklist||['event','product_release'].includes(data.type))&&<Field label={(data.storeOpenChecklist?'Due':data.type==='event'?'Event':'Release')+' date and time (America/Chicago)'}><Input type="datetime-local" required={data.status!=='draft'} value={data.eventAt} onChange={e=>update({eventAt:e.target.value})}/></Field>}
+      {data.storeOpenChecklist&&<StoreOpeningWarning date={data.eventAt}/>}
       {data.storeOpenChecklist&&<div className="two-fields"><Field label="Department / category"><Input maxLength={100} value={data.department||''} onChange={e=>update({department:e.target.value})}/></Field><Choice label="Priority" value={data.priority||'normal'} onChange={v=>update({priority:v as ProjectInput['priority']})} options={{low:'Low',normal:'Normal',high:'High',urgent:'Urgent'}}/></div>}
       {data.type==='weekly_auction'&&<div className="two-fields"><Field label="Auction opening (America/Chicago)"><Input type="datetime-local" required={data.status!=='draft'} value={data.auctionOpensAt} onChange={e=>update({auctionOpensAt:e.target.value})}/></Field><Field label="Auction closing (America/Chicago)"><Input type="datetime-local" required={data.status!=='draft'} value={data.auctionClosesAt} onChange={e=>update({auctionClosesAt:e.target.value})}/></Field></div>}
       {data.auction&&<details className="hq-details"><summary>Auction facts and featured lots</summary><div className="campaign-fields"><Field label="Auction platform"><Input value={data.auction.auctionPlatform} onChange={e=>update({auction:{...data.auction!,auctionPlatform:e.target.value}})}/></Field><Field label="Auction batch link"><Input type="url" value={data.auction.batchUrl} onChange={e=>update({auction:{...data.auction!,batchUrl:e.target.value}})}/></Field>{data.auction.cards.map((card,index)=><div className="two-fields" key={index}><Field label={'Featured lot '+(index+1)+' name'}><Input value={card.name} onChange={e=>update({auction:{...data.auction!,cards:data.auction!.cards.map((x,i)=>i===index?{...x,name:e.target.value}:x)}})}/></Field><Field label={'Featured lot '+(index+1)+' URL'}><Input type="url" value={card.url} onChange={e=>update({auction:{...data.auction!,cards:data.auction!.cards.map((x,i)=>i===index?{...x,url:e.target.value}:x)}})}/></Field></div>)}</div></details>}
@@ -232,6 +235,7 @@ function DeliverableForm({initial,record,project,context:c,projects,assets,busy,
       <div className="two-fields"><Person label="Accountable owner" value={data.owner} onChange={owner=>update({owner})} staff={c.staff} disabled={!canAssign}/>{!data.projectId&&<Person label="Standalone approver" value={data.approver} onChange={approver=>update({approver})} staff={c.staff} disabled={!canAssign}/>}</div>
       <StaffPicker label="Additional assigned staff" value={data.contributors} onChange={contributors=>update({contributors})} staff={c.staff} disabled={!canAssign}/>
       <div className="two-fields"><Field label="Production deadline (America/Chicago)"><Input type="datetime-local" value={data.productionDue} onChange={e=>update({productionDue:e.target.value})}/></Field><Choice label="Effort" value={data.effort} onChange={v=>update({effort:v as DeliverableInput['effort']})} options={{'':'Choose effort',...effortLevels}}/></div>
+      {(record?.data.storeOpenChecklist||projects.find(p=>p.id===data.projectId)?.data.storeOpenChecklist||project?.storeOpenChecklist)&&<StoreOpeningWarning date={data.productionDue}/>}
       <Field label="Estimated hours (optional)"><Input type="number" min="0" max="10000" step="0.25" value={data.estimatedHours??''} onChange={e=>update({estimatedHours:e.target.value===''?null:Number(e.target.value)})}/></Field>
       <label className="check-field"><input type="checkbox" checked={data.publishing} onChange={e=>update({publishing:e.target.checked,platforms:e.target.checked?['facebook','instagram']:[],requiresCaption:e.target.checked,requiresFinalFile:e.target.checked,...(!e.target.checked?{promotionMode:'organic' as const,promotionChannel:'',promotionCents:0}:{})})}/><span>This work will be published</span></label>
       <fieldset className="hq-checks"><legend>Required output</legend><label><input type="checkbox" checked={data.requiresFinalFile} onChange={e=>update({requiresFinalFile:e.target.checked})}/>Final file or external final link</label>{data.publishing&&<label><input type="checkbox" checked={data.requiresCaption} onChange={e=>update({requiresCaption:e.target.checked})}/>Require caption / publishing copy</label>}</fieldset>

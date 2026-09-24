@@ -1,6 +1,7 @@
 import type {Deliverable,HqRecord,Project,WorkspaceRecord} from './hq-model.ts';
 import {finished,instant} from './hq-operations.ts';
-import {STORE_OPENING_INSTANT} from './store-opening.ts';
+import {dueAfterStoreOpening} from './store-opening.ts';
+import {dueState} from './hq-presentation.ts';
 export type ChecklistItem={kind:'project';record:HqRecord<Project>;parent?:never;complete:boolean;department:string;owner:string;due:string}|{kind:'deliverable';record:HqRecord<Deliverable>;parent?:HqRecord<Project>;complete:boolean;department:string;owner:string;due:string};
 export function checklistWork(records:WorkspaceRecord[]) {
  const projects=records.filter(r=>r.kind==='project'&&(r.data as Project).storeOpenChecklist) as HqRecord<Project>[];
@@ -12,5 +13,7 @@ export function checklistWork(records:WorkspaceRecord[]) {
  const completed=items.filter(i=>i.complete).length;
  return {projects,items,completed,open:items.length-completed,percent:items.length?Math.round(completed/items.length*100):0};
 }
-export function checklistTiming(item:ChecklistItem) {const due=instant(item.due);return due===null?'No deadline':due>STORE_OPENING_INSTANT?'After opening':'';}
+export function checklistTiming(item:ChecklistItem) {const due=instant(item.due);return due===null?'No deadline':dueAfterStoreOpening(item.due)?'Due after store opening':'';}
 export function checklistGroup(item:ChecklistItem,by:'department'|'owner',name:(id:string)=>string){return by==='owner'?name(item.owner):item.department||name(item.owner);}
+
+export function checklistDueState(date:string,complete:boolean,now:number|null) {const state=dueState(date,complete,now);return state==='On Track'?'Upcoming':state;}

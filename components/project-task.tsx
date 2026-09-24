@@ -6,6 +6,7 @@ import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {MaterialsEditor,type Asset} from '@/components/hq-materials';
 import {scheduleWall} from '@/lib/consignment';
+import {StoreOpeningWarning} from '@/components/store-open-deadline';
 import {StaffPicker} from '@/components/staff-picker';
 import {clientId} from '@/lib/client-id';
 import {recordedTime,type Deliverable,type HqContext,type HqRecord,type Project} from '@/lib/hq-model';
@@ -23,6 +24,7 @@ export function ProjectTaskForm({project,record,context,busy,onSave,onCancel,ass
  <label className="field"><span>Title</span><Input ref={titleRef} required maxLength={300} value={data.title} onChange={e=>update({title:e.target.value})}/></label>
  <label className="field"><span>Description (optional)</span><Textarea maxLength={12000} value={data.instructions} onChange={e=>update({instructions:e.target.value})}/></label>
  <div className="two-fields"><label className="field"><span>Due date (Central)</span><Input type="date" value={data.productionDue.slice(0,10)} onChange={e=>update({productionDue:e.target.value?e.target.value+'T'+(data.productionDue.slice(11)||'09:00'):'',...(!e.target.value?{endAt:''}:{})})}/></label><label className="field"><span>Due time (Central)</span><Input type="time" required={!!data.productionDue} disabled={!data.productionDue} value={data.productionDue.slice(11,16)} onChange={e=>update({productionDue:data.productionDue.slice(0,10)+'T'+e.target.value})}/></label></div>
+ {(data.storeOpenChecklist||project?.data.storeOpenChecklist)&&<StoreOpeningWarning date={data.productionDue}/>}
  <label className="field"><span>End date and time (optional, Central)</span><Input type="datetime-local" disabled={!data.productionDue} min={data.productionDue} value={data.endAt} onChange={e=>update({endAt:e.target.value})}/></label>
  <StaffPicker label="Assigned staff" value={data.assignees} onChange={assignees=>update({assignees})} staff={context.staff} disabled={!manager}/>{!manager&&<p className="muted">You can add work assigned to yourself. The primary owner or an administrator assigns other staff.</p>}
  <label className="field"><span>Priority</span><select value={data.priority} onChange={e=>update({priority:e.target.value as TaskPriority})}>{Object.entries(taskPriorities).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>

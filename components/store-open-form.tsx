@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
+import {StoreOpeningWarning} from '@/components/store-open-deadline';
 import {StaffPicker} from '@/components/staff-picker';
 import {MaterialsEditor,type Asset,type Materials} from '@/components/hq-materials';
 import {blankProject,projectDraft,projectInput,projectStatuses,type Project,type HqRecord,type HqContext,type Deliverable} from '@/lib/hq-model';
@@ -36,7 +37,7 @@ export function StoreOpenForm({editor,projects,departments,context,assets,busy,a
  <StaffPicker label={editor.kind==='project'?'Additional members':'Additional assignees'} staff={context.staff.filter(s=>s.id!==owner)} value={members.filter(id=>id!==owner)} onChange={setMembers}/>
  <div className="two-fields"><label className="field"><span>Due date and time (America/Chicago)</span><Input required type="datetime-local" value={due} onChange={e=>setDue(e.target.value)}/></label><label className="field"><span>Priority</span><select value={priority} onChange={e=>setPriority(e.target.value as TaskPriority)}>{Object.entries(taskPriorities).map(([v,label])=><option key={v} value={v}>{label}</option>)}</select></label></div>
  {editor.kind==='deliverable'&&editor.record?.data.endAt&&<label className="field"><span>End date and time (America/Chicago)</span><Input type="datetime-local" value={endAt} onChange={e=>setEndAt(e.target.value)}/></label>}
- {due>STORE_OPENING_WALL&&<p role="status" className="callout">This deadline is after the store opens. It will stay visible and be marked “After opening”.</p>}
+ <StoreOpeningWarning date={due}/>
  {(editor.kind==='project'||!record)&&<label className="field"><span>Status</span><select value={status} onChange={e=>setStatus(e.target.value)}>{Object.entries(editor.kind==='project'?projectStatuses:taskStatuses).map(([v,label])=><option key={v} value={v}>{label}</option>)}</select></label>}
  <label className="field"><span>Description{editor.kind==='deliverable'?' (optional)':''}</span><Textarea required={editor.kind==='project'&&status!=='draft'} maxLength={12000} value={description} onChange={e=>setDescription(e.target.value)}/></label>
  {editor.kind==='deliverable'&&<label className="field"><span>Notes (optional)</span><Textarea maxLength={12000} value={notes} onChange={e=>setNotes(e.target.value)}/></label>}

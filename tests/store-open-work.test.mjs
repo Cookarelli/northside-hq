@@ -65,7 +65,7 @@ test('checklist uses canonical records, normal permissions, shared calendar/asse
   await t.test('hub counts and grouping include inherited deliverables once; completed/deleted work remains preserved',async()=>{
    await actor('brody');await saveTask('inherited',{...direct,projectId:'opening',storeOpenChecklist:undefined,department:undefined,productionDue:'2026-11-21T15:00'});
    let m=checklistWork(await records());assert.equal(m.items.length,5);assert.equal(m.completed,1);assert.equal(m.open,4);assert.equal(m.percent,20);
-   const inherited=m.items.find(i=>i.record.id==='inherited');assert.equal(checklistGroup(inherited,'department',x=>x),'Operations');assert.equal(checklistGroup(inherited,'owner',x=>x),'brody');assert.equal(checklistTiming(inherited),'After opening');
+   const inherited=m.items.find(i=>i.record.id==='inherited');assert.equal(checklistGroup(inherited,'department',x=>x),'Operations');assert.equal(checklistGroup(inherited,'owner',x=>x),'brody');assert.equal(checklistTiming(inherited),'Due after store opening');
    const own=m.items.find(i=>i.record.id==='opening-direct');assert.equal(checklistGroup(own,'department',x=>x),'Sales');assert.equal(checklistTiming({...own,due:''}),'No deadline');
    await task('task-delete',{id:'inherited',version:(await get('inherited')).version});m=checklistWork(await records());assert.equal(m.items.length,4);assert.ok((await get('inherited')).deletedAt);
    const p=await get('opening','project');await hq('save-project',{id:'opening',version:p.version,data:{...projectDraft(p),status:'completed'}});

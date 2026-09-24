@@ -21,3 +21,18 @@ export const STORE_OPEN_PLAN_FIELDS = {
 export function storeOpenPlan<T extends Record<string,unknown>>(saved:T) {
   return {...saved,...STORE_OPEN_PLAN_FIELDS};
 }
+
+export const STORE_OPENING_TITLE='Northside Store Opens';
+export function dueAfterStoreOpening(value:string) {
+  if(!value)return false;
+  try {const at=/T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(value)?Date.parse(value):chicagoInstant(value);return at>STORE_OPENING_INSTANT;}catch{return false;}
+}
+export function storeOpeningCountdown(now:number|null) {
+  if(now===null)return '';
+  const remaining=STORE_OPENING_INSTANT-now;
+  if(remaining<=0)return 'Store is open';
+  const days=Math.floor(remaining/86400000),hours=Math.floor(remaining/3600000)%24;
+  if(days>=7)return `${days} days until opening`;
+  const parts=[days?`${days} ${days===1?'day':'days'}`:'',hours?`${hours} ${hours===1?'hour':'hours'}`:''].filter(Boolean);
+  return parts.length?parts.join(', ')+' until opening':'Opening within the hour';
+}

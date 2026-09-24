@@ -845,3 +845,10 @@ html.dark :is(button,a,input,select,textarea,summary):focus-visible{outline-colo
 .store-open-group h3{margin-bottom:14px}.store-open-group .hq-work-list{margin-bottom:0}
 .store-open-form{max-width:900px;scroll-margin-top:24px}
 @media(max-width:640px){.store-open-progress{grid-template-columns:1fr 1fr;gap:16px}.store-open-progress>div:first-child{grid-column:1/-1}.store-open-toolbar .button-row{width:100%;gap:6px}.store-open-view{flex:1;text-align:center;padding:9px 10px}.store-open-group{padding:14px}}
+.store-opening-countdown{font-weight:700;margin-top:14px}
+.hq-deadline-indicator{display:inline-block;font-size:.8rem;font-weight:600;margin-left:8px;white-space:nowrap}
+.hq-deadline-indicator[data-state="Overdue"]{color:var(--destructive)}
+.hq-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:.85rem;color:var(--muted-foreground)}
+.hq-breadcrumb a{font-weight:600}
+.hq-calendar-item.is-milestone{border:1px solid var(--primary);border-left-width:4px;background:var(--accent)}
+.hq-calendar-item .hq-deadline-indicator{margin-left:0}
