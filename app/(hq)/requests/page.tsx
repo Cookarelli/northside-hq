@@ -1,8 +1,10 @@
-import Link from 'next/link';
 import Editorial from '@/app/content-radar/editorial/editorial';
 import {HqRequests} from '@/components/hq-requests';
+import {HqSubnavigation} from '@/components/hq-subnavigation';
+import {requestTabs,selectedTab} from '@/lib/hq-tabs';
 export const metadata={title:'Requests | Northside HQ'};
-export default async function Page({searchParams}:{searchParams:Promise<{view?:string}>}) {
- const {view}=await searchParams;
- return <><nav className="button-row hq-secondary-nav" aria-label="Request views"><Link href="/requests" aria-current={!view?'page':undefined}>General requests</Link><Link href="/requests?view=editorial" aria-current={view==='editorial'?'page':undefined}>Editorial queue</Link><Link href="/requests?view=staff" aria-current={view==='staff'?'page':undefined}>Staff access</Link></nav>{view==='editorial'||view==='staff'?<Editorial key={view} initialTab={view==='staff'?'Staff':'Editorial queue'}/>:<HqRequests/>}</>;
+const editorialViews:Record<string,string>={editorial:'Editorial queue',staff:'Staff',stories:'Stories','top-stories':'Today’s Top 5',products:'Products'};
+export default async function Page({searchParams}:{searchParams:Promise<{tab?:string;view?:string}>}) {
+ const {tab,view}=await searchParams,active=selectedTab(requestTabs,tab||view||null,'general');
+ return <><HqSubnavigation tabs={requestTabs} active={active} label="Request areas"/>{editorialViews[active]?<Editorial key={active} initialTab={editorialViews[active]}/>:<HqRequests/>}</>;
 }

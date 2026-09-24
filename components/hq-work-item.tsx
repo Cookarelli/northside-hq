@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import {deliverableHref} from '@/lib/auction-campaigns';
 import {Button} from '@/components/ui/button';
 import {calendarDay,calendarTime} from '@/lib/content-calendar';
 import type {Deliverable,HqRecord,HqContext,Project} from '@/lib/hq-model';
@@ -13,7 +14,7 @@ export function HqWorkItem({record,project,context,act,busy=false,onEdit,statusC
   const d=record.data,name=(id:string)=>context.staff.find(s=>s.id===id)?.name||id||'Unassigned',color=project?projectColor(project.data,name):ownerColor(d.owner,name(d.owner));
   const canUpdate=!!act&&quickTaskAllowed(d,project?.data,context);
   return <li className="hq-work-item" style={{borderLeftColor:color.accent}}>
-    <div className="hq-work-copy"><Link className="hq-work-title" href={'/projects/work/'+record.id}>{d.title}</Link>
+    <div className="hq-work-copy"><Link className="hq-work-title" href={deliverableHref(record.id,d)}>{d.title}</Link>
       {d.campaignReference&&<p className="hq-meta">Campaign: {d.campaignReference}</p>}
       <p className="hq-meta">{project?<Link href={'/projects/'+project.id}>{project.data.title}</Link>:'Standalone'} · Deliverable owner: {name(d.owner)}</p>
       <p className="hq-work-date"><span className="hq-urgency">{dueState(d.productionDue,finished(d),now)==='Overdue'?'Overdue · ':''}</span>{d.productionDue?<time dateTime={d.productionDue}>{calendarDay(d.productionDue)} · {calendarTime(d.productionDue)}</time>:'Unscheduled'}{d.endAt?' – '+calendarDay(d.endAt)+' '+calendarTime(d.endAt):''}</p>

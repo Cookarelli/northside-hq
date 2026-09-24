@@ -37,7 +37,7 @@ test('calendar preserves source records, parent ownership, scheduled times, lega
  const due=entries.find(e=>e.key==='d:production');assert.equal(due.owner,'nick');assert.equal(due.href,'/projects/work/d');assert.ok(due.assigned.includes('jon'));assert.ok(!due.assigned.includes('zach'),'Project membership alone is not a deliverable assignment');
  assert.equal(entries.find(e=>e.key==='d:facebook').date,'2026-09-25T12:00');
  assert.equal(entries.find(e=>e.key==='pEvent').href,'/projects/p');
- assert.equal(entries.find(e=>e.title==='Weekly · facebook').href,'/calendar#legacy-entry-series');
+ assert.equal(entries.find(e=>e.title==='Weekly · facebook').href,'/calendar?tab=entries#legacy-entry-series');
  assert.equal(JSON.stringify({records,projects,posts}),before);
 });
 

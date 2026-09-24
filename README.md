@@ -37,6 +37,14 @@ Submit changes as a draft PR against `main`, verify a protected preview using is
 - **Calendar → Existing calendar entries and recurring series** retains the legacy editor. A Tuesday template creates one dated occurrence per Tuesday, safely reused on retry.
 - **Projects** retains launch planning, campaign adoption, tracked links and manual reporting. Approved editorial sources can be handed off once to canonical HQ production with an explicit owner/approver.
 - **Requests → Editorial queue** retains specialized content evidence and source approval. Source changes require renewed pending HQ approval.
-- **Assets → Library & studio / Research & sources** retains all saved media, clips, source collection and exports. Uploaded files are private; source collection remains staff-triggered.
+- **Assets → All Assets / Jon’s Content** provides the private media library. Research & sources remains a linked subpage. The cutting/editing workflow is retired; historical jobs remain read-only in workspace exports.
 
 See [password recovery](docs/password-recovery.md) and [consignment evidence and campaign behavior](docs/consignment-campaigns.md). Earlier deployment documents are historical checkpoints, not current production migration evidence. Shopify, ad accounts, AI generation, automatic transcription, external social publishing and in-app rendering remain unconnected.
+
+### Category navigation
+
+Northside HQ uses a horizontal top navigation and shared, URL-driven subnavigation. Major areas render only when selected; browser history, refresh, bookmarks and cross-page links preserve the selection. Project details use `?tab=overview|deliverables|assets|budget|notes`; Collect Weekly Auctions defaults to Deliverables. Calendar includes Schedule, Date planning, Entries & series and Releases. Home, Projects, My Assignments, Requests and Research use the same subnavigation component. Legacy hash and request-view links remain compatible.
+
+Assets has exactly two category tabs: All Assets and Jon’s Content. Jon’s Content derives from authenticated uploader identity and assets attached to work assigned to Jon; unknown historical ownership is not guessed. Uploads keep the existing private bucket, immutable file IDs and retry-safe finalization. The archived renderer is retained under `docs/archive/`, outside active public routes.
+
+See [navigation verification](docs/category-navigation.md) for the migration and verification scope.

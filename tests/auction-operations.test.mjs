@@ -30,7 +30,7 @@ test('calendar derives exactly three numbered reminders with Central dates, staf
  assert.equal(events.length,3);assert.deepEqual(events.map(e=>e.title),['#245 Michael Jordan — 48 Hour Reminder','#245 Michael Jordan — 24 Hour Reminder','#245 Michael Jordan — 2 Hour Reminder']);
  assert.deepEqual(events.map(e=>e.date),['2026-09-25T21:00','2026-09-26T21:00','2026-09-27T19:00']);
  assert.ok(events.every(e=>e.owner==='jon'&&e.deliverableOwnerColor&&e.campaign==='Michael Jordan Consignment'&&e.status==='Not Started'));
- assert.equal(events[0].href,'/projects/weekly?deliverable=mj-48#deliverable-mj-48');
+ assert.equal(events[0].href,'/projects/weekly?tab=deliverables&deliverable=mj-48#deliverable-mj-48');
  assert.deepEqual(await rows(),saved);
 });
 test('campaign number/name/close edits update all source deliverables atomically and recalculate elapsed hours across DST',async()=>{
