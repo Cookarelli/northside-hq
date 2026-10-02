@@ -33,6 +33,6 @@ export function quickTaskAllowed(d:Deliverable,p:Project|undefined,c:HqContext) 
 }
 
 export function activityLabel(action:string){
- const labels:Record<string,string>={'save-task':'Updated deliverable','task-status':'Changed deliverable status','task-delete':'Removed deliverable','task-restore':'Restored deliverable','task-metadata':'Updated priority or notes','save-project':'Updated project','save-deliverable':'Updated deliverable','reschedule':'Changed due date'};
+ const labels:Record<string,string>={'save-task':'Updated deliverable','task-status':'Changed deliverable status','task-delete':'Removed deliverable','delete-deliverable':'Deleted deliverable','delete-project':'Deleted project','task-restore':'Restored deliverable','task-metadata':'Updated priority or notes','save-project':'Updated project','save-deliverable':'Updated deliverable','reschedule':'Changed due date'};
  return labels[action]||action.replaceAll('-',' ').replaceAll('_',' ');
 }

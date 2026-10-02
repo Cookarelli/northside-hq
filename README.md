@@ -50,3 +50,5 @@ Assets has exactly two category tabs: All Assets and Jon’s Content. Jon’s Co
 See [navigation verification](docs/category-navigation.md) for the migration and verification scope.
 
 See [category defaults, auction tabs, direct links and app-wide navigation verification](docs/category-navigation.md) for the shared category → tab/subpage → action navigation.
+
+See [project and deliverable deletion](docs/record-deletion.md) for confirmation, owner/admin permissions, retained history and the pending migration.

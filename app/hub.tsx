@@ -64,8 +64,8 @@ export default function Hub({section}:{section:Exclude<HqSection,'assets'>}){
   const timer=window.setInterval(changed,30000);
   return()=>{window.clearInterval(timer);channel?.close();window.removeEventListener('hq-records-changed',changed);window.removeEventListener('focus',changed);document.removeEventListener('visibilitychange',changed);};
  },[]);
- const projects=records.filter(r=>r.kind==='project'),deliverables=records.filter(r=>r.kind==='deliverable');
- const adoptedCampaigns=new Set(projects.map(p=>p.data.legacyCampaignId)),adoptedPosts=new Set(deliverables.map(d=>d.data.legacyPostId));
+ const allProjects=records.filter(r=>r.kind==='project'),projects=allProjects.filter(r=>!r.data.deletedAt),deliverables=records.filter(r=>r.kind==='deliverable');
+ const adoptedCampaigns=new Set(allProjects.map(p=>p.data.legacyCampaignId)),adoptedPosts=new Set(deliverables.map(d=>d.data.legacyPostId));
  const campaigns=records.filter((r):r is Extract<Rec,{kind:'campaign'}>=>r.kind==='campaign'&&!adoptedCampaigns.has(r.id));
  const posts=records.filter((r):r is Extract<Rec,{kind:'post'}>=>r.kind==='post'&&!adoptedPosts.has(r.id)).sort((a,b)=>String(a.data.date).localeCompare(String(b.data.date))),links=records.filter(r=>r.kind==='link');
  const rows=budgetRows(plan.budget),model=forecast(plan.budget,level);

@@ -1,7 +1,9 @@
 'use client';
+import {HqDeleteAction} from '@/components/hq-delete-action';
+import {applyDeletedRecord,attachedDeliverableCount,type DeletableRecord} from '@/lib/hq-deletion';
 import {DirectMediaUpload} from '@/components/direct-media-upload';
 import {MediaWorkspace} from '@/components/media-workflow';
-import {numberedAuctionName} from '@/lib/auction-campaigns';
+import {deliverableHref,numberedAuctionName} from '@/lib/auction-campaigns';
 
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
 import Link from 'next/link';
@@ -55,7 +57,6 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
   useEffect(()=>{if(error)errorRef.current?.focus();},[error]);
   useEffect(()=>{const controller=new AbortController();loadWorkspace(controller.signal).then(setWorkspace).catch(e=>{if(!controller.signal.aborted)setError(e.message);});return()=>controller.abort();},[retry]);
   useEffect(()=>{
-    if(view==='list')return;
     let active=true,loading=false;
     const editing=()=>!!document.querySelector('.hq-auction-editor,.hq-auction-settings,details[open]>form,form:focus-within');
     const refresh=async()=>{if(loading||lock.current||document.visibilityState!=='visible'||editing())return;loading=true;const start=generation.current;try{const next=await loadWorkspace();if(active&&!lock.current&&start===generation.current&&!editing())setWorkspace(next);}catch(e){if(active)setError((e as Error).message);}finally{loading=false;}};
@@ -68,6 +69,16 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
     try {const result=await json<{id?:string}>('/api/hq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(command)});setWorkspace(await loadWorkspace());setNotice('Saved.');notifyWorkspaceChanged();return result;}
     catch(e){setError((e as Error).message);return null;}finally{lock.current=false;setBusy(false);}
   };
+  async function deleteRecord(kind:'project'|'deliverable',record:DeletableRecord){
+    if(lock.current)throw new Error('Another change is saving. Wait for it to finish, then try again.');
+    generation.current++;lock.current=true;setBusy(true);setError('');setNotice('');
+    try{
+      const result=await json<WorkspaceRecord>('/api/hq',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete-'+kind,id:record.id,version:record.data.version,confirmed:true})});
+      setWorkspace(old=>old?{...old,records:applyDeletedRecord(old.records,result)}:old);
+      setNotice('“'+record.data.title+'” was deleted.');
+      notifyWorkspaceChanged();
+    }finally{lock.current=false;setBusy(false);}
+  }
   const reload=()=>{setError('');setRetry(n=>n+1);};
   if(!workspace)return <section className="panel">{error?<div role="alert"><p>{error}</p><Button onClick={reload}>Retry loading HQ</Button></div>:<p role="status">Loading projects and deliverables…</p>}</section>;
   const {context:c,records}=workspace;
@@ -78,24 +89,39 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
   const projectCampaigns=campaigns.filter(r=>r.data.projectId===project?.id);
   const auctions=auctionNavigation(projectCampaigns,now??0);
   const parent=deliverable?projects.find(p=>p.id===deliverable.data.projectId):project;
-  const eligibleProjects=projects.filter(p=>!['completed','archived'].includes(p.data.status)&&(c.admin||p.data.owner===c.staffId||p.data.members.includes(c.staffId)));
+  const eligibleProjects=projects.filter(p=>!p.data.deletedAt&&!['completed','archived'].includes(p.data.status)&&(c.admin||p.data.owner===c.staffId||p.data.members.includes(c.staffId)));
   const tabs=project?projectSections(project,deliverables,assets,weeklyHome,eligibleProjects.some(p=>p.id===project.id),auctions.history.length>0,projectCampaigns):[];
   const projectTab=selectedTab(tabs,searchParams.get('tab'),searchParams.has('deliverable')?'deliverables':weeklyHome?'current-auction':deliverables.some(d=>d.data.projectId===project?.id&&!d.data.deletedAt)?'deliverables':'overview');
   const workTabs=[{id:'work',label:'Work'},...(deliverable&&(deliverable.data.assets.length||deliverable.data.references.length||assets.some(a=>a.data.assignedDeliverableId===deliverable.id))?[{id:'assets',label:'Assets'}]:[]),{id:'budget',label:'Budget'},...(deliverable?.data.publishing&&deliverable.data.workflow!=='task'?[{id:'publishing',label:'Publishing'}]:[]),...(deliverable?.data.editorialSource||deliverable?.data.legacyPost?[{id:'source',label:'Source review'}]:[]),{id:'notes',label:'Notes / Activity'}];
   const workTab=selectedTab(workTabs,searchParams.get('tab'),'work');
   const focusedCampaign=searchParams.get('deliverable')?undefined:projectCampaigns.find(c=>c.id===searchParams.get('auction'));
+  const deletedFocus=project&&deliverables.find(d=>d.id===searchParams.get('deliverable')&&d.data.projectId===project.id&&d.data.deletedAt);
+  const deletedFocusNotice=deletedFocus&&<p id={'deliverable-'+deletedFocus.id} className="notice">“{deletedFocus.data.title}” was deleted. <Link href={deliverableHref(deletedFocus.id,deletedFocus.data)}>View retained deliverable history →</Link></p>;
   const name=(staffId:string)=>c.staff.find(s=>s.id===staffId)?.name||staffId||'Unassigned';
   async function createRecord(command:Record<string,unknown>) {const result=await act(command);if(result?.id){setCreate(null);router.push(command.action==='save-project'?'/projects/'+result.id:'/projects/work/'+result.id);}}
+  const deleted=view==='project'?project:deliverable;
+  if(deleted?.data.deletedAt)return <div className="hq-records">
+    <Link href="/projects">← All projects and work</Link>
+    {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
+    {deletedFocusNotice}
+    {error&&<div role="alert"><p>{error}</p><Button onClick={reload}>Reload saved records</Button></div>}
+    <section className="panel"><h1>{deleted.data.title}</h1><h2>Deleted {view==='project'?'project':'deliverable'}</h2><p>Deleted by {name(deleted.data.deletedBy||'')} on {recordedTime(deleted.data.deletedAt)}. This record is retained for history and is hidden from active work.</p><p className="hq-meta">Record ID: {deleted.id}</p><ResourceLinks {...deleted.data} available={assets}/><AssignedContent available={assets} kind={view==='project'?'project':'deliverable'} id={deleted.id} attached={deleted.data.assets}/></section>
+    {project&&deliverables.some(d=>d.data.projectId===project.id)&&<section className="panel"><h2>Retained deliverable history</h2><ul>{deliverables.filter(d=>d.data.projectId===project.id).map(d=><li key={d.id}><Link href={deliverableHref(d.id,d.data)}>{d.data.title}</Link></li>)}</ul></section>}
+    {project&&<HqSpending project={project} context={c}/>}
+    {deliverable&&<><DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/>{deliverable.data.auctionCampaignId&&parent&&<AuctionSpending record={deliverable} project={parent.data} context={c} act={act} busy={busy}/>}</>}
+    <Discussion key={deleted.data.version} id={deleted.id} kind={view==='project'?'project':'deliverable'} context={c} act={act} busy={busy} readOnly/>
+  </div>;
   if(project?.data.migratedToProjectId) {
     const archivedTabs=[{id:'overview',label:'Original campaign'},{id:'notes',label:'Notes / Activity'}],archivedTab=selectedTab(archivedTabs,searchParams.get('tab'),'overview');
     const destination=projects.find(p=>p.id===project.data.migratedToProjectId);
     return <MediaWorkspace workspace={workspace} onSaved={asset=>setWorkspace(old=>old?{...old,records:old.records.map(r=>r.kind==='asset'&&r.id===asset.id?{...r,data:asset.data}:r)}:old)}><div className="hq-records"><Link href="/projects">← All projects and work</Link>
       {error&&<p role="alert" className="notice error">{error}</p>}{notice&&<p role="status">{notice}</p>}
-      <h1>{project.data.title}</h1><HqSubnavigation tabs={archivedTabs} active={archivedTab} label="Archived project sections"/>
+      {deletedFocusNotice}
+      <h1>{project.data.title}</h1><div className="button-row"><HqDeleteAction kind="project" record={project} context={c} attachedCount={attachedDeliverableCount(project.id,deliverables)} busy={busy} onDelete={deleteRecord} onReload={reload}/></div><HqSubnavigation tabs={archivedTabs} active={archivedTab} label="Archived project sections"/>
       {archivedTab==='overview'&&<><section className="panel"><p className="tag">Migrated · Archived</p>
         <p>This campaign is now managed as separate deliverables under <Link href={'/projects/'+encodeURIComponent(project.data.migratedToProjectId)+'?tab=deliverables'}>{destination?.data.title||'Collect Weekly Auctions'}</Link>.</p>
         {project.data.migratedAt&&<p className="hq-meta">Moved {recordedTime(project.data.migratedAt)}</p>}
-        <ul>{deliverables.filter(d=>d.data.sourceProjectId===project.id).map(d=><li key={d.id}><Link href={projectTabHref(d.data.projectId,'deliverables',{deliverable:d.id})}>{d.data.title}</Link></li>)}</ul>
+        <ul>{deliverables.filter(d=>d.data.sourceProjectId===project.id).map(d=><li key={d.id}><Link href={deliverableHref(d.id,d.data)}>{d.data.title}</Link></li>)}</ul>
       </section>
       <section className="panel"><h2>Original campaign information</h2><p className="hq-preserve-text">{project.data.brief}</p><p>Original owner: {name(project.data.owner)} · Assigned staff: {project.data.members.map(name).join(', ')}</p><ResourceLinks {...project.data} available={assets}/></section></>}
       {archivedTab==='notes'&&<Discussion key={'discussion:'+project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>}
@@ -105,6 +131,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
     {view!=='list'&&((project?.data.storeOpenChecklist||deliverable?.data.storeOpenChecklist||parent?.data.storeOpenChecklist)?<nav aria-label="Breadcrumb" className="hq-breadcrumb"><Link href="/projects?tab=projects">Projects</Link><span aria-hidden="true">›</span><Link href={STORE_OPEN_CHECKLIST_HREF}>Store Open Checklist</Link><span aria-hidden="true">›</span><span aria-current="page">{deliverable?.data.title||project?.data.title}</span></nav>:<Link href="/projects">← All projects and work</Link>)}
     {error&&<div ref={errorRef} tabIndex={-1} role="alert" className="notice error"><p>{error}</p><Button variant="outline" onClick={reload}>Reload saved records</Button><p className="muted">Reload replaces the form with the saved version. Copy any unsaved changes first.</p></div>}
     {notice&&<p role="status" className="hq-save-notice">{notice}</p>}
+    {deletedFocusNotice}
     {view==='list'&&<>
       {['projects','deliverables'].includes(area)&&<><HqPageActions><div className="button-row">{area==='projects'&&<Button onClick={()=>setCreate('project')}>New Project</Button>}<Button variant={area==='deliverables'?'default':'ghost'} onClick={()=>setCreate('deliverable')}>New standalone work</Button></div></HqPageActions>
       {create==='project'&&<ProjectForm initial={{...blankProject,owner:Object.hasOwn(projectOwnerOptions(c.staff),c.staffId)?c.staffId:''}} context={c} assets={assets} busy={busy} onSave={createRecord} onCancel={()=>setCreate(null)}/>}
@@ -119,6 +146,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
 
     {view==='project' &&(project?<>
       <section className="hq-project-header"><p className="hq-meta">{projectTypes[project.data.type]}</p><h1>{weeklyHome?'Collect Weekly Auctions':project.data.title}</h1><div className="hq-header-meta"><span>Owner: <strong>{primaryOwnerLabel(project.data.owner,c.staff)}</strong></span><HqStatus>{projectStatuses[project.data.status]}</HqStatus>{!weeklyHome&&<span>Due: {dateLabel(project.data.eventAt||project.data.auctionClosesAt)}</span>}</div></section>
+      <div className="button-row"><HqDeleteAction kind="project" record={project} context={c} attachedCount={attachedDeliverableCount(project.id,deliverables)} busy={busy} onDelete={deleteRecord} onReload={reload}/></div>
       <DirectMediaUpload key={project.id} projectId={project.id} onSaved={reload}/><HqSubnavigation tabs={tabs} active={projectTab} label="Project sections"/>
       {weeklyHome&&['current-auction','auction-history','budget'].includes(projectTab)&&!(projectTab==='budget'&&searchParams.get('scope')==='project')&&<AuctionViews key={projectTab} area={projectTab as 'current-auction'|'auction-history'|'budget'} current={auctions.current} history={auctions.history} campaigns={projectCampaigns} selected={searchParams.get('auction')||''} records={deliverables} project={project} context={c} assets={assets} act={act} busy={busy}/>}
       {projectTab==='overview'&&<>
@@ -148,8 +176,9 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
       <Discussion key={'discussion:'+project.data.version} id={project.id} kind="project" context={c} act={act} busy={busy}/>
       </>}
     </>:<p className="panel">This project was not found in your workspace.</p>)}
-    {view==='deliverable'&&(deliverable?deliverable.data.deletedAt?<><h1>{deliverable.data.title}</h1><DeliverableDetails key={deliverable.data.version} record={deliverable} project={parent?.data} context={c} busy={busy} act={act}/><DeliverableTimestamps deliverable={deliverable.data}/></>:<>
+    {view==='deliverable'&&(deliverable?<>
       <div className="section-title hq-record-heading"><h1>{deliverable.data.title}</h1>{parent&&<Link href={projectTabHref(parent.id,'deliverables',{deliverable:deliverable.id})}>← {parent.data.title} · Deliverables</Link>}</div>
+      <div className="button-row"><HqDeleteAction kind="deliverable" record={deliverable} context={c} busy={busy} onDelete={deleteRecord} onReload={reload}/></div>
       <DirectMediaUpload key={deliverable.id} projectId={deliverable.data.projectId} deliverableId={deliverable.id} onSaved={reload}/><HqSubnavigation tabs={workTabs} active={workTab} label="Deliverable sections"/>
       {workTab==='work'&&<>
       <SourceRequests records={records} kind="deliverable" id={deliverable.id}/>
@@ -190,7 +219,7 @@ export function HqWorkspace({view='list',id,area='projects'}:{view?:'list'|'proj
 
 function ProjectList({projects,deliverables,name}:{projects:HqRecord<Project>[];deliverables:HqRecord<Deliverable>[];name:(id:string)=>string}) {
   const now=useHqClock(),[filter,setFilter]=useState('all'),[search,setSearch]=useState('');
-  const shown=projects.filter(p=>(!p.data.migratedToProjectId||filter==='archived')&&(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
+  const shown=projects.filter(p=>!p.data.deletedAt&&(!p.data.migratedToProjectId||filter==='archived')&&(filter==='all'||p.data.status===filter)&&p.data.title.toLowerCase().includes(search.toLowerCase()));
   return <section><div className="two-fields"><Field label="Find a project"><Input type="search" value={search} onChange={e=>setSearch(e.target.value)}/></Field><Choice label="Project status" value={filter} onChange={setFilter} options={{all:'All projects',...projectStatuses}}/></div><div className="hq-project-grid">{shown.map(p=><HqProjectCard key={p.id} project={p} deliverables={deliverables} name={name} now={now}/>)}</div>{!shown.length&&<p className="notice">{projects.length?'No projects match your search. Try a different name or status.':'No projects yet. Choose New Project above to get started.'}</p>}</section>;
 }
 function DeliverableList({records,projects,context,act,busy}:{records:HqRecord<Deliverable>[];projects:HqRecord<Project>[];context:HqContext;act:Action;busy:boolean}) {
@@ -311,7 +340,7 @@ function EditorialHandoff({records,context:c,act,busy}:{records:WorkspaceRecord[
 
 type Comment={id:string;actor:string;body:string;created_at:string;mentions?:string[]};
 type Activity={id:string;record_id?:string;actor:string;action:string;created_at:string;snapshot:{version?:number;title?:string;approval?:{by:string};review?:{decision:'approve'|'changes';reviewedVersion:number};decision?:{reason:string};budget?:{amountCents:number};amount_cents?:number;category?:string;note?:string}};
-export function Discussion({id,kind,context:c,act,busy}:{id:string;kind:'project'|'deliverable'|'request';context:HqContext;act:Action;busy:boolean}) {
+export function Discussion({id,kind,context:c,act,busy,readOnly=false}:{readOnly?:boolean;id:string;kind:'project'|'deliverable'|'request';context:HqContext;act:Action;busy:boolean}) {
   const [comments,setComments]=useState<Comment[]>([]),[activity,setActivity]=useState<Activity[]>([]),[next,setNext]=useState<number|null>(null),[error,setError]=useState(''),[body,setBody]=useState(''),[mentions,setMentions]=useState<string[]>([]),[loading,setLoading]=useState(true),[refresh,setRefresh]=useState(0);
   const commentId=useRef(clientId());
   useEffect(()=>{const refresh=()=>setRefresh(n=>n+1);window.addEventListener('hq-records-changed',refresh);return()=>window.removeEventListener('hq-records-changed',refresh);},[]);
@@ -319,7 +348,7 @@ export function Discussion({id,kind,context:c,act,busy}:{id:string;kind:'project
   useEffect(()=>{const controller=new AbortController();json<{comments:Comment[];activity:Activity[];nextOffset:number|null}>('/api/hq?kind='+kind+'&id='+encodeURIComponent(id)+'&offset=0',{signal:controller.signal}).then(data=>{setComments(data.comments);setActivity(data.activity);setNext(data.nextOffset);setError('');}).catch(e=>{if(!controller.signal.aborted)setError(e.message);}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();},[id,kind,refresh]);
   const name=(staffId:string)=>c.staff.find(s=>s.id===staffId)?.name||staffId;
   return <section className="panel"><h2>Comments and activity</h2>{error&&<p role="alert">{error} <Button variant="outline" onClick={()=>setRefresh(n=>n+1)}>Retry history</Button></p>}
-    <details className="hq-details"><summary>Add a comment</summary><form className="hq-form" onSubmit={async e=>{e.preventDefault();if(await act({action:'comment',id,kind,commentId:commentId.current,body,mentions})){setBody('');setMentions([]);commentId.current=clientId();setRefresh(n=>n+1);}}}><Field label="Add an internal comment"><Textarea required maxLength={5000} value={body} onChange={e=>{setBody(e.target.value);commentId.current=clientId();}}/></Field><StaffPicker label="Mention staff (notify in app)" value={mentions} onChange={people=>{setMentions(people);commentId.current=clientId();}} staff={c.staff}/><Button type="submit" disabled={busy}>Post comment</Button></form></details>
+    {!readOnly&&<details className="hq-details"><summary>Add a comment</summary><form className="hq-form" onSubmit={async e=>{e.preventDefault();if(await act({action:'comment',id,kind,commentId:commentId.current,body,mentions})){setBody('');setMentions([]);commentId.current=clientId();setRefresh(n=>n+1);}}}><Field label="Add an internal comment"><Textarea required maxLength={5000} value={body} onChange={e=>{setBody(e.target.value);commentId.current=clientId();}}/></Field><StaffPicker label="Mention staff (notify in app)" value={mentions} onChange={people=>{setMentions(people);commentId.current=clientId();}} staff={c.staff}/><Button type="submit" disabled={busy}>Post comment</Button></form></details>}
     <ul className="hq-discussion">{comments.map(x=><li key={x.id}><strong>{name(x.actor)}</strong><time>{recordedTime(x.created_at)}</time><p className="hq-preserve-text">{x.body}</p>{!!x.mentions?.length&&<p className="muted">Mentioned: {x.mentions.map(name).join(', ')}</p>}</li>)}</ul>
     <details className="hq-details" open><summary>Activity history</summary><ul className="hq-discussion">{activity.map(x=><li key={x.id}><strong>{name(x.actor)}</strong><time>{recordedTime(x.created_at)}</time><p>{activityLabel(x.action)}{x.snapshot.title?' · '+auctionRecordText(x.snapshot.title,x.record_id||id):''}{x.snapshot.version?' · version '+x.snapshot.version:''}{x.action==='review'&&x.snapshot.review?' · '+(x.snapshot.review.decision==='approve'?'Approved':'Changes requested')+' · reviewed version '+x.snapshot.review.reviewedVersion:''}{x.snapshot.amount_cents!==undefined?' · '+money(x.snapshot.amount_cents)+' '+x.snapshot.category+' · '+x.snapshot.note:''}{x.action==='decide-request'&&x.snapshot.decision?.reason?' · '+x.snapshot.decision.reason:''}</p></li>)}</ul></details>
     {loading&&<p role="status">Loading history…</p>}{next!==null&&<Button variant="outline" disabled={loading} onClick={()=>{setLoading(true);void load(next);}}>Load earlier comments and activity</Button>}
