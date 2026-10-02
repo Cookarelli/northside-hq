@@ -30,6 +30,7 @@ test('project tabs show real files and work, and omit unavailable asset and hist
 test('links reach the clicked work, budget or discussion and drop incompatible navigation context',()=>{
  assert.equal(deliverableHref('d',{...blankDeliverable,projectId:'p'}),'/projects/p?tab=deliverables&deliverable=d#deliverable-d');
  assert.equal(deliverableHref('standalone',blankDeliverable),'/projects/work/standalone');
+ assert.equal(deliverableHref('deleted work',{...blankDeliverable,projectId:'p',deletedAt:'2026-10-02T15:00:00Z'}),'/projects/work/deleted%20work');
  assert.equal(projectTabHref('p','budget',{auction:'245'}),'/projects/p?tab=budget&auction=245');
  assert.equal(recordActionHref('project','p','spend'),'/projects/p?tab=budget&scope=project');
  assert.equal(recordActionHref('deliverable','d','comment'),'/projects/work/d?tab=notes');

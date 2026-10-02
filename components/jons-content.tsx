@@ -23,7 +23,7 @@ function AssetPreview({asset,video=false}:{asset:SavedAsset;video?:boolean}){
 function AssignmentDialog({asset,workspace,onClose,onSaved}:{asset:SavedAsset;workspace:Workspace;onClose:()=>void;onSaved:(asset:SavedAsset)=>void}){
  const dialog=useRef<HTMLDialogElement>(null),lock=useRef(false);
  const [projectId,setProjectId]=useState(asset.data.assignedProjectId||''),[deliverableId,setDeliverableId]=useState(asset.data.assignedDeliverableId||''),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const projects=(workspace.records.filter(r=>r.kind==='project') as HqRecord<Project>[]).filter(r=>!r.data.migratedToProjectId);
+ const projects=(workspace.records.filter(r=>r.kind==='project') as HqRecord<Project>[]).filter(r=>!r.data.deletedAt&&!r.data.migratedToProjectId);
  const deliverables=(workspace.records.filter(r=>r.kind==='deliverable') as HqRecord<Deliverable>[]).filter(r=>!r.data.deletedAt&&(!r.data.projectId||projects.some(p=>p.id===r.data.projectId)));
  const choices=deliverables.filter(d=>!projectId||d.data.projectId===projectId);
  useEffect(()=>{dialog.current?.showModal();},[]);

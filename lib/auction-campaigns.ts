@@ -32,4 +32,4 @@ export function numberedAuctionName(name:string,number?:number,separator=' — '
 }
 export function auctionCalendarTitle(d:Deliverable){return numberedAuctionName(auctionRecordText(d.title,d.sourceProjectId,d.auction_number),d.auction_number,' ');}
 
-export function deliverableHref(id:string,d:Pick<Deliverable,'projectId'>){return d.projectId?'/projects/'+encodeURIComponent(d.projectId)+'?tab=deliverables&deliverable='+encodeURIComponent(id)+'#deliverable-'+encodeURIComponent(id):'/projects/work/'+encodeURIComponent(id);}
+export function deliverableHref(id:string,d:Pick<Deliverable,'projectId'|'deletedAt'>){return d.projectId&&!d.deletedAt?'/projects/'+encodeURIComponent(d.projectId)+'?tab=deliverables&deliverable='+encodeURIComponent(id)+'#deliverable-'+encodeURIComponent(id):'/projects/work/'+encodeURIComponent(id);}

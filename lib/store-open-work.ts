@@ -4,7 +4,7 @@ import {dueAfterStoreOpening} from './store-opening.ts';
 import {dueState} from './hq-presentation.ts';
 export type ChecklistItem={kind:'project';record:HqRecord<Project>;parent?:never;complete:boolean;department:string;owner:string;due:string}|{kind:'deliverable';record:HqRecord<Deliverable>;parent?:HqRecord<Project>;complete:boolean;department:string;owner:string;due:string};
 export function checklistWork(records:WorkspaceRecord[]) {
- const projects=records.filter(r=>r.kind==='project'&&(r.data as Project).storeOpenChecklist) as HqRecord<Project>[];
+ const projects=records.filter(r=>r.kind==='project'&&!(r.data as Project).deletedAt&&(r.data as Project).storeOpenChecklist) as HqRecord<Project>[];
  const parents=new Map(projects.map(p=>[p.id,p]));
  const deliverables=records.filter(r=>r.kind==='deliverable'&&!(r.data as Deliverable).deletedAt&&((r.data as Deliverable).storeOpenChecklist||parents.has((r.data as Deliverable).projectId))) as HqRecord<Deliverable>[];
  const items:ChecklistItem[]=[...projects.filter(p=>p.data.status!=='archived').map(record=>({kind:'project' as const,record,complete:record.data.status==='completed',department:record.data.department?.trim()||'',owner:record.data.owner,due:record.data.eventAt})),...deliverables.map(record=>{const parent=parents.get(record.data.projectId);return {kind:'deliverable' as const,record,parent,complete:finished(record.data),department:record.data.department?.trim()||parent?.data.department?.trim()||'',owner:record.data.owner,due:record.data.productionDue};})];

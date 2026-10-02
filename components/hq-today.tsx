@@ -22,7 +22,7 @@ export function HqToday({records,projects,posts,campaigns=[],loading,failed}:{re
  if(loading||!context||now===null)return <p role="status">Loading dashboard…</p>;
  const name=(id:string)=>personName(id,context.staff),day=chicagoWall(now).slice(0,10);
  const upcoming=records.filter(r=>actionable(r.data,projects.find(p=>p.id===r.data.projectId)?.data)&&r.data.productionDue&&r.data.productionDue.slice(0,10)<=addDays(day,7)).sort((a,b)=>a.data.productionDue.localeCompare(b.data.productionDue));
- const active=projects.filter(p=>p.data.status==='active');
+ const active=projects.filter(p=>!p.data.deletedAt&&p.data.status==='active');
  return <div className="hq-dashboard"><HqSubnavigation tabs={homeTabs} active={tab} label="Home areas"/>{tab==='schedule'&&<HqCalendar records={records} projects={projects} posts={posts} campaigns={campaigns} staff={context.staff}/>}
  {tab==='my-work'&&<MyAssignments records={records} projects={projects} context={context} now={now}/>}
  {tab==='projects'&&<section><div className="section-title"><h2>Active Projects</h2><Link href="/projects">All projects →</Link></div><div className="hq-project-grid">{active.slice(0,6).map(p=><HqProjectCard key={p.id} project={p} deliverables={records} name={name} now={now}/>)}</div>{!active.length&&<div className="panel hq-empty"><h3>No active projects yet.</h3><p>Start with a project, then assign staff and schedule the work.</p><Link href="/projects?create=project">Create a project →</Link></div>}</section>}
