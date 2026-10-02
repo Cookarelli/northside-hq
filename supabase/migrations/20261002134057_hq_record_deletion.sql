@@ -1,4 +1,20 @@
 begin;
+-- Match the existing media migration's bounded lock acquisition. Trigger DDL
+-- takes dependency locks on auth.users as well as marketing_records. Acquire
+-- both together so active authenticated requests cannot form a lock-order cycle.
+do $$
+declare attempt integer;
+begin
+ for attempt in 1..40 loop
+  begin
+   lock table auth.users, public.marketing_records in access exclusive mode nowait;
+   return;
+  exception when lock_not_available then
+   if attempt=40 then raise; end if;
+  end;
+  perform pg_sleep(0.05);
+ end loop;
+end $$;
 -- Retain canonical rows and all related history. No backfill or physical deletes.
 -- Like the existing checked RPCs, identity and organization come from staff_access.
 create or replace function private.hq_delete(p_action text,p_payload jsonb) returns jsonb
