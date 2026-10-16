@@ -1,0 +1,31 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {JSDOM} from 'jsdom';
+import ts from 'typescript';
+const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'https://hq.test/assets/social'});
+globalThis.window=dom.window;globalThis.document=dom.window.document;globalThis.HTMLElement=dom.window.HTMLElement;globalThis.IS_REACT_ACT_ENVIRONMENT=true;
+const {default:React,act}=await import('react');
+const {createRoot}=await import('react-dom/client');
+const url=source=>'data:text/javascript;base64,'+Buffer.from(source).toString('base64');
+const react=import.meta.resolve('react');
+const fakeClient=url('export async function json(url,options){return globalThis.__socialFixture;}');
+const fakeLink=url(`import React from ${JSON.stringify(react)};export default function Link({children,...props}){return React.createElement('a',props,children)}`);
+let source=await readFile(new URL('../components/social-command-center.tsx',import.meta.url),'utf8');
+source=source.replace("'next/link'",JSON.stringify(fakeLink)).replace("'react'",JSON.stringify(react)).replace("'@/lib/social/model'",JSON.stringify(new URL('../lib/social/model.ts',import.meta.url).href)).replace("'@/lib/hq-client'",JSON.stringify(fakeClient));
+const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
+const {SocialCommandCenter}=await import(url(`import React from ${JSON.stringify(react)};\n`+compiled));
+const empty={role:'staff',agents:['scout','creator','quality','publisher','analytics'].map(role=>({role,paused:true,config:{template:'community-source'},last_run:null,current_task:null})),tasks:[],runs:[],ideas:[],drafts:[],reviews:[],posts:[],analytics:[],activity:[],workerConfigured:false,livePublishing:false};
+test('dashboard gives honest empty states and hides privileged controls from staff',async()=>{
+ globalThis.__socialFixture=empty;const host=document.createElement('div'),root=createRoot(host);
+ await act(async()=>{root.render(React.createElement(SocialCommandCenter));});
+ assert.match(host.textContent,/Live publishing is disabled/);assert.match(host.textContent,/No activity yet/);assert.match(host.textContent,/No platform analytics connected/);
+ assert.equal(host.querySelectorAll('.social-agent').length,5);assert.doesNotMatch(host.textContent,/Queue run|Enable daily research|Approve revision/);
+ await act(async()=>root.unmount());
+});
+test('administrators see persisted controls, and approval stays disabled without exact-revision QC',async()=>{
+ globalThis.__socialFixture={...empty,role:'admin',ideas:[{item_id:'example'}],drafts:[{id:'example',version:2,data:{title:'Test-only draft',state:'Needs review',calendarDate:'2099-10-20T12:00'}}],reviews:[{id:'old',queue_id:'example',version:1,passed:true,checks:{}}]};
+ const host=document.createElement('div'),root=createRoot(host);await act(async()=>root.render(React.createElement(SocialCommandCenter)));
+ assert.match(host.textContent,/Enable daily research/);const approval=[...host.querySelectorAll('button')].find(b=>b.textContent.includes('Approve revision'));assert.ok(approval.disabled);
+ assert.match(host.textContent,/Run quality checks on this revision/);await act(async()=>root.unmount());
+});
