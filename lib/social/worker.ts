@@ -14,10 +14,10 @@ export interface PublicationAdapter {
 export interface AnalyticsAdapter {
  collect(input:{externalId:string;signal:AbortSignal}):Promise<{observedAt:string;metrics:Record<string,number>;recommendations:string}>;
 }
-export async function drain(store:WorkerStore,now=Date.now) {
+export async function drain(store:WorkerStore,now=Date.now,admissionBudgetMs=40000) {
  const started=now();let processed=0;
  await store.tick();
- while(processed<8 && now()-started<40000) {
+ while(processed<8 && now()-started<admissionBudgetMs) {
   const lease=await store.claim();if(!lease)break;
   // If transport fails, do not pretend the task failed: lease recovery decides.
   await store.execute(lease);processed++;

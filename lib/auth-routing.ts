@@ -62,7 +62,7 @@ export async function authCallbackDestination(client: SupabaseClient, search: UR
     if (type !== 'email' && type !== 'signup' && type !== 'invite' && type !== 'email_change' && type !== 'recovery') return invalid;
     const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type });
     if (error || !data.session) return invalid;
-    recovery = type === 'recovery';
+    recovery = type === 'recovery' || type === 'invite';
   } else {
     return invalid;
   }

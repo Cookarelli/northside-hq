@@ -21,8 +21,8 @@ export async function requestPasswordReset(auth: Pick<Auth, 'resetPasswordForEma
   return RESET_CONFIRMATION;
 }
 
-// Capture recovery credentials before exchanging them and remove them from the
-// address bar immediately. Never log these values or accept a caller's redirect.
+// Capture recovery or invitation credentials before exchanging them and remove
+// them from the address bar. Never log them or accept a caller's redirect.
 export async function preparePasswordReset(
   auth: Pick<Auth, 'exchangeCodeForSession' | 'setSession' | 'verifyOtp' | 'getUser'>,
   href: string,
@@ -37,13 +37,15 @@ export async function preparePasswordReset(
   const code = url.searchParams.get('code');
   const tokenHash = url.searchParams.get('token_hash');
   const accessToken = hash.get('access_token');
+  const tokenType = url.searchParams.get('type');
+  const fragmentType = hash.get('type');
   let result;
   if (code) {
     const flowId = url.searchParams.get('sb_flow_id');
     result = await auth.exchangeCodeForSession(code, flowId ? {flowId} : undefined);
-  } else if (tokenHash && url.searchParams.get('type') === 'recovery') {
-    result = await auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
-  } else if (accessToken && hash.get('refresh_token') && hash.get('type') === 'recovery') {
+  } else if (tokenHash && (tokenType === 'recovery' || tokenType === 'invite')) {
+    result = await auth.verifyOtp({ token_hash: tokenHash, type: tokenType });
+  } else if (accessToken && hash.get('refresh_token') && (fragmentType === 'recovery' || fragmentType === 'invite')) {
     result = await auth.setSession({ access_token: accessToken, refresh_token: hash.get('refresh_token')! });
   } else if (url.search || url.hash) {
     throw new Error(INVALID_RESET);

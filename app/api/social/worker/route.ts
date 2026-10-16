@@ -1,6 +1,8 @@
 import {timingSafeEqual} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {drain,type Lease} from '@/lib/social/worker';
+import {configuration} from '@/lib/meta/core';
+import {synchronize} from '@/lib/meta/sync';
 export const runtime='nodejs';
 export const maxDuration=60;
 export const dynamic='force-dynamic';
@@ -16,6 +18,11 @@ export async function GET(request:Request) {
  const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:(input,init)=>fetch(input,{...init,signal:AbortSignal.timeout(7000)})}});
  async function rpc(name:string,args?:Record<string,unknown>){const {data,error}=await client.rpc(name,args);if(error)throw new Error('Worker storage unavailable');return data;}
  try {
-  return Response.json(await drain({tick:async()=>{await rpc('hub_social_tick');},claim:async()=>await rpc('hub_social_claim') as Lease|null,execute:lease=>rpc('hub_social_execute',{p_org:lease.orgId,p_id:lease.id,p_token:lease.token})}),{headers});
+  return Response.json(await drain({tick:async()=>{await rpc('hub_social_tick');},claim:async()=>await rpc('hub_social_claim') as Lease|null,execute:async lease=>{
+   if(lease.stage!=='meta_sync')return rpc('hub_social_execute',{p_org:lease.orgId,p_id:lease.id,p_token:lease.token});
+   const actor=await rpc('hub_meta_lease_actor',{p_org:lease.orgId,p_id:lease.id,p_token:lease.token});
+   if(!actor)throw new Error('Stale Meta lease');
+   await synchronize(lease,actor,(p_actor,p_action,p_payload)=>rpc('hub_meta_service',{p_actor,p_action,p_payload}),configuration());
+  }},Date.now,10000),{headers});
  }catch{return Response.json({error:'Worker interrupted. Unfinished leases will recover automatically.'},{status:503,headers});}
 }
