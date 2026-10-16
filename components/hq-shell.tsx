@@ -23,19 +23,20 @@ export function HqShell({children}: {children: React.ReactNode}) {
   const section = active==='settings'?hqSettings:hqSections.find(item => item.id === active)!;
   const requests = pathname === '/requests';
   const research = pathname === '/assets/research';
+  const social = pathname === '/assets/social';
   const tab = useSearchParams().get('tab');
   const checklist = pathname === '/projects' && (tab === 'store-open-checklist' || tab === 'launch');
   const jon = pathname === '/assets' && tab === 'jons-content';
   const record = pathname.startsWith('/projects/') || pathname.startsWith('/requests/');
-  const title = checklist ? STORE_OPEN_CHECKLIST : jon ? 'Jon’s Content' : research ? 'Research & sources' : requests ? 'Requests' : section.label;
-  const description = checklist ? `Opening ${STORE_OPENING_DATE_LABEL} at ${STORE_OPENING_TIME_LABEL}` : jon ? 'Upload content, then assign it to a project or deliverable.' : research ? 'Collect stories, save ideas and keep the original sources close.' : requests ? 'Ask for work, track decisions and open editorial review.' : section.description;
+  const title = social ? 'Social Command Center' : checklist ? STORE_OPEN_CHECKLIST : jon ? 'Jon’s Content' : research ? 'Research & sources' : requests ? 'Requests' : section.label;
+  const description = social ? 'Shared research, review, scheduling and agent operations.' : checklist ? `Opening ${STORE_OPENING_DATE_LABEL} at ${STORE_OPENING_TIME_LABEL}` : jon ? 'Upload content, then assign it to a project or deliverable.' : research ? 'Collect stories, save ideas and keep the original sources close.' : requests ? 'Ask for work, track decisions and open editorial review.' : section.description;
   return <HqPageActionsContext.Provider value={actions}><div className="hub hq-shell">
     <a className="skip-link" href="#hq-main">Skip to main content</a>
     <header className="masthead hq-masthead">
       <Link href="/today" className="hq-brand" aria-label="Northside HQ home">
         <Image src="/northside-collectibles-blue.svg" alt="Northside Collectibles" width={2070} height={572} unoptimized loading="eager" className="hq-logo"/>
       </Link>
-      <div className="header-meta"><ThemeToggle/><HqNotifications/><Link className="hq-settings-link" href="/settings" aria-current={active==='settings'?'page':undefined}><Settings size={18} aria-hidden="true"/>Settings</Link><SignOut/></div>
+      <div className="header-meta"><ThemeToggle/><HqNotifications/><Link href="/assets/social">Social agents</Link><Link className="hq-settings-link" href="/settings" aria-current={active==='settings'?'page':undefined}><Settings size={18} aria-hidden="true"/>Settings</Link><SignOut/></div>
     </header>
     <div className="hq-frame">
       <nav ref={navigation} className="hq-navigation" aria-label="Main navigation">{hqSections.map(item=>{const Icon=icons[item.id];return <Link key={item.id} href={item.href} aria-current={active===item.id?'page':undefined}><Icon size={21} aria-hidden="true"/><span>{item.label}</span></Link>;})}</nav>

@@ -1,0 +1,63 @@
+-- Run only on the isolated staging project. All synthetic fixtures roll back.
+begin;
+set local statement_timeout='30s';
+set local lock_timeout='3s';
+insert into public.radar_organizations(id,name) values('social-smoke-test','Synthetic staging smoke test');
+insert into auth.users(id,email,email_confirmed_at) values('90000000-0000-4000-8000-000000000001','social-smoke@example.test',now());
+insert into private.staff_access(email,org_id,id,name,role) values('social-smoke@example.test','social-smoke-test','smoke','Synthetic smoke actor','admin');
+insert into private.agreement_documents(id,org_id,version,title,storage_path,document_hash,effective_date,active) values('90000000-0000-4000-8000-000000000002','social-smoke-test','synthetic','Synthetic test fixture — not a legal agreement','synthetic/test.pdf',repeat('a',64),current_date-1,true);
+insert into private.agreement_acceptances(agreement_id,user_id,staff_id,full_name,email,document_hash) values('90000000-0000-4000-8000-000000000002','90000000-0000-4000-8000-000000000001','smoke','Synthetic smoke actor','social-smoke@example.test',repeat('a',64));
+insert into public.social_agents(org_id,role) select 'social-smoke-test',r from unnest(array['scout','creator','quality','publisher','analytics']) r;
+select set_config('request.jwt.claim.sub','90000000-0000-4000-8000-000000000001',true);
+set local role authenticated;
+do $$ begin
+ if (select count(*) from public.social_agents)<>5 then raise exception 'RLS org isolation failed'; end if;
+ begin perform public.hub_social_claim(); raise exception 'Worker access was not denied'; exception when insufficient_privilege then null; end;
+ begin update public.social_agents set paused=false; raise exception 'Direct update was not denied'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$
+declare lease jsonb; result jsonb; q public.radar_editorial; ident jsonb; r text; i integer;
+begin
+ if has_function_privilege('anon','public.hub_social_claim()','execute') or has_function_privilege('authenticated','public.hub_social_claim()','execute') or not has_function_privilege('service_role','public.hub_social_claim()','execute') then raise exception 'Worker grant boundary failed'; end if;
+ if (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'social_%' and c.relkind='r' and c.relrowsecurity)<>12 then raise exception 'RLS missing'; end if;
+ foreach r in array array['scout','creator','quality','publisher','analytics'] loop perform public.hub_social('resume',jsonb_build_object('role',r)); end loop;
+ perform public.hub_radar('add-item','{"id":"smoke-story","data":{"title":"Synthetic staging story","url":"https://example.test/staging","category":"Baseball","kind":"story","priority":"normal","summary":"Synthetic test evidence","tags":[]}}');
+ perform public.hub_radar('verify','{"id":"smoke-story","verification":"verified"}');
+ ident:=public.hub_social('run','{"role":"scout","requestId":"90000000-0000-4000-8000-000000000003"}');
+ if ident is distinct from public.hub_social('run','{"role":"scout","requestId":"90000000-0000-4000-8000-000000000003"}') then raise exception 'Idempotency failed'; end if;
+ for i in 1..3 loop
+  update public.social_agents set next_claim_at=now()-interval '1 second' where org_id='social-smoke-test';
+  lease:=public.hub_social_claim();
+  if lease is null then raise exception 'Missing workflow claim %',i; end if;
+  if public.hub_social_claim() is not null then raise exception 'Task claimed twice'; end if;
+  result:=public.hub_social_execute(lease->>'orgId',(lease->>'id')::uuid,(lease->>'token')::uuid);
+  if result->>'state' is distinct from 'succeeded' then raise exception 'Workflow failed: %',result; end if;
+  if public.hub_social_execute(lease->>'orgId',(lease->>'id')::uuid,(lease->>'token')::uuid)->>'stale' is distinct from 'true' then raise exception 'Lease replay not fenced'; end if;
+ end loop;
+ select * into strict q from public.radar_editorial where org_id='social-smoke-test' and kind='queue' and id='smoke-story';
+ perform public.hub_editorial_save('queue',q.id,q.version,q.data||'{"calendarDate":"2099-10-20T12:00"}');
+ begin perform public.hub_social('approve',jsonb_build_object('queueId',q.id,'version',q.version+1)); raise exception 'Old QC authorized changed draft'; exception when invalid_parameter_value then null; end;
+ perform public.hub_social('run',jsonb_build_object('role','quality','queueId',q.id,'requestId','90000000-0000-4000-8000-000000000004'));
+ update public.social_agents set next_claim_at=now()-interval '1 second' where org_id='social-smoke-test';
+ lease:=public.hub_social_claim(); result:=public.hub_social_execute(lease->>'orgId',(lease->>'id')::uuid,(lease->>'token')::uuid);
+ if result->>'state' is distinct from 'succeeded' then raise exception 'QC failed: %',result; end if;
+ perform public.hub_social('approve',jsonb_build_object('queueId',q.id,'version',q.version+1));
+ update public.social_agents set next_claim_at=now()-interval '1 second' where org_id='social-smoke-test';
+ lease:=public.hub_social_claim(); result:=public.hub_social_execute(lease->>'orgId',(lease->>'id')::uuid,(lease->>'token')::uuid);
+ if result->>'state' is distinct from 'succeeded' then raise exception 'Schedule failed: %',result; end if;
+ if not exists(select 1 from public.marketing_records where workspace_id='social-smoke-test' and id='radar_smoke-story' and data->>'status'='approved') then raise exception 'Shared calendar handoff missing'; end if;
+ update public.social_tasks set available_at=now() where org_id='social-smoke-test' and stage='publish';
+ update public.social_agents set next_claim_at=now()-interval '1 second' where org_id='social-smoke-test';
+ lease:=public.hub_social_claim(); result:=public.hub_social_execute(lease->>'orgId',(lease->>'id')::uuid,(lease->>'token')::uuid);
+ if result->>'errorCode' is distinct from 'live_publishing_disabled' then raise exception 'Publishing hard stop failed'; end if;
+ if exists(select 1 from public.social_posts where org_id='social-smoke-test' and (published_at is not null or external_id is not null)) then raise exception 'False publication'; end if;
+ if not exists(select 1 from public.social_publication_attempts where org_id='social-smoke-test' and status='disabled' and receipt is null) then raise exception 'Disabled attempt missing'; end if;
+ begin update public.social_activity set event='tamper' where org_id='social-smoke-test'; raise exception 'History mutable'; exception when insufficient_privilege then null; end;
+ update private.staff_access set role='staff' where org_id='social-smoke-test';
+ begin perform public.hub_social('resume','{"role":"scout"}'); raise exception 'Staff could operate agents'; exception when insufficient_privilege then null; end;
+ update private.staff_access set active=false where org_id='social-smoke-test';
+ begin perform public.hub_social_status(); raise exception 'Revoked staff retained access'; exception when insufficient_privilege then null; end;
+end $$;
+rollback;
+select 'PASS: RLS, role grants, idempotency, lease fencing, research/draft/QC/approval/calendar, disabled publication, immutable history, revoked staff; all synthetic fixtures rolled back' as staging_smoke_result;
