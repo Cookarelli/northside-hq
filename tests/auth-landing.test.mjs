@@ -4,7 +4,7 @@ import {createServerClient} from '@supabase/ssr';
 import {authLandingDestination} from '../lib/auth-landing.ts';
 import {preparePasswordReset,saveNewPassword} from '../lib/password-recovery.ts';
 
-test('dashboard reset fragment at root establishes a cookie session, opens reset, and saves a new password',async()=>{
+for (const type of ['recovery', 'invite']) test(`dashboard ${type} fragment establishes a cookie session and opens password setup`,async()=>{
   const cookies=new Map();const calls=[];let clean=false;
   const user={id:'10000000-0000-4000-8000-000000000001',aud:'authenticated',email:'fixture@example.test',email_confirmed_at:'2026-09-01T00:00:00Z',created_at:'2026-09-01T00:00:00Z',app_metadata:{},user_metadata:{}};
   const payload={sub:user.id,aud:'authenticated',role:'authenticated',exp:Math.floor(Date.now()/1000)+3600};
@@ -19,7 +19,7 @@ test('dashboard reset fragment at root establishes a cookie session, opens reset
       assert.fail('No second exchange of the single-use email link is needed');
     }},
   });
-  const destination=await authLandingDestination(`https://www.northsidebrand.com/#access_token=${accessToken}&refresh_token=synthetic-refresh&type=recovery`,()=>{clean=true;},()=>make().auth);
+  const destination=await authLandingDestination(`https://www.northsidebrand.com/#access_token=${accessToken}&refresh_token=synthetic-refresh&type=${type}`,()=>{clean=true;},()=>make().auth);
   assert.equal(destination,'/reset-password');
   assert.ok(cookies.size>0);
   const resetClient=make();
@@ -30,7 +30,7 @@ test('dashboard reset fragment at root establishes a cookie session, opens reset
 });
 
 test('expired, incomplete, or rejected recovery fragments never enter HQ or reuse another session',async()=>{
-  for(const hash of ['#error=access_denied&error_code=otp_expired','#type=recovery&access_token=missing-refresh','#type=recovery&access_token=invalid&refresh_token=invalid']) {
+  for(const hash of ['#error=access_denied&error_code=otp_expired','#type=recovery&access_token=missing-refresh','#type=recovery&access_token=invalid&refresh_token=invalid','#type=invite&access_token=missing-refresh','#type=invite&access_token=invalid&refresh_token=invalid']) {
     let cleared=false;
     const auth={setSession:async()=>({error:{message:'invalid'}}),getUser:()=>assert.fail('must not use another session')};
     assert.equal(await authLandingDestination('https://www.northsidebrand.com/'+hash,()=>{cleared=true;},()=>auth),'/reset-password?error=invalid-link');

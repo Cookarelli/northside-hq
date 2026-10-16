@@ -76,7 +76,9 @@ test('optional recovery token-hash and dashboard email fragment flows verify the
   };
   assert.equal(await preparePasswordReset(auth, `${origin}/reset-password?token_hash=synthetic&type=recovery`, () => {}), user.email);
   assert.equal(await preparePasswordReset(auth, `${origin}/reset-password#access_token=synthetic&refresh_token=test-refresh&type=recovery`, () => {}), user.email);
-  assert.deepEqual(used, ['recovery', 'test-refresh']);
+  assert.equal(await preparePasswordReset(auth, `${origin}/reset-password?token_hash=synthetic&type=invite`, () => {}), user.email);
+  assert.equal(await preparePasswordReset(auth, `${origin}/reset-password#access_token=synthetic&refresh_token=invite-refresh&type=invite`, () => {}), user.email);
+  assert.deepEqual(used, ['recovery', 'test-refresh', 'invite', 'invite-refresh']);
 });
 
 test('email rate limits and delivery failures are honest and do not expose provider detail', async () => {

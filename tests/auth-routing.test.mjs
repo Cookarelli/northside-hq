@@ -100,7 +100,7 @@ test('callback preserves explicit PKCE flow ID and verifies invite/email tokens 
   assert.equal(await authCallbackDestination(client,new URLSearchParams('code=fixture&sb_flow_id=explicit-flow'),signed),'/today');
   assert.deepEqual(seen.shift(),['fixture',{flowId:'explicit-flow'}]);
   for(const type of ['email','signup','invite','email_change','recovery']) {
-    assert.equal(await authCallbackDestination(client,new URLSearchParams(`token_hash=fixture&type=${type}`),unsigned),type==='recovery'?'/reset-password':'/agreements/required');
+    assert.equal(await authCallbackDestination(client,new URLSearchParams(`token_hash=fixture&type=${type}`),unsigned),['recovery','invite'].includes(type)?'/reset-password':'/agreements/required');
     assert.deepEqual(seen.shift(),{token_hash:'fixture',type});
   }
 });
