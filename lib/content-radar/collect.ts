@@ -31,6 +31,7 @@ export async function collectSource(source:Source,reader:Reader){
   if(feed)return {document:candidate,method:feed.method,entries:feed.entries};
  }
  const entries=parsePage(document.body,document.url);
+ if(!source.allow_page)throw new CollectionError('permission','No supported feed found. Record publisher permission before enabling bounded page retrieval.',86400);
  if(!entries.length)throw new CollectionError('format','No usable article or release metadata found. This page may require a browser; add links manually.');
  return {document,method:'page',entries};
 }
@@ -42,12 +43,12 @@ export async function refreshSource(db:Database,staff:Staff,id?:string,options:{
  try{
   const reader=options.readerFactory?.(source)||createReader(source.url);
   const result=await collectSource(source,reader);
-  if(result.document.status===304){await finishSource(db,staff,lease,{status:'unchanged',etag:result.document.etag||source.etag,modified:result.document.modified||source.modified});return {ok:true,status:'unchanged',source:source.name,added:0,duplicates:0};}
+  if(result.document.status===304){await finishSource(db,staff,lease,{status:'unchanged',etag:result.document.etag||source.etag,modified:result.document.modified||source.modified,retryAfter:(source.cadence_minutes||1440)*60});return {ok:true,status:'unchanged',source:source.name,added:0,duplicates:0};}
   const entries=retained(result.entries,options.now||new Date()),hash=await signature(entries);
   let offset=0;try{const c=JSON.parse(source.cursor||'null');if(c?.hash===hash&&Number.isInteger(c.offset)&&c.offset>=0)offset=c.offset;}catch{}
   const batch=entries.slice(offset,offset+20),counts=await ingestEntries(db,staff,lease,batch,options.now);
   const next=offset+batch.length,cursor=next<entries.length?JSON.stringify({hash,offset:next}):null;
-  await finishSource(db,staff,lease,{status:'success',method:result.method,feedUrl:['rss','atom'].includes(result.method)?result.document.url:undefined,etag:result.document.etag,modified:result.document.modified,cursor,retryAfter:cursor?2:300,fetched:batch.length,...counts});
+  await finishSource(db,staff,lease,{status:'success',method:result.method,feedUrl:['rss','atom'].includes(result.method)?result.document.url:undefined,etag:result.document.etag,modified:result.document.modified,cursor,retryAfter:cursor?60:(source.cadence_minutes||1440)*60,fetched:batch.length,...counts});
   return {ok:true,status:'success',source:source.name,fetched:batch.length,pending:!!cursor,...counts};
  }catch(e){
   const error=e instanceof CollectionError?e:new CollectionError('collection','Collection could not finish. Check your source settings and staff access.');

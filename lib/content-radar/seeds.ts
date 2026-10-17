@@ -1,6 +1,12 @@
 export const SOURCE_SEEDS=[
  {key:'topps-ripped',name:'Topps RIPPED',url:'https://ripped.topps.com/',category:'Baseball',priority:'high'},
  {key:'topps-calendar',name:'Topps Release Calendar',url:'https://www.topps.com/release-calendar',category:'Baseball',priority:'high'},
+ {key:'fanatics-news',name:'Fanatics official news',url:'https://www.fanaticsinc.com/press-releases/',category:'Memorabilia',priority:'high'},
+ {key:'fanatics-collect-news',name:'Fanatics Collect newsroom',url:'https://www.fanaticscollect.com/newsroom',category:'Auctions',priority:'high'},
+ {key:'dave-adams-news',name:"Dave & Adam's Card World",url:'https://www.dacardworld.com/blog/',category:'Baseball',priority:'normal'},
+ {key:'steel-city',name:'Steel City Collectibles',url:'https://www.steelcitycollectibles.com/',category:'Baseball',priority:'normal'},
+ // No public licensed API contract is configured. Never collect subscription market data from pages.
+ {key:'card-ladder-licensed',name:'Card Ladder (licensed access required)',url:'https://www.cardladder.com/',category:'Baseball',priority:'normal',social:true},
  {key:'beckett-calendar',name:'Beckett Release Calendar',url:'https://www.beckett.com/news/sports-card-release-calendar-dates/',category:'Baseball',priority:'high'},
  {key:'cardboard-connection',name:'Cardboard Connection',url:'https://www.cardboardconnection.com/',category:'Baseball',priority:'normal'},
  // Advertised by the publisher's RSS link; validated again before each import.

@@ -6,8 +6,9 @@ import {SOURCE_SEEDS} from './seeds.ts';
 import {canonicalUrl,fetchUrl} from './urls.ts';
 export type Lease={source:Source;token:string;runId:string};
 export async function seedSources(db:Database,_s:Staff){void _s;return command(db,'seed-sources',{sources:SOURCE_SEEDS});}
-export async function editSource(db:Database,_s:Staff,id:string,data:{name:string;url:string;category:string;priority:string;enabled:boolean;mode:string}){
+export async function editSource(db:Database,_s:Staff,id:string,data:{name:string;url:string;category:string;priority:string;enabled:boolean;mode:string;feedUrl?:string}){
  if(data.mode==='discover')try{fetchUrl(data.url,data.url);}catch{throw new RadarError(400,'Automatic collection is unavailable for this domain. Choose Manual links.');}
+ if(data.feedUrl)try{fetchUrl(data.feedUrl,data.url);}catch{throw new RadarError(400,'Use a supported feed on the same approved publisher domain.');}
  return command(db,'edit-source',{id,data});
 }
 export async function acquireSource(db:Database,_s:Staff,id?:string,_now?:Date):Promise<Lease|null>{void _now;return command(db,'acquire-source',{id});}
