@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { canonicalUrl } from './urls.ts';
 
-export const CATEGORIES = ['Baseball', 'Football', 'Basketball', 'Hockey', 'Pokemon', 'Other TCG', 'Memorabilia', 'Local Events'] as const;
+export const CATEGORIES = ['Baseball', 'Football', 'Basketball', 'Hockey', 'Pokemon', 'Other TCG', 'Memorabilia', 'Local Events', 'Entertainment cards', 'Consignment', 'Auctions', 'Store promotions'] as const;
 export const PRIORITIES = ['normal', 'high', 'urgent'] as const;
 export const STATUSES = ['new', 'saved', 'dismissed'] as const;
 export const KINDS = ['story', 'release', 'chase'] as const;
@@ -9,8 +9,7 @@ export const VERIFY = ['unverified', 'verified', 'disputed'] as const;
 export const DRAFT_STATUSES = ['draft', 'review', 'approved'] as const;
 export const CHANNELS = ['instagram', 'facebook', 'tiktok', 'x', 'email'] as const;
 export const sourceUrl = z.string().trim().max(2048).url().refine(value => {
-  const u = new URL(value);
-  return ['https:', 'http:'].includes(u.protocol) && !u.username && !u.password;
+  try {const u = new URL(value);return ['https:', 'http:'].includes(u.protocol) && !u.username && !u.password;}catch{return false;}
 }, 'Use an HTTP or HTTPS link without embedded credentials.').transform(value => {
   return canonicalUrl(value);
 });
@@ -22,7 +21,7 @@ export const itemInput = z.object({
   summary: z.string().trim().max(4000), tags: z.array(z.string().trim().min(1).max(40)).max(12),
 }).strict();
 export const sourceInput = z.object({ name: z.string().trim().min(1).max(150), url: sourceUrl, category: z.enum(CATEGORIES) }).strict();
-export const sourceSettings = sourceInput.extend({priority:z.enum(PRIORITIES),enabled:z.boolean(),mode:z.enum(['manual','discover'])}).strict();
+export const sourceSettings = sourceInput.extend({priority:z.enum(PRIORITIES),enabled:z.boolean(),mode:z.enum(['manual','discover']),cadenceMinutes:z.number().int().min(60).max(10080).default(1440),allowPage:z.boolean().default(false),permissionNote:z.string().trim().max(1000).default(''),feedUrl:sourceUrl.or(z.literal('')).default('')}).strict().refine(v=>!v.allowPage||v.permissionNote.length>=10,'Record publisher permission before enabling page retrieval.');
 export const commandInput = z.discriminatedUnion('action', [
   z.object({action:z.literal('add-item'), data:itemInput}).strict(),
   z.object({action:z.literal('seed-sources')}).strict(),
@@ -38,7 +37,7 @@ export const commandInput = z.discriminatedUnion('action', [
 export type RadarCommand = z.infer<typeof commandInput>;
 export type Item = {id:string; title:string; url:string; source_id:string|null; source_name:string|null; category:typeof CATEGORIES[number]; kind:typeof KINDS[number]; priority:typeof PRIORITIES[number]; status:typeof STATUSES[number]; verification:typeof VERIFY[number]; published_at:string|null; collected_at:string; event_date:string|null; summary:string; tags:string};
 export type Draft = {id:string; item_id:string; title:string; body:string; channel:typeof CHANNELS[number]; status:typeof DRAFT_STATUSES[number]; updated_at:string};
-export type Source = {id:string; name:string; url:string; category:string; verification:string; created_at:string;method:string;connection_status:string;priority:typeof PRIORITIES[number];enabled:number;feed_url:string|null;last_attempt:string|null;last_success:string|null;last_error:string|null;error_code:string|null;next_attempt:string|null;etag:string|null;modified:string|null;cursor:string|null;config_version:number};
+export type Source = {id:string; name:string; url:string; category:string; verification:string; created_at:string;method:string;connection_status:string;priority:typeof PRIORITIES[number];enabled:number;feed_url:string|null;last_attempt:string|null;last_success:string|null;last_error:string|null;error_code:string|null;next_attempt:string|null;etag:string|null;modified:string|null;cursor:string|null;config_version:number;cadence_minutes?:number;allow_page?:boolean;permission_note?:string};
 export type Publication={id:string;item_id:string;source_id:string;source_name:string;original_url:string;title:string;excerpt:string;published_at:string|null;event_date:string|null;observed_at:string};
 export type History = {id:string; item_id:string; entity:string; from_status:string|null; to_status:string; actor:string; created_at:string};
 export type RadarData = {items:Item[]; drafts:Draft[]; sources:Source[]; history:History[]; publications:Publication[]; runs:{id:string; status:string; started_at:string; finished_at:string|null; error:string|null;source_name:string|null;fetched:number;added:number;duplicates:number;updates:number}[]; total:number; hasMore:boolean};

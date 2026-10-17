@@ -24,12 +24,13 @@ export function HqShell({children}: {children: React.ReactNode}) {
   const requests = pathname === '/requests';
   const research = pathname === '/assets/research';
   const social = pathname === '/assets/social';
+  const intelligence = pathname === '/assets/research/intelligence';
   const tab = useSearchParams().get('tab');
   const checklist = pathname === '/projects' && (tab === 'store-open-checklist' || tab === 'launch');
   const jon = pathname === '/assets' && tab === 'jons-content';
   const record = pathname.startsWith('/projects/') || pathname.startsWith('/requests/');
-  const title = social ? 'Social Command Center' : checklist ? STORE_OPEN_CHECKLIST : jon ? 'Jon’s Content' : research ? 'Research & sources' : requests ? 'Requests' : section.label;
-  const description = social ? 'Shared research, review, scheduling and agent operations.' : checklist ? `Opening ${STORE_OPENING_DATE_LABEL} at ${STORE_OPENING_TIME_LABEL}` : jon ? 'Upload content, then assign it to a project or deliverable.' : research ? 'Collect stories, save ideas and keep the original sources close.' : requests ? 'Ask for work, track decisions and open editorial review.' : section.description;
+  const title = intelligence ? 'Content intelligence' : social ? 'Social Command Center' : checklist ? STORE_OPEN_CHECKLIST : jon ? 'Jon’s Content' : research ? 'Research & sources' : requests ? 'Requests' : section.label;
+  const description = intelligence ? 'Editorial briefings and measured post performance.' : social ? 'Shared research, review, scheduling and agent operations.' : checklist ? `Opening ${STORE_OPENING_DATE_LABEL} at ${STORE_OPENING_TIME_LABEL}` : jon ? 'Upload content, then assign it to a project or deliverable.' : research ? 'Collect stories, save ideas and keep the original sources close.' : requests ? 'Ask for work, track decisions and open editorial review.' : section.description;
   return <HqPageActionsContext.Provider value={actions}><div className="hub hq-shell">
     <a className="skip-link" href="#hq-main">Skip to main content</a>
     <header className="masthead hq-masthead">
@@ -43,6 +44,8 @@ export function HqShell({children}: {children: React.ReactNode}) {
       <main className="workspace hq-workspace" id="hq-main" tabIndex={-1}>
         {requests&&<Link className="hq-breadcrumb" href="/today">← Home</Link>}
         {!record && <header className="hq-page-heading"><div>{(checklist || jon || research) && <p className="hq-meta">{section.label}</p>}<h1>{title}</h1><p className="muted">{description}</p></div><div ref={setActions} className="hq-page-actions">{pathname==='/today'&&<Link className="hq-home-requests" href="/requests">Requests →</Link>}</div></header>}
+        {pathname==='/projects'&&tab==='performance'&&<Link href="/assets/research/intelligence?tab=performance">Post insights &amp; recommendations →</Link>}
+        {research&&<Link href="/assets/research/intelligence">Daily briefing &amp; performance →</Link>}
         {children}
         <footer className="hub-footer"><span>Northside HQ · Northside Collectibles</span><span>Publishing is manual · Updates stay in the app</span></footer>
       </main>

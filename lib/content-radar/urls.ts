@@ -8,7 +8,7 @@ export function canonicalUrl(value:string, base?:string) {
 }
 // Only these independently operated publishers are eligible for outbound requests.
 // Staff-supplied arbitrary domains (including Instagram) remain manual links.
-const groups=[['ripped.topps.com'],['topps.com','www.topps.com'],['beckett.com','www.beckett.com'],['cardboardconnection.com','www.cardboardconnection.com'],['pokebeach.com','www.pokebeach.com'],['pokeguardian.com','www.pokeguardian.com']];
+const groups=[['ripped.topps.com'],['topps.com','www.topps.com'],['beckett.com','www.beckett.com'],['cardboardconnection.com','www.cardboardconnection.com'],['pokebeach.com','www.pokebeach.com'],['pokeguardian.com','www.pokeguardian.com'],['fanaticsinc.com','www.fanaticsinc.com'],['fanaticscollect.com','www.fanaticscollect.com'],['dacardworld.com','www.dacardworld.com'],['steelcitycollectibles.com','www.steelcitycollectibles.com']];
 export function fetchUrl(value:string, source:string) {
  const u=new URL(value),s=new URL(source);
  const group=groups.find(g=>g.includes(s.hostname));

@@ -4,6 +4,8 @@ Northside Collectibles' internal workspace for projects, production, approvals a
 
 Read [the workflow, staff onboarding, preserved-data inventory, permissions, verification and rollout guide](docs/northside-hq.md). Social publishing remains manual. In-app assignment/review notifications persist; deadline reminders are checked while HQ is open because no background scheduler is configured.
 
+Content Radar's [content intelligence and analytics extension](docs/content-intelligence.md) adds configurable sources, source-backed briefings, read-only Meta history/insight batches, distinct-metric reporting and explicit editorial/calendar draft handoffs. The guide identifies its dependency PRs, pending staging gates and manual-only operating boundary.
+
 ## Run and verify
 
 Use Node 22.13 or newer and the pnpm version pinned in `package.json`.
