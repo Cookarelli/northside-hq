@@ -35,7 +35,7 @@ export function HqShell({children}: {children: React.ReactNode}) {
       <Link href="/today" className="hq-brand" aria-label="Northside HQ home">
         <Image src="/northside-collectibles-blue.svg" alt="Northside Collectibles" width={2070} height={572} unoptimized loading="eager" className="hq-logo"/>
       </Link>
-      <div className="header-meta"><ThemeToggle/><HqNotifications/><Link className="hq-settings-link" href="/settings" aria-current={active==='settings'?'page':undefined}><Settings size={18} aria-hidden="true"/>Settings</Link><SignOut/></div>
+      <div className="header-meta"><Link className="hq-settings-link" href="/projects/production" aria-current={pathname==='/projects/production'?'page':undefined}>Daily production</Link><ThemeToggle/><HqNotifications/><Link className="hq-settings-link" href="/settings" aria-current={active==='settings'?'page':undefined}><Settings size={18} aria-hidden="true"/>Settings</Link><SignOut/></div>
     </header>
     <div className="hq-frame">
       <nav ref={navigation} className="hq-navigation" aria-label="Main navigation">{hqSections.map(item=>{const Icon=icons[item.id];return <Link key={item.id} href={item.href} aria-current={active===item.id?'page':undefined}><Icon size={21} aria-hidden="true"/><span>{item.label}</span></Link>;})}</nav>
