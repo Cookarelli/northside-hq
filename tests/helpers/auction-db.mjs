@@ -2,7 +2,7 @@ import {readFile,readdir} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {blankProject,blankDeliverable} from '../../lib/hq-model.ts';
 
-export async function auctionDb({numbered=false}={}){
+export async function auctionDb({numbered=false,migrationFilter=()=>true}={}){
  const db=new PGlite(),actors=Object.fromEntries(['joey','steve','jon','brody','outsider','foreign','unsigned'].map((name,index)=>[name,`10000000-0000-4000-8000-${String(index+1).padStart(12,'0')}`]));
  await db.exec(`create role anon;create role authenticated;create role service_role;
  create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
@@ -13,7 +13,7 @@ export async function auctionDb({numbered=false}={}){
  create schema cron;create table cron.job(jobid bigint generated always as identity primary key,jobname text unique,schedule text,command text,active boolean default true);
  create function cron.schedule(name text,schedule text,command text) returns bigint language sql as $$insert into cron.job(jobname,schedule,command) values(name,schedule,command) on conflict(jobname) do update set schedule=excluded.schedule,command=excluded.command returning jobid$$;`);
  const directory=new URL('../../supabase/migrations/',import.meta.url);
- for(const file of (await readdir(directory)).sort())await db.exec((await readFile(new URL(file,directory),'utf8')).replace('create extension if not exists pg_cron with schema pg_catalog;',''));
+ for(const file of (await readdir(directory)).sort().filter(migrationFilter))await db.exec((await readFile(new URL(file,directory),'utf8')).replace('create extension if not exists pg_cron with schema pg_catalog;',''));
  for(const [name,uid] of Object.entries(actors)){
   await db.query('insert into auth.users values($1,$2,now())',[uid,name+'@example.test']);
   await db.query('insert into private.staff_access(email,org_id,id,name,role) values($1,$2,$3,$4,$5)',[name+'@example.test',name==='foreign'?'other-org':'northside-marketing',name,name[0].toUpperCase()+name.slice(1),name==='steve'?'admin':'staff']);

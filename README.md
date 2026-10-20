@@ -22,7 +22,7 @@ Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for th
 
 ## Existing deployment and database
 
-Continue with `Cookarelli/marketinghub`, the existing Vercel project `marketinghub-7vl1`, and the existing Supabase project. Do not import a replacement repository/project or reset the database. Apply only pending additive migrations after checking remote migration history, in the order documented in [the rollout guide](docs/northside-hq.md#additive-migrations-and-rollout). Preserve existing record IDs, workspace `northside-marketing`, private storage bucket and deployment connections.
+Continue with `Cookarelli/northside-hq`, the existing Vercel project `marketinghub-7vl1`, and the current Supabase project `yogdhpfattuxicwyxylb` (confirmed from production's served public configuration on October 20, 2026). Earlier references to `Cookarelli/marketinghub` and `sjbjotfzsnaolecxklxr` are historical. Do not import a replacement repository/project or reset the database. Apply only pending additive migrations after checking remote migration history, in the order documented in [the rollout guide](docs/northside-hq.md#additive-migrations-and-rollout). Preserve existing record IDs, workspace `northside-marketing`, private storage bucket and deployment connections.
 
 Individual Auth logins require verified email plus active membership in `private.staff_access`. Database RLS and checked transaction functions enforce organization and workflow permissions; client metadata never grants access. Active project members, individual deliverable assignees and administrators can update deliverable status, approve submitted work and record publication confirmations. Configured budget approvers establish project budgets; involved staff record deliverable budgets and actual spending. Configured coordinators decide requests.
 
@@ -52,3 +52,9 @@ See [navigation verification](docs/category-navigation.md) for the migration and
 See [category defaults, auction tabs, direct links and app-wide navigation verification](docs/category-navigation.md) for the shared category → tab/subpage → action navigation.
 
 See [project and deliverable deletion](docs/record-deletion.md) for confirmation, owner/admin permissions, retained history and the pending migration.
+
+### Daily social production (pending approval)
+
+The header's **Daily production** link opens `/projects/production`. Targets are 3 video originals and 3 static/carousel originals per day from October 20 through November 2, 2026, then 4 + 4 from November 3. Each original has separate Facebook and Instagram Story repost confirmations. Six pillar templates create explicit drafts through the existing HQ workflow; existing publishing deliverables can be classified without changing their content or historical facts. Metrics are manual, append-only observations with unknown values retained.
+
+Read the [functionality and deployed-system audit](docs/daily-production-audit.md), [implementation and release report](docs/daily-production-implementation.md), and [Meta prerequisite audit](docs/meta-prerequisites-audit.md). The new migration has not been applied to production. This draft adds `git.deploymentEnabled: false` in `vercel.json` to prevent Git-triggered deployments until an approved release; it does not modify current live project settings.
